@@ -47,9 +47,7 @@ delombok/
 # ========================
 # 🗄️ Database / Local config
 # ========================
-*.sql
-*.db
-*.sqlite
+
 
 # ========================
 # 🔐 Sensitive data
