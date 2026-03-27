@@ -30,8 +30,8 @@ public class App {
                     devRole.setRoleName("ADMIN");
                     devUser.setRole(devRole);
                     UserSessionContext.setCurrentUser(devUser);
-                    // Mở thẳng MainFrame
-                    // new MainFrame().setVisible(true);
+//                     Mở thẳng MainFrame
+//                     new MainFrame().setVisible(true);
                 } else {
                     // Chế độ Production thực tế
                     // new LoginFrame().setVisible(true);
