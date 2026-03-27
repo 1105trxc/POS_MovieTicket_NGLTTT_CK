@@ -1,6 +1,46 @@
 package com.cinema.management.service.impl;
 
-// TODO: implement service
+import com.cinema.management.model.entity.Product;
+import com.cinema.management.repository.ProductRepository;
+import com.cinema.management.service.IAuditLogService;
+import com.cinema.management.service.IProductService;
+import java.util.List;
 
-public class ProductServiceImpl {
+public class ProductServiceImpl implements IProductService {
+    private final ProductRepository productRepo;
+    private final IAuditLogService auditLogService;
+
+    public ProductServiceImpl(ProductRepository productRepo, IAuditLogService auditLogService) {
+        this.productRepo = productRepo;
+        this.auditLogService = auditLogService;
+    }
+
+    @Override
+    public List<Product> getAllProducts() {
+        return productRepo.findAll();
+    }
+
+    @Override
+    public Product getProductById(String id) {
+        return productRepo.findById(id);
+    }
+
+    @Override
+    public void createProduct(Product product) {
+        productRepo.save(product);
+        auditLogService.logAction("CREATE", "Product", "ID: " + product.getProductId(), "None",
+                product.getProductName());
+    }
+
+    @Override
+    public void updateProduct(Product product) {
+        productRepo.update(product);
+        auditLogService.logAction("UPDATE", "Product", "Sửa giá trị", "Unknown", product.getCurrentPrice().toString());
+    }
+
+    @Override
+    public void deleteProduct(String id) {
+        productRepo.delete(id);
+        auditLogService.logAction("DELETE", "Product", "Xóa sản phẩm", id, "None");
+    }
 }

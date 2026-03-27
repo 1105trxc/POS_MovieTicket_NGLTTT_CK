@@ -3,6 +3,7 @@ package com.cinema.management.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Entity
@@ -35,6 +36,21 @@ public class User {
     @Column(name = "IsActive", nullable = false)
     @Builder.Default
     private Boolean isActive = true;
+
+    @Column(name = "Phone", length = 20)
+    private String phone;
+
+    @Column(name = "Email", length = 100)
+    private String email;
+
+    @Column(name = "BirthDate")
+    private LocalDate birthDate;
+
+    @Column(name = "CCCD", length = 20, unique = true)
+    private String cccd;
+
+    @Column(name = "Gender", length = 10)
+    private String gender;
 
     @OneToMany(mappedBy = "changedBy", fetch = FetchType.LAZY)
     @ToString.Exclude
