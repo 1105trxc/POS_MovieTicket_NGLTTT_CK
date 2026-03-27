@@ -1,6 +1,7 @@
 package com.cinema.management;
 
 import com.cinema.management.config.JpaUtil;
+import com.cinema.management.view.main.MainFrame;
 
 import javax.swing.*;
 
@@ -13,11 +14,19 @@ public class App {
         // Đảm bảo Swing chạy trên Event Dispatch Thread
         SwingUtilities.invokeLater(() -> {
             try {
+                // Look and Feel hệ thống (Windows/macOS native)
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception ignored) {}
+
+            try {
                 // Khởi tạo kết nối database
                 JpaUtil.getEntityManagerFactory();
 
-                // TODO: Mở màn hình đăng nhập
+                // TODO: Module Thành viên B – mở LoginFrame trước, sau đó mới mở MainFrame
                 // new LoginFrame().setVisible(true);
+
+                // Tạm thời mở thẳng MainFrame để demo Module 1
+                new MainFrame();
 
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(null,
