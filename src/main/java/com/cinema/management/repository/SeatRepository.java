@@ -17,7 +17,11 @@ public class SeatRepository {
         EntityManager em = JpaUtil.getEntityManager();
         try {
             return em.createQuery(
-                            "SELECT s FROM Seat s WHERE s.room.roomId = :roomId ORDER BY s.rowChar, s.seatNumber",
+                            "SELECT s FROM Seat s " +
+                                    "JOIN FETCH s.seatType " +
+                                    "JOIN FETCH s.room " +
+                                    "WHERE s.room.roomId = :roomId " +
+                                    "ORDER BY s.rowChar, s.seatNumber",
                             Seat.class)
                     .setParameter("roomId", roomId)
                     .getResultList();
