@@ -8,168 +8,204 @@ import com.cinema.management.view.management.SeatManagementPanel;
 import com.cinema.management.view.management.ShowTimeManagementPanel;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Cửa sổ chính của ứng dụng Cinema Management System.
- * Sử dụng JTabbedPane để phân chia các phân hệ theo SRS §4.1.
- *
- * Module 1 (Thành viên A): Phòng chiếu, Ghế, Suất chiếu.
- * Module 2 (Thành viên A): Bán vé POS.
- * Module 3 (Thành viên A): Thanh toán & Xuất vé.
- * Module B (Thành viên B): Phim/F&B, Khách hàng, Tài khoản – placeholder.
- *
- * Luồng Module 2 → 3: Tab "Bán vé" dùng CardLayout để chuyển giữa
- * BookingPanel (chọn ghế) và CheckoutPanel (thanh toán) mà không đổi tab.
- */
 public class MainFrame extends JFrame {
 
-    private static final int WIDTH  = 1280;
-    private static final int HEIGHT = 820;
+    private static final int WIDTH = 1440;
+    private static final int HEIGHT = 900;
 
-    private final JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.LEFT);
+    // Bảng màu hiện đại (Modern Color Palette)
+    private static final Color BG_APP = new Color(245, 247, 250);
+    private static final Color BG_SIDEBAR = new Color(30, 41, 59); // Dark Slate
+    private static final Color TEXT_SIDEBAR = new Color(241, 245, 249);
+    private static final Color BG_HEADER = new Color(255, 255, 255);
+    private static final Color ACCENT_COLOR = new Color(14, 165, 233); // Sky Blue
 
-    /**
-     * userId nhân viên đang đăng nhập.
-     * TODO: nhận từ LoginFrame khi Module Auth (Thành viên B) hoàn thành.
-     */
-    private String loggedInUserId = "STAFF_DEMO";
+    private final JTabbedPane tabbedPane;
+    private String loggedInUserId = "U003";
+    private String userRole = "STAFF"; // Mặc định là Staff để đảm bảo an toàn
 
-    // ── Tab Bán vé dùng CardLayout ────────────────────────────────────────────
-    private static final String CARD_BOOKING  = "BOOKING";
+    private static final String CARD_BOOKING = "BOOKING";
     private static final String CARD_CHECKOUT = "CHECKOUT";
 
-    private final JPanel      posCardContainer = new JPanel();
-    private final CardLayout  posCardLayout    = new CardLayout();
-    private BookingPanel      bookingPanel;
+    private final JPanel posCardContainer = new JPanel();
+    private final CardLayout posCardLayout = new CardLayout();
+    private BookingPanel bookingPanel;
+    private JPanel posTabPanel;
 
-    public MainFrame() {
+    // Constructor cập nhật thêm userRole để phân quyền theo yêu cầu SRS
+    public MainFrame(String userId, String userRole) {
+        this.loggedInUserId = userId;
+        this.userRole = userRole;
+
+        // Tinh chỉnh UIManager cho JTabbedPane nhìn phẳng và hiện đại hơn
+        setupModernUI();
+
+        tabbedPane = new JTabbedPane(JTabbedPane.LEFT);
         initFrame();
         buildTabs();
         setVisible(true);
     }
 
-    public MainFrame(String userId) {
-        this.loggedInUserId = userId;
-        initFrame();
-        buildTabs();
-        setVisible(true);
+    private void setupModernUI() {
+        UIManager.put("TabbedPane.contentBorderInsets", new Insets(0, 0, 0, 0));
+        UIManager.put("TabbedPane.tabsOverlapBorder", true);
+        UIManager.put("TabbedPane.selected", BG_APP);
+        UIManager.put("TabbedPane.focus", new Color(0, 0, 0, 0));
     }
 
     private void initFrame() {
-        setTitle("Cinema Management System  |  " + loggedInUserId);
+        setTitle("Cinema POS & Management System - Enterprise Edition");
         setSize(WIDTH, HEIGHT);
-        setMinimumSize(new Dimension(1024, 680));
+        setMinimumSize(new Dimension(1280, 720));
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout());
+        setLayout(new BorderLayout(0, 0));
+        getContentPane().setBackground(BG_APP);
 
-        tabbedPane.setFont(new Font("Arial", Font.BOLD, 13));
-        tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
-        add(tabbedPane, BorderLayout.CENTER);
+        // Header
+        add(buildHeader(), BorderLayout.NORTH);
 
-        JLabel statusBar = new JLabel(
-                "  Cinema Management System  |  Nhân viên: " + loggedInUserId + "  |  Sẵn sàng");
-        statusBar.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(200, 200, 200)),
-                BorderFactory.createEmptyBorder(4, 8, 4, 8)));
-        statusBar.setFont(new Font("Arial", Font.PLAIN, 11));
-        add(statusBar, BorderLayout.SOUTH);
+        // Main Content Area
+        JPanel centerPanel = new JPanel(new BorderLayout());
+        centerPanel.setOpaque(false);
+
+        // Cấu hình Sidebar TabbedPane
+        styleSidebarTabs();
+        centerPanel.add(tabbedPane, BorderLayout.CENTER);
+
+        add(centerPanel, BorderLayout.CENTER);
+
+        // Status Bar
+        add(buildStatusBar(), BorderLayout.SOUTH);
+    }
+
+    private JPanel buildHeader() {
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(BG_HEADER);
+        header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)));
+        header.setPreferredSize(new Dimension(WIDTH, 60));
+
+        JLabel brand = new JLabel("  CINEMA NEXUS");
+        brand.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        brand.setForeground(new Color(15, 23, 42));
+        brand.setIcon(UIManager.getIcon("FileView.computerIcon")); // Thay bằng Icon Logo thực tế
+
+        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 15));
+        rightPanel.setOpaque(false);
+
+        JLabel roleBadge = new JLabel("Role: " + userRole);
+        roleBadge.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        roleBadge.setForeground(ACCENT_COLOR);
+
+        JLabel userLabel = new JLabel("Hi, " + loggedInUserId);
+        userLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
+        rightPanel.add(roleBadge);
+        rightPanel.add(userLabel);
+
+        header.add(brand, BorderLayout.WEST);
+        header.add(rightPanel, BorderLayout.EAST);
+        return header;
+    }
+
+    private JPanel buildStatusBar() {
+        JPanel statusBar = new JPanel(new BorderLayout());
+        statusBar.setBackground(BG_HEADER);
+        statusBar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(226, 232, 240)));
+        statusBar.setPreferredSize(new Dimension(WIDTH, 30));
+
+        JLabel statusText = new JLabel("  System Online | Server Sync: OK");
+        statusText.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        statusText.setForeground(new Color(100, 116, 139));
+
+        statusBar.add(statusText, BorderLayout.WEST);
+        return statusBar;
+    }
+
+    private void styleSidebarTabs() {
+        tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        tabbedPane.setBackground(BG_SIDEBAR);
+        tabbedPane.setForeground(TEXT_SIDEBAR);
+        // Padding cho text trong tab để tạo cảm giác rộng rãi như button menu
+        UIManager.put("TabbedPane.tabAreaInsets", new Insets(10, 0, 0, 0));
     }
 
     private void buildTabs() {
-        // ── Module 1: Thành viên A ──────────────────────────────────────────
-        tabbedPane.addTab("🏠 Phòng chiếu",  new RoomManagementPanel());
-        tabbedPane.addTab("🪑 Ghế ngồi",     new SeatManagementPanel());
-        tabbedPane.addTab("🎬 Suất chiếu",   new ShowTimeManagementPanel());
+        // Tab dùng chung cho cả Staff và Admin (POS, CRM) [cite: 37]
+        posTabPanel = buildPosTab();
+        tabbedPane.addTab("   Ticket Sales (POS)   ", posTabPanel);
+        tabbedPane.addTab("   Customers (CRM)   ", buildPlaceholder("CRM Module is currently active."));
 
-        // ── Module 2 + 3: Thành viên A ─────────────────────────────────────
-        tabbedPane.addTab("🎫 Bán vé (POS)", buildPosTab());
+        // Tab dành riêng cho Admin dựa trên Business Rule BR-02 [cite: 49, 87, 88]
+        if ("ADMIN".equalsIgnoreCase(userRole)) {
+            tabbedPane.addTab("   Room Management   ", new RoomManagementPanel());
+            tabbedPane.addTab("   Seat Management   ", new SeatManagementPanel());
+            tabbedPane.addTab("   Showtime Mgmt     ", new ShowTimeManagementPanel());
+            tabbedPane.addTab("   Movies & F&B      ", buildPlaceholder("Catalog Management..."));
+            tabbedPane.addTab("   Users & Audit Log ", buildPlaceholder("System Logs & Staff Management..."));
+        }
 
-        // ── Module B placeholder (Thành viên B sẽ ráp vào) ─────────────────
-        tabbedPane.addTab("🎥 Phim & F&B",
-                buildPlaceholder("Module Phim & F&B\n(Thành viên B – đang phát triển)"));
-        tabbedPane.addTab("👥 Khách hàng",
-                buildPlaceholder("Module CRM & Khuyến mãi\n(Thành viên B – đang phát triển)"));
-        tabbedPane.addTab("🔐 Tài khoản",
-                buildPlaceholder("Module Phân quyền & Audit Log\n(Thành viên B – đang phát triển)"));
+        tabbedPane.addChangeListener(e -> {
+            if (tabbedPane.getSelectedComponent() == posTabPanel && bookingPanel != null) {
+                bookingPanel.refreshShowTimeList();
+            }
+        });
     }
-
-    // ── POS tab: BookingPanel ⇄ CheckoutPanel ─────────────────────────────────
 
     private JPanel buildPosTab() {
         posCardContainer.setLayout(posCardLayout);
+        posCardContainer.setOpaque(false);
+        posCardContainer.setBorder(new EmptyBorder(15, 15, 15, 15));
 
         bookingPanel = new BookingPanel(loggedInUserId);
-
-        // Khi bấm "Thanh toán" trên BookingPanel → chuyển sang CheckoutPanel
         bookingPanel.setOnProceedToCheckout(this::switchToCheckout);
 
         posCardContainer.add(bookingPanel, CARD_BOOKING);
-        // CheckoutPanel được tạo động khi cần (switchToCheckout)
         posCardLayout.show(posCardContainer, CARD_BOOKING);
         return posCardContainer;
     }
 
-    /**
-     * Tạo CheckoutPanel với snapshot dữ liệu hiện tại của BookingPanel,
-     * rồi chuyển card sang CheckoutPanel.
-     */
     private void switchToCheckout() {
-        String showTimeId     = bookingPanel.getCurrentShowTimeId();
-        String staffUserId    = bookingPanel.getCurrentUserId();
+        String showTimeId = bookingPanel.getCurrentShowTimeId();
+        String staffUserId = bookingPanel.getCurrentUserId();
         List<SeatStatusDto> seats = bookingPanel.getCurrentSelectedSeats();
-        Map<String, Integer> fb   = bookingPanel.getCurrentFbItems();
+        Map<String, Integer> fb = bookingPanel.getCurrentFbItems();
 
-        // Tính seatTotal để truyền vào CheckoutPanel hiển thị ngay
         BigDecimal seatTotal = seats.stream()
                 .map(SeatStatusDto::getBasePrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        // fbTotal: lấy xấp xỉ 0 vì CheckoutPanel sẽ tự tính khi cần
         BigDecimal fbTotal = BigDecimal.ZERO;
 
         CheckoutPanel checkoutPanel = new CheckoutPanel(
                 showTimeId, staffUserId, seats, fb, seatTotal, fbTotal);
-
-        // Nút "Quay lại" trên CheckoutPanel → trở về BookingPanel
         checkoutPanel.setOnBack(this::switchToBooking);
 
-        // Gỡ CheckoutPanel cũ (nếu có) và thêm mới để tránh stale data
         posCardContainer.add(checkoutPanel, CARD_CHECKOUT);
         posCardLayout.show(posCardContainer, CARD_CHECKOUT);
-        posCardContainer.revalidate();
-        posCardContainer.repaint();
     }
 
-    /** Quay về BookingPanel và refresh sơ đồ ghế. */
     private void switchToBooking() {
-        // Gỡ CheckoutPanel cũ để giải phóng bộ nhớ
         for (Component comp : posCardContainer.getComponents()) {
-            if (CARD_CHECKOUT.equals(((JPanel) posCardContainer).getName())
-                    || comp instanceof CheckoutPanel) {
+            if (comp instanceof CheckoutPanel) {
                 posCardContainer.remove(comp);
                 break;
             }
         }
         posCardLayout.show(posCardContainer, CARD_BOOKING);
-        posCardContainer.revalidate();
-        posCardContainer.repaint();
     }
-
-    // ── Placeholder ───────────────────────────────────────────────────────────
 
     private JPanel buildPlaceholder(String message) {
         JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(new Color(248, 249, 250));
-        JLabel lbl = new JLabel(
-                "<html><center>" + message.replace("\n", "<br>") + "</center></html>");
-        lbl.setFont(new Font("Arial", Font.ITALIC, 16));
-        lbl.setForeground(new Color(150, 150, 150));
-        lbl.setHorizontalAlignment(SwingConstants.CENTER);
+        panel.setBackground(BG_APP);
+        JLabel lbl = new JLabel("<html><center><h3>" + message + "</h3><p>Under construction or restricted access.</p></center></html>");
+        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        lbl.setForeground(new Color(100, 116, 139));
         panel.add(lbl);
         return panel;
     }

@@ -85,6 +85,34 @@ public class ShowTimeRepository {
         }
     }
 
+    public boolean hasAnyBookings(String showTimeId) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            Long count = em.createQuery(
+                            "SELECT COUNT(bs) FROM BookingSeat bs WHERE bs.id.showTimeId = :showTimeId",
+                            Long.class)
+                    .setParameter("showTimeId", showTimeId)
+                    .getSingleResult();
+            return count > 0;
+        } finally {
+            em.close();
+        }
+    }
+
+    public boolean hasAnySeatLocks(String showTimeId) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            Long count = em.createQuery(
+                            "SELECT COUNT(sl) FROM SeatLock sl WHERE sl.id.showTimeId = :showTimeId",
+                            Long.class)
+                    .setParameter("showTimeId", showTimeId)
+                    .getSingleResult();
+            return count > 0;
+        } finally {
+            em.close();
+        }
+    }
+
     public ShowTime save(ShowTime showTime) {
         EntityManager em = JpaUtil.getEntityManager();
         EntityTransaction tx = em.getTransaction();

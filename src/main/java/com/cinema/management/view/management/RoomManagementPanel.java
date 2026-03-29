@@ -7,47 +7,49 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.util.List;
 
-/**
- * Panel Quản lý Phòng chiếu.
- * Tuân thủ MVC: chỉ gọi Controller, không có business logic.
- * Layout: trái = JTable danh sách phòng | phải = Form thêm/sửa.
- */
 public class RoomManagementPanel extends JPanel {
 
-    // ── Controller ───────────────────────────────────────────────────────────
     private final RoomController roomController = new RoomController();
 
-    // ── Table ────────────────────────────────────────────────────────────────
-    private final String[] COLUMNS = {"Mã phòng", "Tên phòng", "Sức chứa"};
+    // Đồng bộ bảng màu với hệ thống MainFrame & ShowTime
+    private static final Color BG = new Color(245, 247, 250);
+    private static final Color CARD = Color.WHITE;
+    private static final Color HEADER = new Color(30, 41, 59);
+    private static final Color PRIMARY = new Color(14, 165, 233); // Sky Blue
+    private static final Color SUCCESS = new Color(34, 197, 94);  // Green
+    private static final Color DANGER = new Color(239, 68, 68);   // Red
+
+    private final String[] COLUMNS = {"Room ID", "Room Name", "Capacity"};
     private final DefaultTableModel tableModel = new DefaultTableModel(COLUMNS, 0) {
-        @Override public boolean isCellEditable(int row, int col) { return false; }
+        @Override
+        public boolean isCellEditable(int row, int col) {
+            return false;
+        }
     };
     private final JTable table = new JTable(tableModel);
+    private TableRowSorter<DefaultTableModel> rowSorter;
 
-    // ── Form fields ──────────────────────────────────────────────────────────
-    private final JTextField txtRoomName = new JTextField(20);
-    private final JSpinner spinCapacity   = new JSpinner(new SpinnerNumberModel(100, 1, 1000, 1));
-    private final JButton btnAdd    = new JButton("Thêm");
-    private final JButton btnUpdate = new JButton("Cập nhật");
-    private final JButton btnDelete = new JButton("Xóa");
-    private final JButton btnClear  = new JButton("Làm mới");
+    private final JTextField txtRoomName = new JTextField(16);
+    private final JSpinner spinCapacity = new JSpinner(new SpinnerNumberModel(100, 1, 1000, 1));
 
-    /** ID của phòng đang được chọn để sửa/xóa; null khi đang ở mode Thêm. */
-    private String selectedRoomId = null;
+    private final JButton btnAdd = new JButton("Add New");
+    private final JButton btnUpdate = new JButton("Update");
+    private final JButton btnDelete = new JButton("Delete");
+    private final JButton btnClear = new JButton("Reset Form");
 
-    // ── Colors ───────────────────────────────────────────────────────────────
-    private static final Color PRIMARY   = new Color(41, 128, 185);
-    private static final Color DANGER    = new Color(192, 57, 43);
-    private static final Color SUCCESS   = new Color(39, 174, 96);
-    private static final Color BG_HEADER = new Color(52, 73, 94);
+    private String selectedRoomId;
 
     public RoomManagementPanel() {
-        setLayout(new BorderLayout(10, 10));
-        setBorder(new EmptyBorder(16, 16, 16, 16));
-        setBackground(Color.WHITE);
+        setLayout(new BorderLayout(15, 15));
+        setBorder(new EmptyBorder(15, 15, 15, 15));
+        setBackground(BG);
+
+        // Placeholder cho Textfield
+        txtRoomName.putClientProperty("JTextField.placeholderText", "Enter room name...");
 
         add(buildHeader(), BorderLayout.NORTH);
         add(buildCenter(), BorderLayout.CENTER);
@@ -56,125 +58,203 @@ public class RoomManagementPanel extends JPanel {
         configureTableSelection();
     }
 
-    // ── Build UI ─────────────────────────────────────────────────────────────
-
     private JPanel buildHeader() {
         JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(BG_HEADER);
-        header.setBorder(new EmptyBorder(10, 16, 10, 16));
-        JLabel title = new JLabel("QUẢN LÝ PHÒNG CHIẾU");
-        title.setFont(new Font("Arial", Font.BOLD, 18));
+        header.setBackground(HEADER);
+        header.setBorder(new EmptyBorder(16, 20, 16, 20));
+
+        JLabel title = new JLabel("ROOM MANAGEMENT");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
         title.setForeground(Color.WHITE);
-        header.add(title, BorderLayout.WEST);
+
+        JLabel sub = new JLabel("Manage screening rooms and their seat capacities");
+        sub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        sub.setForeground(new Color(148, 163, 184));
+
+        JPanel left = new JPanel();
+        left.setOpaque(false);
+        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
+        left.add(title);
+        left.add(Box.createVerticalStrut(4));
+        left.add(sub);
+
+        header.add(left, BorderLayout.WEST);
         return header;
     }
 
-    private JSplitPane buildCenter() {
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                buildTablePanel(), buildFormPanel());
-        split.setDividerLocation(520);
-        split.setDividerSize(6);
-        split.setBorder(null);
-        return split;
+    private JPanel buildCenter() {
+        // Thay thế JSplitPane bằng BorderLayout với Form cố định bên phải
+        JPanel centerContainer = new JPanel(new BorderLayout(15, 0));
+        centerContainer.setOpaque(false);
+
+        centerContainer.add(buildTableArea(), BorderLayout.CENTER);
+        centerContainer.add(buildFormPanel(), BorderLayout.EAST);
+
+        return centerContainer;
     }
 
-    private JPanel buildTablePanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 8));
-        panel.setBackground(Color.WHITE);
+    private JPanel buildTableArea() {
+        JPanel panel = new JPanel(new BorderLayout(0, 12));
+        panel.setBackground(CARD);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(226, 232, 240)),
+                new EmptyBorder(15, 15, 15, 15)));
 
-        // Table styling
-        table.setRowHeight(30);
-        table.setFont(new Font("Arial", Font.PLAIN, 13));
-        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 13));
-        table.getTableHeader().setBackground(PRIMARY);
-        table.getTableHeader().setForeground(Color.WHITE);
-        table.setSelectionBackground(new Color(210, 234, 255));
-        table.setGridColor(new Color(220, 220, 220));
-        table.setShowVerticalLines(false);
+        // --- LIVE SEARCH BAR ---
+        JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        filterBar.setOpaque(false);
 
-        // Column widths
-        table.getColumnModel().getColumn(0).setPreferredWidth(120);
-        table.getColumnModel().getColumn(1).setPreferredWidth(220);
-        table.getColumnModel().getColumn(2).setPreferredWidth(100);
+        JLabel lblSearch = new JLabel("🔍 Quick Search:");
+        lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        filterBar.add(lblSearch);
 
-        JScrollPane scroll = new JScrollPane(table);
-        scroll.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
+        JTextField txtLiveSearch = new JTextField();
+        txtLiveSearch.putClientProperty("JTextField.placeholderText", "Search by room ID or name...");
+        txtLiveSearch.setPreferredSize(new Dimension(350, 36));
+        filterBar.add(txtLiveSearch);
 
-        // Refresh button bar
-        JButton btnRefresh = new JButton("🔄 Làm mới danh sách");
-        btnRefresh.setFont(new Font("Arial", Font.PLAIN, 12));
-        btnRefresh.addActionListener(e -> loadTable());
+        panel.add(filterBar, BorderLayout.NORTH);
 
-        panel.add(scroll, BorderLayout.CENTER);
-        panel.add(btnRefresh, BorderLayout.SOUTH);
+        // --- TABLE SETUP ---
+        styleTable(table);
+        rowSorter = new TableRowSorter<>(tableModel);
+        table.setRowSorter(rowSorter);
+
+        txtLiveSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                applyFilter();
+            }
+
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                applyFilter();
+            }
+
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                applyFilter();
+            }
+
+            private void applyFilter() {
+                String text = txtLiveSearch.getText().trim();
+                if (text.isEmpty()) {
+                    rowSorter.setRowFilter(null);
+                } else {
+                    rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+                }
+            }
+        });
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240)));
+        panel.add(scrollPane, BorderLayout.CENTER);
+
         return panel;
     }
 
     private JPanel buildFormPanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 12));
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(new EmptyBorder(0, 12, 0, 0));
+        JPanel panel = new JPanel(new BorderLayout(0, 15));
+        panel.setBackground(CARD);
+        panel.setPreferredSize(new Dimension(380, 0)); // Fix chiều rộng Form
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(226, 232, 240)),
+                new EmptyBorder(15, 15, 15, 15)));
 
-        // ── Fields ──
         JPanel fields = new JPanel(new GridBagLayout());
-        fields.setBackground(Color.WHITE);
-        fields.setBorder(new TitledBorder(
-                BorderFactory.createLineBorder(PRIMARY, 1), "Thông tin phòng chiếu",
+        fields.setOpaque(false);
+        fields.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(new Color(203, 213, 225)),
+                "  Room Details  ",
                 TitledBorder.LEFT, TitledBorder.TOP,
-                new Font("Arial", Font.BOLD, 13), PRIMARY));
+                new Font("Segoe UI", Font.BOLD, 13),
+                new Color(71, 85, 105)));
 
         GridBagConstraints gc = new GridBagConstraints();
-        gc.insets = new Insets(8, 8, 8, 8);
+        gc.insets = new Insets(10, 10, 10, 10);
         gc.anchor = GridBagConstraints.WEST;
 
-        // Tên phòng
-        gc.gridx = 0; gc.gridy = 0; gc.fill = GridBagConstraints.NONE;
-        fields.add(new JLabel("Tên phòng (*):"), gc);
-        gc.gridx = 1; gc.fill = GridBagConstraints.HORIZONTAL; gc.weightx = 1.0;
+        Dimension fieldSize = new Dimension(220, 36);
+        txtRoomName.setPreferredSize(fieldSize);
+        spinCapacity.setPreferredSize(fieldSize);
+
+        gc.gridx = 0;
+        gc.gridy = 0;
+        gc.weightx = 0;
+        fields.add(new JLabel("Room Name:"), gc);
+        gc.gridx = 1;
+        gc.fill = GridBagConstraints.HORIZONTAL;
+        gc.weightx = 1;
         fields.add(txtRoomName, gc);
 
-        // Sức chứa
-        gc.gridx = 0; gc.gridy = 1; gc.fill = GridBagConstraints.NONE; gc.weightx = 0;
-        fields.add(new JLabel("Sức chứa (*):"), gc);
-        gc.gridx = 1; gc.fill = GridBagConstraints.HORIZONTAL; gc.weightx = 1.0;
-        spinCapacity.setPreferredSize(new Dimension(100, 28));
+        gc.gridx = 0;
+        gc.gridy = 1;
+        gc.fill = GridBagConstraints.NONE;
+        gc.weightx = 0;
+        fields.add(new JLabel("Capacity:"), gc);
+        gc.gridx = 1;
+        gc.fill = GridBagConstraints.HORIZONTAL;
+        gc.weightx = 1;
         fields.add(spinCapacity, gc);
 
         panel.add(fields, BorderLayout.NORTH);
 
-        // ── Buttons ──
-        JPanel btnPanel = new JPanel(new GridLayout(2, 2, 8, 8));
-        btnPanel.setBackground(Color.WHITE);
-        styleButton(btnAdd,    SUCCESS,  Color.WHITE);
-        styleButton(btnUpdate, PRIMARY,  Color.WHITE);
-        styleButton(btnDelete, DANGER,   Color.WHITE);
-        styleButton(btnClear,  new Color(149, 165, 166), Color.WHITE);
+        // --- BUTTONS PANEL ---
+        JPanel buttons = new JPanel(new GridLayout(2, 2, 10, 10));
+        buttons.setOpaque(false);
 
-        btnAdd.addActionListener(e    -> onAdd());
+        styleActionButtons();
+
+        btnAdd.addActionListener(e -> onAdd());
         btnUpdate.addActionListener(e -> onUpdate());
         btnDelete.addActionListener(e -> onDelete());
-        btnClear.addActionListener(e  -> clearForm());
-
-        btnPanel.add(btnAdd);
-        btnPanel.add(btnUpdate);
-        btnPanel.add(btnDelete);
-        btnPanel.add(btnClear);
+        btnClear.addActionListener(e -> clearForm());
 
         btnUpdate.setEnabled(false);
         btnDelete.setEnabled(false);
 
-        panel.add(btnPanel, BorderLayout.CENTER);
+        buttons.add(btnAdd);
+        buttons.add(btnUpdate);
+        buttons.add(btnDelete);
+        buttons.add(btnClear);
+
+        panel.add(buttons, BorderLayout.SOUTH);
         return panel;
     }
 
-    // ── Event Handlers (chỉ gọi Controller) ─────────────────────────────────
+    private void styleActionButtons() {
+        btnAdd.setBackground(SUCCESS);
+        btnAdd.setForeground(Color.WHITE);
+        btnAdd.setFont(new Font("Segoe UI", Font.BOLD, 13));
+
+        btnUpdate.setBackground(PRIMARY);
+        btnUpdate.setForeground(Color.WHITE);
+        btnUpdate.setFont(new Font("Segoe UI", Font.BOLD, 13));
+
+        btnDelete.setBackground(DANGER);
+        btnDelete.setForeground(Color.WHITE);
+        btnDelete.setFont(new Font("Segoe UI", Font.BOLD, 13));
+
+        btnClear.setFont(new Font("Segoe UI", Font.BOLD, 13));
+    }
+
+    private void styleTable(JTable tbl) {
+        tbl.setRowHeight(38);
+        tbl.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        tbl.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
+        tbl.setSelectionBackground(new Color(224, 242, 254)); // Light Sky Blue
+        tbl.setSelectionForeground(new Color(15, 23, 42));
+        tbl.setGridColor(new Color(241, 245, 249));
+        tbl.setShowVerticalLines(false);
+    }
 
     private void onAdd() {
         String name = txtRoomName.getText().trim();
+        if (name.isEmpty()) {
+            showError("Room name cannot be empty.");
+            return;
+        }
         int capacity = (int) spinCapacity.getValue();
         try {
             roomController.addRoom(name, capacity);
-            showSuccess("Thêm phòng '" + name + "' thành công!");
+            showSuccess("Room added successfully.");
             clearForm();
             loadTable();
         } catch (Exception ex) {
@@ -183,12 +263,19 @@ public class RoomManagementPanel extends JPanel {
     }
 
     private void onUpdate() {
-        if (selectedRoomId == null) { showError("Vui lòng chọn phòng cần cập nhật."); return; }
+        if (selectedRoomId == null) {
+            showError("Please select a room to update.");
+            return;
+        }
         String name = txtRoomName.getText().trim();
+        if (name.isEmpty()) {
+            showError("Room name cannot be empty.");
+            return;
+        }
         int capacity = (int) spinCapacity.getValue();
         try {
             roomController.updateRoom(selectedRoomId, name, capacity);
-            showSuccess("Cập nhật phòng thành công!");
+            showSuccess("Room updated successfully.");
             clearForm();
             loadTable();
         } catch (Exception ex) {
@@ -197,22 +284,25 @@ public class RoomManagementPanel extends JPanel {
     }
 
     private void onDelete() {
-        if (selectedRoomId == null) { showError("Vui lòng chọn phòng cần xóa."); return; }
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "Bạn có chắc muốn xóa phòng này?",
-                "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (selectedRoomId == null) {
+            showError("Please select a room to delete.");
+            return;
+        }
+        int confirm = JOptionPane.showConfirmDialog(
+                this, "Are you sure you want to delete this room?", "Confirm Deletion",
+                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+
         if (confirm != JOptionPane.YES_OPTION) return;
+
         try {
             roomController.deleteRoom(selectedRoomId);
-            showSuccess("Xóa phòng thành công!");
+            showSuccess("Room deleted successfully.");
             clearForm();
             loadTable();
         } catch (Exception ex) {
             showError(ex.getMessage());
         }
     }
-
-    // ── Table helpers ────────────────────────────────────────────────────────
 
     private void loadTable() {
         tableModel.setRowCount(0);
@@ -225,11 +315,18 @@ public class RoomManagementPanel extends JPanel {
     private void configureTableSelection() {
         table.getSelectionModel().addListSelectionListener(e -> {
             if (e.getValueIsAdjusting()) return;
-            int row = table.getSelectedRow();
-            if (row < 0) { clearForm(); return; }
-            selectedRoomId = (String) tableModel.getValueAt(row, 0);
-            txtRoomName.setText((String) tableModel.getValueAt(row, 1));
-            spinCapacity.setValue(tableModel.getValueAt(row, 2));
+            int viewRow = table.getSelectedRow();
+            if (viewRow < 0) {
+                clearForm();
+                return;
+            }
+            // Ánh xạ lại index khi bảng bị filter
+            int modelRow = table.convertRowIndexToModel(viewRow);
+
+            selectedRoomId = (String) tableModel.getValueAt(modelRow, 0);
+            txtRoomName.setText((String) tableModel.getValueAt(modelRow, 1));
+            spinCapacity.setValue(tableModel.getValueAt(modelRow, 2));
+
             btnUpdate.setEnabled(true);
             btnDelete.setEnabled(true);
             btnAdd.setEnabled(false);
@@ -241,29 +338,17 @@ public class RoomManagementPanel extends JPanel {
         txtRoomName.setText("");
         spinCapacity.setValue(100);
         table.clearSelection();
+
         btnAdd.setEnabled(true);
         btnUpdate.setEnabled(false);
         btnDelete.setEnabled(false);
-        txtRoomName.requestFocus();
-    }
-
-    // ── Utility ──────────────────────────────────────────────────────────────
-
-    private void styleButton(JButton btn, Color bg, Color fg) {
-        btn.setBackground(bg);
-        btn.setForeground(fg);
-        btn.setFont(new Font("Arial", Font.BOLD, 13));
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(120, 36));
     }
 
     private void showSuccess(String msg) {
-        JOptionPane.showMessageDialog(this, msg, "Thành công", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this, msg, "Success", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void showError(String msg) {
-        JOptionPane.showMessageDialog(this, msg, "Lỗi", JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(this, msg, "Error", JOptionPane.ERROR_MESSAGE);
     }
 }

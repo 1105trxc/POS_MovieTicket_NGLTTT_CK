@@ -5,95 +5,77 @@ import com.cinema.management.model.dto.SeatStatusDto.Status;
 
 import javax.swing.*;
 import java.awt.*;
-import java.math.BigDecimal;
 
-/**
- * Custom JButton đại diện cho 1 ghế trên sơ đồ ghế (SeatMapPanel).
- *
- * Màu sắc theo trạng thái (FR-ST-01):
- *   AVAILABLE → xanh lá nhạt
- *   SELECTED  → xanh dương đậm (ghế mình đang chọn)
- *   LOCKED    → vàng cam (người khác đang giữ)
- *   BOOKED    → đỏ xám (đã bán)
- */
 public class SeatButton extends JButton {
-
-    // ── Màu theo trạng thái ──────────────────────────────────────────────────
-    private static final Color COLOR_AVAILABLE = new Color(39, 174, 96);
-    private static final Color COLOR_SELECTED  = new Color(41, 128, 185);
-    private static final Color COLOR_LOCKED    = new Color(230, 126, 34);
-    private static final Color COLOR_BOOKED    = new Color(149, 165, 166);
-    private static final Color COLOR_TEXT_DARK = new Color(30, 30, 30);
-    private static final Color COLOR_TEXT_LIGHT= Color.WHITE;
-
     private SeatStatusDto seatStatus;
 
+    // Bảng màu FlatLaf chuẩn rạp phim
+    private static final Color COLOR_AVAILABLE = new Color(255, 255, 255); // Trắng
+    private static final Color COLOR_SELECTED = new Color(14, 165, 233);  // Xanh dương
+    private static final Color COLOR_LOCKED = new Color(245, 158, 11);  // Cam (Người khác đang giữ)
+    private static final Color COLOR_BOOKED = new Color(148, 163, 184); // Xám (Đã bán)
+
+    private static final Color BORDER_AVAILABLE = new Color(203, 213, 225);
+
     public SeatButton(SeatStatusDto seatStatus) {
-        super(seatStatus.getLabel());
         this.seatStatus = seatStatus;
-        applyStyle();
+
+        // Chỉ in số ghế (VD: "1", "2") vì chữ cái (VD: "A") sẽ nằm ở đầu hàng
+        setText(String.valueOf(seatStatus.getSeatNumber()));
+        setFont(new Font("Segoe UI", Font.BOLD, 12));
+        setFocusPainted(false);
+        setCursor(new Cursor(Cursor.HAND_CURSOR));
+        setPreferredSize(new Dimension(45, 45)); // Đảm bảo hình vuông
+
+        updateStatus(seatStatus);
     }
 
-    /** Cập nhật trạng thái và làm mới màu sắc. */
     public void updateStatus(SeatStatusDto newStatus) {
         this.seatStatus = newStatus;
-        setText(newStatus.getLabel());
-        applyStyle();
-        repaint();
-    }
+        Status status = seatStatus.getStatus();
 
-    public SeatStatusDto getSeatStatus() {
-        return seatStatus;
+        switch (status) {
+            case AVAILABLE:
+                setBackground(COLOR_AVAILABLE);
+                setForeground(new Color(15, 23, 42));
+                setBorder(BorderFactory.createLineBorder(BORDER_AVAILABLE, 2));
+                setEnabled(true);
+                setToolTipText(String.format("Ghế %s - %s - %,.0f VNĐ",
+                        seatStatus.getLabel(), seatStatus.getSeatTypeName(), seatStatus.getBasePrice()));
+                break;
+            case SELECTED:
+                setBackground(COLOR_SELECTED);
+                setForeground(Color.WHITE);
+                setBorder(BorderFactory.createLineBorder(COLOR_SELECTED.darker(), 2));
+                setEnabled(true);
+                setToolTipText("Ghế bạn đang chọn");
+                break;
+            case LOCKED:
+                setBackground(COLOR_LOCKED);
+                setForeground(Color.WHITE);
+                setBorder(BorderFactory.createLineBorder(COLOR_LOCKED.darker(), 2));
+                setEnabled(false); // Khóa không cho bấm
+                setToolTipText("Ghế " + seatStatus.getLabel() + " đang được nhân viên khác thao tác");
+                break;
+            case BOOKED:
+                setBackground(COLOR_BOOKED);
+                setForeground(Color.WHITE);
+                setBorder(BorderFactory.createLineBorder(COLOR_BOOKED.darker(), 2));
+                setEnabled(false); // Đã bán thì nghỉ bấm
+                setToolTipText("Ghế " + seatStatus.getLabel() + " đã thanh toán");
+                break;
+        }
     }
 
     public String getSeatId() {
         return seatStatus.getSeatId();
     }
 
-    public BigDecimal getBasePrice() {
-        return seatStatus.getBasePrice();
-    }
-
     public Status getStatus() {
         return seatStatus.getStatus();
     }
 
-    // ── Style ─────────────────────────────────────────────────────────────────
-
-    private void applyStyle() {
-        Color bg = switch (seatStatus.getStatus()) {
-            case AVAILABLE -> COLOR_AVAILABLE;
-            case SELECTED  -> COLOR_SELECTED;
-            case LOCKED    -> COLOR_LOCKED;
-            case BOOKED    -> COLOR_BOOKED;
-        };
-        Color fg = (seatStatus.getStatus() == Status.AVAILABLE) ? COLOR_TEXT_DARK : COLOR_TEXT_LIGHT;
-
-        setBackground(bg);
-        setForeground(fg);
-        setFont(new Font("Arial", Font.BOLD, 11));
-        setFocusPainted(false);
-        setBorderPainted(false);
-        setOpaque(true);
-        setPreferredSize(new Dimension(46, 36));
-        setMargin(new Insets(2, 2, 2, 2));
-
-        // Không cho click nếu đã bán hoặc bị người khác khóa
-        setEnabled(seatStatus.getStatus() == Status.AVAILABLE
-                || seatStatus.getStatus() == Status.SELECTED);
-
-        // Tooltip hiển thị loại ghế và giá
-        String price = String.format("%,.0f", seatStatus.getBasePrice());
-        String statusLabel = switch (seatStatus.getStatus()) {
-            case AVAILABLE -> "Trống";
-            case SELECTED  -> "Đang chọn";
-            case LOCKED    -> "Đang bị giữ";
-            case BOOKED    -> "Đã bán";
-        };
-        setToolTipText(String.format("<html>%s<br>Loại: %s<br>Giá: %s VNĐ<br>Trạng thái: %s</html>",
-                seatStatus.getLabel(), seatStatus.getSeatTypeName(), price, statusLabel));
-        setCursor(isEnabled()
-                ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-                : Cursor.getDefaultCursor());
+    public SeatStatusDto getSeatStatus() {
+        return seatStatus;
     }
 }

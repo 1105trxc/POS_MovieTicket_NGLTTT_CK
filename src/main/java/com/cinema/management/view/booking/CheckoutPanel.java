@@ -17,172 +17,168 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Panel Thanh toán & Xuất vé (Module 3, FR-ST-04).
- *
- * Layout:
- *   NORTH  – tiêu đề
- *   CENTER – JSplitPane:
- *              Trái:  Tóm tắt đơn (ghế + F&B)
- *              Phải:  Form: tra cứu KH, mã promo, điểm, phương thức TT
- *   SOUTH  – Nút "Xác nhận thanh toán (F5)"
- *
- * Sau khi checkout thành công → hiển thị InvoiceResultPanel (dialog).
- *
- * Nhận dữ liệu từ BookingPanel qua constructor (Dependency Injection đơn giản).
- */
 public class CheckoutPanel extends JPanel {
 
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    // ── Colors ────────────────────────────────────────────────────────────────
-    private static final Color BG_HEADER = new Color(39, 174, 96);
-    private static final Color PRIMARY   = new Color(41, 128, 185);
-    private static final Color DANGER    = new Color(192, 57, 43);
-    private static final Color SUCCESS   = new Color(39, 174, 96);
+    // ── Bảng màu chuẩn hệ thống ───────────────────────────────────────────────
+    private static final Color BG = new Color(245, 247, 250);
+    private static final Color CARD = Color.WHITE;
+    private static final Color HEADER = new Color(30, 41, 59);
+    private static final Color PRIMARY = new Color(14, 165, 233);
+    private static final Color SUCCESS = new Color(34, 197, 94);
+    private static final Color DANGER = new Color(239, 68, 68);
+    private static final Color WARNING = new Color(245, 158, 11);
+    private static final Color BORDER_COLOR = new Color(226, 232, 240);
 
     // ── Dependencies ──────────────────────────────────────────────────────────
     private final InvoiceController invoiceController = new InvoiceController();
 
-    /** Dữ liệu được truyền vào từ BookingPanel khi bấm "Thanh toán". */
-    private final String               showTimeId;
-    private final String               staffUserId;
-    private final List<SeatStatusDto>  selectedSeats;
+    private final String showTimeId;
+    private final String staffUserId;
+    private final List<SeatStatusDto> selectedSeats;
     private final Map<String, Integer> fbItems;
 
     // ── Customer section ──────────────────────────────────────────────────────
-    private final JTextField txtPhone       = new JTextField(14);
-    private final JButton    btnLookup      = new JButton("Tra cứu");
-    private final JLabel     lblCustomerInfo= new JLabel("Chưa nhập SĐT thành viên");
-    private Customer         foundCustomer  = null;
+    private final JTextField txtPhone = new JTextField(14);
+    private final JButton btnLookup = new JButton("Tra cứu");
+    private final JLabel lblCustomerInfo = new JLabel("Chưa nhập SĐT thành viên");
+    private Customer foundCustomer = null;
 
     // ── Promo section ─────────────────────────────────────────────────────────
-    private final JTextField txtPromoCode   = new JTextField(12);
-    private final JButton    btnValidate    = new JButton("Kiểm tra");
-    private final JLabel     lblPromoResult = new JLabel(" ");
+    private final JTextField txtPromoCode = new JTextField(12);
+    private final JButton btnValidate = new JButton("Kiểm tra");
+    private final JLabel lblPromoResult = new JLabel(" ");
 
     // ── Points section ────────────────────────────────────────────────────────
-    private final JSpinner   spinPoints     = new JSpinner(new SpinnerNumberModel(0, 0, 0, 100));
-    private final JLabel     lblPointsAvail = new JLabel("Điểm khả dụng: 0");
-    private final JLabel     lblPointDisc   = new JLabel("Giảm: 0 VNĐ");
+    private final JSpinner spinPoints = new JSpinner(new SpinnerNumberModel(0, 0, 0, 100));
+    private final JLabel lblPointsAvail = new JLabel("Điểm khả dụng: 0");
+    private final JLabel lblPointDisc = new JLabel("Giảm: 0 VNĐ");
 
     // ── Payment method ────────────────────────────────────────────────────────
-    private final JRadioButton rdoCash     = new JRadioButton("Tiền mặt", true);
-    private final JRadioButton rdoCard     = new JRadioButton("Thẻ ngân hàng");
+    private final JRadioButton rdoCash = new JRadioButton("Tiền mặt", true);
+    private final JRadioButton rdoCard = new JRadioButton("Thẻ ngân hàng");
     private final JRadioButton rdoTransfer = new JRadioButton("Chuyển khoản");
 
     // ── Summary labels ────────────────────────────────────────────────────────
-    private final JLabel lblSeatTotal    = new JLabel("0 VNĐ");
-    private final JLabel lblFbTotal      = new JLabel("0 VNĐ");
-    private final JLabel lblPromoDisc    = new JLabel("0 VNĐ");
+    private final JLabel lblSeatTotal = new JLabel("0 VNĐ");
+    private final JLabel lblFbTotal = new JLabel("0 VNĐ");
+    private final JLabel lblPromoDisc = new JLabel("0 VNĐ");
     private final JLabel lblPointDiscSum = new JLabel("0 VNĐ");
-    private final JLabel lblGrandTotal   = new JLabel("0 VNĐ");
+    private final JLabel lblGrandTotal = new JLabel("0 VNĐ");
 
     // ── Action buttons ────────────────────────────────────────────────────────
-    private final JButton btnConfirm = new JButton("✅  Xác nhận thanh toán  (F5)");
-    private final JButton btnBack    = new JButton("← Quay lại");
+    private final JButton btnConfirm = new JButton("✅  Xác nhận thanh toán (F5)");
+    private final JButton btnBack = new JButton("← Quay lại");
 
-    /** Callback để quay về BookingPanel. */
     private Runnable onBack;
 
-    // ── Pre-calculated totals ─────────────────────────────────────────────────
     private final BigDecimal seatTotal;
     private final BigDecimal fbTotal;
 
     public CheckoutPanel(String showTimeId, String staffUserId,
-                          List<SeatStatusDto> selectedSeats,
-                          Map<String, Integer> fbItems,
-                          BigDecimal seatTotal, BigDecimal fbTotal) {
-        this.showTimeId    = showTimeId;
-        this.staffUserId   = staffUserId;
+                         List<SeatStatusDto> selectedSeats,
+                         Map<String, Integer> fbItems,
+                         BigDecimal seatTotal, BigDecimal fbTotal) {
+        this.showTimeId = showTimeId;
+        this.staffUserId = staffUserId;
         this.selectedSeats = selectedSeats != null ? selectedSeats : Collections.emptyList();
-        this.fbItems       = fbItems       != null ? fbItems       : Collections.emptyMap();
-        this.seatTotal     = seatTotal     != null ? seatTotal     : BigDecimal.ZERO;
-        this.fbTotal       = fbTotal       != null ? fbTotal       : BigDecimal.ZERO;
+        this.fbItems = fbItems != null ? fbItems : Collections.emptyMap();
+        this.seatTotal = seatTotal != null ? seatTotal : BigDecimal.ZERO;
+        this.fbTotal = fbTotal != null ? fbTotal : BigDecimal.ZERO;
 
         setLayout(new BorderLayout(0, 0));
-        setBackground(Color.WHITE);
+        setBackground(BG);
 
-        add(buildHeader(),  BorderLayout.NORTH);
-        add(buildCenter(),  BorderLayout.CENTER);
-        add(buildBottom(),  BorderLayout.SOUTH);
+        // Placeholders
+        txtPhone.putClientProperty("JTextField.placeholderText", "Nhập SĐT khách hàng...");
+        txtPromoCode.putClientProperty("JTextField.placeholderText", "Nhập mã KM...");
+
+        add(buildHeader(), BorderLayout.NORTH);
+        add(buildCenter(), BorderLayout.CENTER);
+        add(buildBottom(), BorderLayout.SOUTH);
 
         refreshSummary(BigDecimal.ZERO, BigDecimal.ZERO);
         bindHotkeys();
     }
 
-    public void setOnBack(Runnable callback) { this.onBack = callback; }
-
-    // ── Build UI ──────────────────────────────────────────────────────────────
+    public void setOnBack(Runnable callback) {
+        this.onBack = callback;
+    }
 
     private JPanel buildHeader() {
         JPanel h = new JPanel(new BorderLayout());
-        h.setBackground(BG_HEADER);
-        h.setBorder(new EmptyBorder(10, 16, 10, 16));
+        h.setBackground(HEADER);
+        h.setBorder(new EmptyBorder(16, 20, 16, 20));
+
         JLabel title = new JLabel("💳  THANH TOÁN & XUẤT VÉ");
-        title.setFont(new Font("Arial", Font.BOLD, 18));
+        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
         title.setForeground(Color.WHITE);
         h.add(title, BorderLayout.WEST);
 
-        styleBtn(btnBack, new Color(52, 73, 94), Color.WHITE);
-        btnBack.addActionListener(e -> { if (onBack != null) onBack.run(); });
+        styleBtn(btnBack, new Color(71, 85, 105), Color.WHITE);
+        btnBack.addActionListener(e -> {
+            if (onBack != null) onBack.run();
+        });
         h.add(btnBack, BorderLayout.EAST);
         return h;
     }
 
-    private JSplitPane buildCenter() {
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                buildSummaryPanel(), buildFormPanel());
-        split.setDividerLocation(480);
-        split.setDividerSize(6);
-        split.setBorder(new EmptyBorder(10, 10, 6, 10));
-        return split;
+    private JPanel buildCenter() {
+        JPanel centerContainer = new JPanel(new BorderLayout(15, 0));
+        centerContainer.setOpaque(false);
+        centerContainer.setBorder(new EmptyBorder(15, 15, 15, 15));
+
+        centerContainer.add(buildSummaryPanel(), BorderLayout.CENTER);
+        centerContainer.add(buildFormPanel(), BorderLayout.EAST);
+
+        return centerContainer;
     }
 
-    // ── Left: Order Summary ───────────────────────────────────────────────────
-
     private JPanel buildSummaryPanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 10));
-        panel.setBackground(Color.WHITE);
+        JPanel panel = new JPanel(new BorderLayout(0, 15));
+        panel.setOpaque(false);
 
         // Seat list
         JPanel seatSection = new JPanel(new BorderLayout(0, 4));
-        seatSection.setBackground(Color.WHITE);
-        seatSection.setBorder(new TitledBorder(BorderFactory.createLineBorder(PRIMARY),
-                "🪑 Ghế đã chọn", TitledBorder.LEFT, TitledBorder.TOP,
-                new Font("Arial", Font.BOLD, 12), PRIMARY));
+        seatSection.setBackground(CARD);
+        seatSection.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR),
+                BorderFactory.createTitledBorder(null, "  🪑 Ghế đã chọn  ", TitledBorder.LEFT, TitledBorder.TOP, new Font("Segoe UI", Font.BOLD, 14), PRIMARY)
+        ));
 
         DefaultListModel<String> seatModel = new DefaultListModel<>();
         for (SeatStatusDto s : selectedSeats) {
-            seatModel.addElement(String.format("%-6s [%-10s]  %s VNĐ",
+            seatModel.addElement(String.format(" %-6s [%-10s]  %s VNĐ",
                     s.getLabel(), s.getSeatTypeName(),
                     String.format("%,.0f", s.getBasePrice())));
         }
         JList<String> seatList = new JList<>(seatModel);
-        seatList.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        seatList.setFont(new Font("Monospaced", Font.PLAIN, 14));
         JScrollPane seatScroll = new JScrollPane(seatList);
-        seatScroll.setPreferredSize(new Dimension(460, 140));
+        seatScroll.setBorder(new EmptyBorder(5, 5, 5, 5));
         seatSection.add(seatScroll, BorderLayout.CENTER);
         panel.add(seatSection, BorderLayout.NORTH);
 
         // F&B list
         JPanel fbSection = new JPanel(new BorderLayout(0, 4));
-        fbSection.setBackground(Color.WHITE);
-        fbSection.setBorder(new TitledBorder(
-                BorderFactory.createLineBorder(new Color(155, 89, 182)),
-                "🍿 F&B", TitledBorder.LEFT, TitledBorder.TOP,
-                new Font("Arial", Font.BOLD, 12), new Color(155, 89, 182)));
+        fbSection.setBackground(CARD);
+        fbSection.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR),
+                BorderFactory.createTitledBorder(null, "  🍿 F&B  ", TitledBorder.LEFT, TitledBorder.TOP, new Font("Segoe UI", Font.BOLD, 14), WARNING)
+        ));
 
         DefaultListModel<String> fbModel = new DefaultListModel<>();
         if (fbItems.isEmpty()) {
-            fbModel.addElement("(Không có F&B)");
+            fbModel.addElement(" (Không có F&B)");
         } else {
-            fbItems.forEach((pid, qty) ->
-                    fbModel.addElement("  " + pid + " × " + qty));
+            fbItems.forEach((pid, qty) -> fbModel.addElement("  " + pid + " × " + qty));
         }
         JList<String> fbList = new JList<>(fbModel);
-        fbList.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        fbSection.add(new JScrollPane(fbList), BorderLayout.CENTER);
+        fbList.setFont(new Font("Monospaced", Font.PLAIN, 14));
+        JScrollPane fbScroll = new JScrollPane(fbList);
+        fbScroll.setBorder(new EmptyBorder(5, 5, 5, 5));
+        fbSection.add(fbScroll, BorderLayout.CENTER);
         panel.add(fbSection, BorderLayout.CENTER);
 
         // Total breakdown
@@ -192,58 +188,65 @@ public class CheckoutPanel extends JPanel {
 
     private JPanel buildTotalBreakdown() {
         JPanel p = new JPanel(new GridBagLayout());
-        p.setBackground(new Color(248, 249, 250));
+        p.setBackground(CARD);
         p.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(200, 200, 200)),
-                new EmptyBorder(10, 14, 10, 14)));
+                BorderFactory.createLineBorder(BORDER_COLOR),
+                new EmptyBorder(15, 20, 15, 20)));
 
         GridBagConstraints gl = new GridBagConstraints();
-        gl.anchor = GridBagConstraints.WEST; gl.insets = new Insets(3, 4, 3, 4);
+        gl.anchor = GridBagConstraints.WEST;
+        gl.insets = new Insets(5, 5, 5, 5);
         GridBagConstraints gr = new GridBagConstraints();
-        gr.anchor = GridBagConstraints.EAST; gr.weightx = 1;
-        gr.fill = GridBagConstraints.HORIZONTAL; gr.insets = new Insets(3, 4, 3, 4);
+        gr.anchor = GridBagConstraints.EAST;
+        gr.weightx = 1;
+        gr.fill = GridBagConstraints.HORIZONTAL;
+        gr.insets = new Insets(5, 5, 5, 5);
 
-        addBreakdownRow(p, gl, gr, 0, "Tiền ghế:",          lblSeatTotal,    Color.BLACK);
-        addBreakdownRow(p, gl, gr, 1, "Tiền F&B:",          lblFbTotal,      Color.BLACK);
-        addBreakdownRow(p, gl, gr, 2, "Giảm giá (promo):",  lblPromoDisc,    new Color(39, 174, 96));
-        addBreakdownRow(p, gl, gr, 3, "Giảm giá (điểm):",   lblPointDiscSum, new Color(39, 174, 96));
+        addBreakdownRow(p, gl, gr, 0, "Tiền ghế:", lblSeatTotal, new Color(15, 23, 42));
+        addBreakdownRow(p, gl, gr, 1, "Tiền F&B:", lblFbTotal, new Color(15, 23, 42));
+        addBreakdownRow(p, gl, gr, 2, "Giảm giá (promo):", lblPromoDisc, SUCCESS);
+        addBreakdownRow(p, gl, gr, 3, "Giảm giá (điểm):", lblPointDiscSum, SUCCESS);
 
-        // Separator
         GridBagConstraints sep = new GridBagConstraints();
-        sep.gridx = 0; sep.gridy = 4; sep.gridwidth = 2;
-        sep.fill = GridBagConstraints.HORIZONTAL; sep.insets = new Insets(4, 0, 4, 0);
-        JSeparator line = new JSeparator();
-        p.add(line, sep);
+        sep.gridx = 0;
+        sep.gridy = 4;
+        sep.gridwidth = 2;
+        sep.fill = GridBagConstraints.HORIZONTAL;
+        sep.insets = new Insets(10, 0, 10, 0);
+        p.add(new JSeparator(), sep);
 
         addBreakdownRow(p, gl, gr, 5, "TỔNG PHẢI TRẢ:", lblGrandTotal, DANGER);
-        lblGrandTotal.setFont(new Font("Arial", Font.BOLD, 18));
+        lblGrandTotal.setFont(new Font("Segoe UI", Font.BOLD, 22));
         return p;
     }
 
     private void addBreakdownRow(JPanel p, GridBagConstraints gl, GridBagConstraints gr,
-                                  int row, String labelText, JLabel valueLabel, Color valueColor) {
-        gl.gridx = 0; gl.gridy = row;
+                                 int row, String labelText, JLabel valueLabel, Color valueColor) {
+        gl.gridx = 0;
+        gl.gridy = row;
         JLabel lbl = new JLabel(labelText);
-        lbl.setFont(new Font("Arial", Font.PLAIN, 13));
+        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         p.add(lbl, gl);
-        gr.gridx = 1; gr.gridy = row;
-        valueLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        gr.gridx = 1;
+        gr.gridy = row;
+        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
         valueLabel.setForeground(valueColor);
         valueLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         p.add(valueLabel, gr);
     }
 
-    // ── Right: Form ───────────────────────────────────────────────────────────
-
     private JPanel buildFormPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 10));
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(new EmptyBorder(0, 10, 0, 0));
+        panel.setBackground(CARD);
+        panel.setPreferredSize(new Dimension(420, 0));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR),
+                new EmptyBorder(15, 20, 15, 20)));
 
         JPanel form = new JPanel(new GridBagLayout());
-        form.setBackground(Color.WHITE);
+        form.setBackground(CARD);
         GridBagConstraints gc = new GridBagConstraints();
-        gc.insets = new Insets(8, 6, 8, 6);
+        gc.insets = new Insets(8, 0, 8, 10);
         gc.anchor = GridBagConstraints.WEST;
 
         int row = 0;
@@ -251,80 +254,119 @@ public class CheckoutPanel extends JPanel {
         // ── Khách hàng thành viên ──
         addSectionTitle(form, gc, row++, "👤 Khách hàng thành viên");
 
-        gc.gridx = 0; gc.gridy = row; gc.fill = GridBagConstraints.NONE; gc.weightx = 0;
-        form.add(new JLabel("Số điện thoại:"), gc);
-        gc.gridx = 1; gc.fill = GridBagConstraints.HORIZONTAL; gc.weightx = 1;
-        JPanel phoneRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
-        phoneRow.setBackground(Color.WHITE);
-        txtPhone.setPreferredSize(new Dimension(130, 28));
-        txtPhone.setToolTipText("Nhập SĐT để tra cứu tích điểm");
-        styleBtn(btnLookup, PRIMARY, Color.WHITE);
-        btnLookup.setPreferredSize(new Dimension(90, 28));
-        btnLookup.addActionListener(e -> lookupCustomer());
-        phoneRow.add(txtPhone); phoneRow.add(btnLookup);
-        form.add(phoneRow, gc); row++;
+        gc.gridx = 0;
+        gc.gridy = row;
+        gc.fill = GridBagConstraints.NONE;
+        gc.weightx = 0;
+        form.add(new JLabel("SĐT:"), gc);
+        gc.gridx = 1;
+        gc.fill = GridBagConstraints.HORIZONTAL;
+        gc.weightx = 1;
 
-        gc.gridx = 0; gc.gridy = row; gc.gridwidth = 2; gc.fill = GridBagConstraints.HORIZONTAL;
-        lblCustomerInfo.setFont(new Font("Arial", Font.ITALIC, 11));
-        lblCustomerInfo.setForeground(Color.GRAY);
-        form.add(lblCustomerInfo, gc); row++;
+        JPanel phoneRow = new JPanel(new BorderLayout(5, 0));
+        phoneRow.setOpaque(false);
+        txtPhone.setPreferredSize(new Dimension(0, 36));
+        styleBtn(btnLookup, PRIMARY, Color.WHITE);
+        phoneRow.add(txtPhone, BorderLayout.CENTER);
+        phoneRow.add(btnLookup, BorderLayout.EAST);
+        form.add(phoneRow, gc);
+        row++;
+
+        gc.gridx = 0;
+        gc.gridy = row;
+        gc.gridwidth = 2;
+        gc.fill = GridBagConstraints.HORIZONTAL;
+        lblCustomerInfo.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+        lblCustomerInfo.setForeground(new Color(100, 116, 139));
+        form.add(lblCustomerInfo, gc);
+        row++;
         gc.gridwidth = 1;
 
         // ── Mã khuyến mãi ──
         addSectionTitle(form, gc, row++, "🎟 Mã khuyến mãi");
 
-        gc.gridx = 0; gc.gridy = row; gc.fill = GridBagConstraints.NONE; gc.weightx = 0;
-        form.add(new JLabel("Mã promo:"), gc);
-        gc.gridx = 1; gc.fill = GridBagConstraints.HORIZONTAL; gc.weightx = 1;
-        JPanel promoRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
-        promoRow.setBackground(Color.WHITE);
-        txtPromoCode.setPreferredSize(new Dimension(120, 28));
-        txtPromoCode.setToolTipText("Nhập mã khuyến mãi (không bắt buộc)");
-        styleBtn(btnValidate, new Color(155, 89, 182), Color.WHITE);
-        btnValidate.setPreferredSize(new Dimension(90, 28));
-        btnValidate.addActionListener(e -> validatePromo());
-        promoRow.add(txtPromoCode); promoRow.add(btnValidate);
-        form.add(promoRow, gc); row++;
+        gc.gridx = 0;
+        gc.gridy = row;
+        gc.fill = GridBagConstraints.NONE;
+        gc.weightx = 0;
+        form.add(new JLabel("Mã:"), gc);
+        gc.gridx = 1;
+        gc.fill = GridBagConstraints.HORIZONTAL;
+        gc.weightx = 1;
 
-        gc.gridx = 0; gc.gridy = row; gc.gridwidth = 2; gc.fill = GridBagConstraints.HORIZONTAL;
-        lblPromoResult.setFont(new Font("Arial", Font.ITALIC, 11));
-        form.add(lblPromoResult, gc); row++;
+        JPanel promoRow = new JPanel(new BorderLayout(5, 0));
+        promoRow.setOpaque(false);
+        txtPromoCode.setPreferredSize(new Dimension(0, 36));
+        styleBtn(btnValidate, WARNING, Color.WHITE);
+        promoRow.add(txtPromoCode, BorderLayout.CENTER);
+        promoRow.add(btnValidate, BorderLayout.EAST);
+        form.add(promoRow, gc);
+        row++;
+
+        gc.gridx = 0;
+        gc.gridy = row;
+        gc.gridwidth = 2;
+        gc.fill = GridBagConstraints.HORIZONTAL;
+        lblPromoResult.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+        form.add(lblPromoResult, gc);
+        row++;
         gc.gridwidth = 1;
 
         // ── Điểm thưởng ──
         addSectionTitle(form, gc, row++, "⭐ Điểm thưởng");
 
-        gc.gridx = 0; gc.gridy = row; gc.fill = GridBagConstraints.NONE; gc.weightx = 0;
+        gc.gridx = 0;
+        gc.gridy = row;
+        gc.fill = GridBagConstraints.NONE;
+        gc.weightx = 0;
         form.add(new JLabel("Dùng điểm:"), gc);
-        gc.gridx = 1; gc.fill = GridBagConstraints.HORIZONTAL; gc.weightx = 1;
-        JPanel pointsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
-        pointsRow.setBackground(Color.WHITE);
-        spinPoints.setPreferredSize(new Dimension(100, 28));
+        gc.gridx = 1;
+        gc.fill = GridBagConstraints.HORIZONTAL;
+        gc.weightx = 1;
+
+        JPanel pointsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        pointsRow.setOpaque(false);
+        spinPoints.setPreferredSize(new Dimension(100, 36));
         ((JSpinner.DefaultEditor) spinPoints.getEditor()).getTextField().setEditable(true);
         spinPoints.addChangeListener(e -> onPointsChanged());
         pointsRow.add(spinPoints);
+        lblPointsAvail.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         pointsRow.add(lblPointsAvail);
-        form.add(pointsRow, gc); row++;
+        form.add(pointsRow, gc);
+        row++;
 
-        gc.gridx = 0; gc.gridy = row; gc.gridwidth = 2; gc.fill = GridBagConstraints.HORIZONTAL;
-        lblPointDisc.setFont(new Font("Arial", Font.ITALIC, 11));
-        lblPointDisc.setForeground(new Color(39, 174, 96));
-        form.add(lblPointDisc, gc); row++;
+        gc.gridx = 0;
+        gc.gridy = row;
+        gc.gridwidth = 2;
+        gc.fill = GridBagConstraints.HORIZONTAL;
+        lblPointDisc.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+        lblPointDisc.setForeground(SUCCESS);
+        form.add(lblPointDisc, gc);
+        row++;
         gc.gridwidth = 1;
 
         // ── Phương thức thanh toán ──
         addSectionTitle(form, gc, row++, "💰 Phương thức thanh toán");
 
         ButtonGroup bg = new ButtonGroup();
-        bg.add(rdoCash); bg.add(rdoCard); bg.add(rdoTransfer);
-        rdoCash.setBackground(Color.WHITE);
-        rdoCard.setBackground(Color.WHITE);
-        rdoTransfer.setBackground(Color.WHITE);
+        bg.add(rdoCash);
+        bg.add(rdoCard);
+        bg.add(rdoTransfer);
+        rdoCash.setOpaque(false);
+        rdoCash.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        rdoCard.setOpaque(false);
+        rdoCard.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        rdoTransfer.setOpaque(false);
+        rdoTransfer.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 
-        gc.gridx = 0; gc.gridy = row; gc.gridwidth = 2;
-        JPanel radioRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
-        radioRow.setBackground(Color.WHITE);
-        radioRow.add(rdoCash); radioRow.add(rdoCard); radioRow.add(rdoTransfer);
+        gc.gridx = 0;
+        gc.gridy = row;
+        gc.gridwidth = 2;
+        JPanel radioRow = new JPanel(new GridLayout(1, 3, 5, 0));
+        radioRow.setOpaque(false);
+        radioRow.add(rdoCash);
+        radioRow.add(rdoCard);
+        radioRow.add(rdoTransfer);
         form.add(radioRow, gc);
 
         panel.add(form, BorderLayout.NORTH);
@@ -332,36 +374,42 @@ public class CheckoutPanel extends JPanel {
     }
 
     private void addSectionTitle(JPanel panel, GridBagConstraints gc, int row, String title) {
-        gc.gridx = 0; gc.gridy = row; gc.gridwidth = 2;
-        gc.fill = GridBagConstraints.HORIZONTAL; gc.weightx = 1;
+        gc.gridx = 0;
+        gc.gridy = row;
+        gc.gridwidth = 2;
+        gc.fill = GridBagConstraints.HORIZONTAL;
+        gc.weightx = 1;
+        gc.insets = new Insets(15, 0, 10, 0); // Spacing before title
         JLabel lbl = new JLabel(title);
-        lbl.setFont(new Font("Arial", Font.BOLD, 13));
-        lbl.setForeground(new Color(52, 73, 94));
-        lbl.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(200, 200, 200)));
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        lbl.setForeground(HEADER);
+        lbl.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COLOR));
         panel.add(lbl, gc);
-        gc.gridwidth = 1; gc.weightx = 0;
+        gc.gridwidth = 1;
+        gc.weightx = 0;
+        gc.insets = new Insets(5, 0, 5, 10); // Reset spacing
     }
 
-    // ── Bottom confirm button ──────────────────────────────────────────────────
-
     private JPanel buildBottom() {
-        JPanel bottom = new JPanel(new BorderLayout(10, 0));
-        bottom.setBackground(new Color(245, 245, 245));
-        bottom.setBorder(new EmptyBorder(10, 16, 14, 16));
+        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 15));
+        bottom.setOpaque(false);
 
         styleBtn(btnConfirm, SUCCESS, Color.WHITE);
-        btnConfirm.setFont(new Font("Arial", Font.BOLD, 15));
+        btnConfirm.setFont(new Font("Segoe UI", Font.BOLD, 16));
         btnConfirm.setPreferredSize(new Dimension(300, 46));
         btnConfirm.addActionListener(e -> confirmCheckout());
-        bottom.add(btnConfirm, BorderLayout.CENTER);
+
+        bottom.add(btnConfirm);
         return bottom;
     }
 
-    // ── Event handlers ────────────────────────────────────────────────────────
-
+    // ── Giữ nguyên toàn bộ logic Event Handlers ở dưới (lookupCustomer, validatePromo, confirmCheckout, ...) ──
     private void lookupCustomer() {
         String phone = txtPhone.getText().trim();
-        if (phone.isEmpty()) { showError("Vui lòng nhập số điện thoại."); return; }
+        if (phone.isEmpty()) {
+            showError("Vui lòng nhập số điện thoại.");
+            return;
+        }
         Optional<Customer> opt = invoiceController.findCustomerByPhone(phone);
         if (opt.isPresent()) {
             foundCustomer = opt.get();
@@ -369,8 +417,7 @@ public class CheckoutPanel extends JPanel {
             lblCustomerInfo.setText("✅ " + foundCustomer.getFullName()
                     + "  |  Hạng: " + foundCustomer.getMemberTier()
                     + "  |  Điểm: " + pts);
-            lblCustomerInfo.setForeground(new Color(39, 174, 96));
-            // Cập nhật spinner điểm tối đa
+            lblCustomerInfo.setForeground(SUCCESS);
             SpinnerNumberModel m = (SpinnerNumberModel) spinPoints.getModel();
             m.setMaximum(pts);
             lblPointsAvail.setText("Khả dụng: " + pts + " điểm");
@@ -394,19 +441,14 @@ public class CheckoutPanel extends JPanel {
             return;
         }
         try {
-            // Cần ShowTime để validate điều kiện phim/ngày – lấy qua controller
-            // Dùng placeholder ShowTime với showTimeId; InvoiceServiceImpl sẽ load đầy đủ
-            com.cinema.management.model.entity.ShowTime st =
-                    new com.cinema.management.model.entity.ShowTime();
+            com.cinema.management.model.entity.ShowTime st = new com.cinema.management.model.entity.ShowTime();
             st.setShowTimeId(showTimeId);
-            com.cinema.management.model.entity.Promotion promo =
-                    invoiceController.validatePromoCode(code.toUpperCase(), st);
+            com.cinema.management.model.entity.Promotion promo = invoiceController.validatePromoCode(code.toUpperCase(), st);
 
             String discount = promo.getDiscountPercent() != null
                     ? promo.getDiscountPercent().toPlainString() + "%" : "?";
-            lblPromoResult.setText("✅ Hợp lệ – giảm " + discount
-                    + (promo.getIsExclusive() ? "  ⚠ Độc quyền" : ""));
-            lblPromoResult.setForeground(new Color(39, 174, 96));
+            lblPromoResult.setText("✅ Hợp lệ – giảm " + discount + (promo.getIsExclusive() ? "  ⚠ Độc quyền" : ""));
+            lblPromoResult.setForeground(SUCCESS);
             refreshSummary(BigDecimal.ZERO, calculatePointDiscount());
         } catch (IllegalArgumentException ex) {
             lblPromoResult.setText("❌ " + ex.getMessage());
@@ -423,27 +465,22 @@ public class CheckoutPanel extends JPanel {
 
     private void confirmCheckout() {
         if (selectedSeats.isEmpty()) {
-            showError("Không có ghế nào được chọn."); return;
+            showError("Không có ghế nào được chọn.");
+            return;
         }
 
-        String paymentMethod = rdoCard.isSelected()     ? "CARD"
-                             : rdoTransfer.isSelected() ? "TRANSFER"
-                             : "CASH";
-
+        String paymentMethod = rdoCard.isSelected() ? "CARD" : rdoTransfer.isSelected() ? "TRANSFER" : "CASH";
         String customerId = (foundCustomer != null) ? foundCustomer.getCustomerId() : null;
-        String promoCode  = txtPromoCode.getText().trim().isEmpty() ? null
-                          : txtPromoCode.getText().trim().toUpperCase();
+        String promoCode = txtPromoCode.getText().trim().isEmpty() ? null : txtPromoCode.getText().trim().toUpperCase();
         int usedPoints = (int) spinPoints.getValue();
 
-        // Xác nhận lần cuối
         BigDecimal grand = computeGrandTotal(promoCode, usedPoints);
         int confirm = JOptionPane.showConfirmDialog(this,
                 "<html>Xác nhận thanh toán <b>" + String.format("%,.0f", grand)
-                + " VNĐ</b><br>Phương thức: <b>" + paymentMethod + "</b>?</html>",
+                        + " VNĐ</b><br>Phương thức: <b>" + paymentMethod + "</b>?</html>",
                 "Xác nhận", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
         if (confirm != JOptionPane.YES_OPTION) return;
 
-        // Disable nút tránh double-click
         btnConfirm.setEnabled(false);
         btnConfirm.setText("Đang xử lý...");
 
@@ -457,36 +494,42 @@ public class CheckoutPanel extends JPanel {
         } catch (Exception ex) {
             showError("Thanh toán thất bại:\n" + ex.getMessage());
             btnConfirm.setEnabled(true);
-            btnConfirm.setText("✅  Xác nhận thanh toán  (F5)");
+            btnConfirm.setText("✅  Xác nhận thanh toán (F5)");
         }
     }
 
-    // ── Invoice result dialog ─────────────────────────────────────────────────
-
     private void showInvoiceResult(InvoiceDto invoice) {
-        JDialog dlg = new JDialog((Frame) SwingUtilities.getWindowAncestor(this),
-                "Hoá đơn – " + invoice.getInvoiceId(), true);
+        JDialog dlg = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Hoá đơn – " + invoice.getInvoiceId(), true);
         dlg.setLayout(new BorderLayout(10, 10));
         dlg.setSize(560, 640);
         dlg.setLocationRelativeTo(this);
+        dlg.getContentPane().setBackground(BG);
 
         JTextArea ta = new JTextArea(buildInvoiceText(invoice));
-        ta.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        ta.setFont(new Font("Monospaced", Font.PLAIN, 14)); // Tăng size chữ hóa đơn cho dễ nhìn
         ta.setEditable(false);
-        ta.setMargin(new Insets(12, 14, 12, 14));
-        dlg.add(new JScrollPane(ta), BorderLayout.CENTER);
+        ta.setMargin(new Insets(15, 20, 15, 20));
 
-        JPanel btns = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 8));
+        JScrollPane scrollPane = new JScrollPane(ta);
+        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR));
+        dlg.add(scrollPane, BorderLayout.CENTER);
+
+        JPanel btns = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
+        btns.setOpaque(false);
         JButton btnPrint = new JButton("🖨 In hoá đơn");
-        JButton btnClose = new JButton("Đóng");
+        JButton btnClose = new JButton("Đóng & Về màn hình chính");
         styleBtn(btnPrint, PRIMARY, Color.WHITE);
-        styleBtn(btnClose, new Color(149, 165, 166), Color.WHITE);
+        btnPrint.setPreferredSize(new Dimension(150, 40));
+        styleBtn(btnClose, new Color(100, 116, 139), Color.WHITE);
+        btnClose.setPreferredSize(new Dimension(220, 40));
+
         btnPrint.addActionListener(e -> printInvoice(invoice, ta.getText()));
         btnClose.addActionListener(e -> {
             dlg.dispose();
-            if (onBack != null) onBack.run();  // Quay về BookingPanel
+            if (onBack != null) onBack.run();
         });
-        btns.add(btnPrint); btns.add(btnClose);
+        btns.add(btnPrint);
+        btns.add(btnClose);
         dlg.add(btns, BorderLayout.SOUTH);
         dlg.setVisible(true);
     }
@@ -497,38 +540,36 @@ public class CheckoutPanel extends JPanel {
         sb.append("          🎬  CINEMA MANAGEMENT SYSTEM\n");
         sb.append("               HOÁ ĐƠN BÁN VÉ\n");
         sb.append(sep);
-        sb.append(String.format("Số HĐ  : %s\n", inv.getInvoiceId()));
-        sb.append(String.format("Ngày   : %s\n", inv.getCreatedAt().format(DT_FMT)));
+        sb.append(String.format("Số HĐ   : %s\n", inv.getInvoiceId()));
+        sb.append(String.format("Ngày    : %s\n", inv.getCreatedAt().format(DT_FMT)));
         sb.append(String.format("Thu ngân: %s\n", inv.getStaffName()));
-        sb.append(String.format("Khách  : %s  %s\n", inv.getCustomerName(), inv.getCustomerPhone()));
+        sb.append(String.format("Khách   : %s  %s\n", inv.getCustomerName(), inv.getCustomerPhone()));
         sb.append(sep);
         sb.append("VÉ XEM PHIM:\n");
         for (TicketDto t : inv.getTickets()) {
-            sb.append(String.format("  %-8s %-14s %s  %s VNĐ\n",
+            sb.append(String.format("  %-8s %-14s %s\n      -> %,.0f VNĐ\n",
                     t.getSeatLabel(), "[" + t.getSeatTypeName() + "]",
                     t.getShowTime().format(DT_FMT),
-                    String.format("%,.0f", t.getPrice())));
+                    t.getPrice()));
         }
         if (!inv.getFbLines().isEmpty()) {
             sb.append("\nBẮP NƯỚC / F&B:\n");
             for (String line : inv.getFbLines()) sb.append("  ").append(line).append("\n");
         }
         sb.append(sep);
-        sb.append(String.format("%-30s %15s\n", "Tiền ghế:",  fmt(inv.getSeatTotal())));
-        sb.append(String.format("%-30s %15s\n", "Tiền F&B:",  fmt(inv.getFbTotal())));
+        sb.append(String.format("%-28s %15s\n", "Tiền ghế:", fmt(inv.getSeatTotal())));
+        sb.append(String.format("%-28s %15s\n", "Tiền F&B:", fmt(inv.getFbTotal())));
         if (inv.getPromotionDiscount().compareTo(BigDecimal.ZERO) > 0) {
-            sb.append(String.format("%-30s %15s\n",
-                    "Giảm giá (promo " + inv.getPromoCode() + "):",
-                    "-" + fmt(inv.getPromotionDiscount())));
+            sb.append(String.format("%-28s %15s\n", "Giảm giá (KM):", "-" + fmt(inv.getPromotionDiscount())));
         }
         if (inv.getPointDiscount().compareTo(BigDecimal.ZERO) > 0) {
-            sb.append(String.format("%-30s %15s\n", "Giảm giá (điểm):", "-" + fmt(inv.getPointDiscount())));
+            sb.append(String.format("%-28s %15s\n", "Giảm giá (điểm):", "-" + fmt(inv.getPointDiscount())));
         }
         sb.append(sep);
-        sb.append(String.format("%-30s %15s\n", "TỔNG PHẢI TRẢ:", fmt(inv.getGrandTotal())));
-        sb.append(String.format("%-30s %15s\n", "Phương thức TT:", inv.getPaymentMethod()));
+        sb.append(String.format("%-28s %15s\n", "TỔNG PHẢI TRẢ:", fmt(inv.getGrandTotal())));
+        sb.append(String.format("%-28s %15s\n", "Phương thức TT:", inv.getPaymentMethod()));
         if (inv.getEarnedPoints() > 0) {
-            sb.append(String.format("%-30s %15s\n", "Điểm tích lũy:", "+" + inv.getEarnedPoints()));
+            sb.append(String.format("%-28s %15s\n", "Điểm tích lũy:", "+" + inv.getEarnedPoints()));
         }
         sb.append(sep);
         sb.append("     Cảm ơn quý khách! Chúc xem phim vui vẻ 🎉\n");
@@ -540,7 +581,6 @@ public class CheckoutPanel extends JPanel {
     }
 
     private void printInvoice(InvoiceDto invoice, String text) {
-        // Dùng Java PrinterJob – basic text print
         java.awt.print.PrinterJob job = java.awt.print.PrinterJob.getPrinterJob();
         job.setJobName("Hoá đơn " + invoice.getInvoiceId());
         job.setPrintable((graphics, pageFormat, pageIndex) -> {
@@ -557,14 +597,13 @@ public class CheckoutPanel extends JPanel {
             return java.awt.print.Printable.PAGE_EXISTS;
         });
         if (job.printDialog()) {
-            try { job.print(); }
-            catch (java.awt.print.PrinterException ex) {
+            try {
+                job.print();
+            } catch (java.awt.print.PrinterException ex) {
                 showError("Lỗi in: " + ex.getMessage());
             }
         }
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private BigDecimal calculatePointDiscount() {
         if (foundCustomer == null) return BigDecimal.ZERO;
@@ -578,7 +617,6 @@ public class CheckoutPanel extends JPanel {
     private BigDecimal computeGrandTotal(String promoCode, int usedPoints) {
         BigDecimal sub = seatTotal.add(fbTotal);
         BigDecimal pd = calculatePointDiscount();
-        // Giảm giá promo: không tính ở đây – để service tính chính xác
         return sub.subtract(pd).max(BigDecimal.ZERO);
     }
 
@@ -595,7 +633,8 @@ public class CheckoutPanel extends JPanel {
     private void bindHotkeys() {
         getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("F5"), "confirm");
         getActionMap().put("confirm", new AbstractAction() {
-            @Override public void actionPerformed(java.awt.event.ActionEvent e) {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
                 confirmCheckout();
             }
         });
@@ -606,10 +645,11 @@ public class CheckoutPanel extends JPanel {
     }
 
     private void styleBtn(JButton btn, Color bg, Color fg) {
-        btn.setBackground(bg); btn.setForeground(fg);
-        btn.setFont(new Font("Arial", Font.BOLD, 12));
-        btn.setFocusPainted(false); btn.setBorderPainted(false);
+        btn.setBackground(bg);
+        btn.setForeground(fg);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 }
-

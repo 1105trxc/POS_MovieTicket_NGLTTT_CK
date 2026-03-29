@@ -5,6 +5,7 @@ import com.cinema.management.model.entity.Room;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,6 +40,25 @@ public class RoomRepository {
             Long count = em.createQuery(
                             "SELECT COUNT(r) FROM Room r WHERE r.roomName = :name", Long.class)
                     .setParameter("name", roomName)
+                    .getSingleResult();
+            return count > 0;
+        } finally {
+            em.close();
+        }
+    }
+
+    public boolean hasActiveShowTimes(String roomId) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            LocalDateTime now = LocalDateTime.now();
+            Long count = em.createQuery(
+                            "SELECT COUNT(st) FROM ShowTime st " +
+                                    "WHERE st.room.roomId = :roomId " +
+                                    "AND st.startTime <= :now " +
+                                    "AND st.endTime >= :now",
+                            Long.class)
+                    .setParameter("roomId", roomId)
+                    .setParameter("now", now)
                     .getSingleResult();
             return count > 0;
         } finally {

@@ -14,8 +14,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Triển khai nghiệp vụ quản lý suất chiếu.
- * Validate: endTime > startTime, không xung đột lịch phòng.
+ * Trien khai nghiep vu quan ly suat chieu.
+ * Validate: endTime > startTime, khong xung dot lich phong.
  */
 public class ShowTimeServiceImpl implements IShowTimeService {
 
@@ -30,8 +30,8 @@ public class ShowTimeServiceImpl implements IShowTimeService {
     }
 
     public ShowTimeServiceImpl(ShowTimeRepository showTimeRepository,
-                                RoomRepository roomRepository,
-                                MovieRepository movieRepository) {
+                               RoomRepository roomRepository,
+                               MovieRepository movieRepository) {
         this.showTimeRepository = showTimeRepository;
         this.roomRepository = roomRepository;
         this.movieRepository = movieRepository;
@@ -58,13 +58,13 @@ public class ShowTimeServiceImpl implements IShowTimeService {
         validateTimes(startTime, endTime);
 
         Movie movie = movieRepository.findById(movieId)
-                .orElseThrow(() -> new IllegalArgumentException("Phim không tồn tại: " + movieId));
+                .orElseThrow(() -> new IllegalArgumentException("Phim khong ton tai: " + movieId));
         Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new IllegalArgumentException("Phòng chiếu không tồn tại: " + roomId));
+                .orElseThrow(() -> new IllegalArgumentException("Phong chieu khong ton tai: " + roomId));
 
         if (showTimeRepository.hasConflict(roomId, startTime, endTime, null)) {
             throw new IllegalArgumentException(
-                    "Phòng '" + room.getRoomName() + "' đã có suất chiếu trong khung giờ này. Vui lòng chọn thời gian khác.");
+                    "Phong '" + room.getRoomName() + "' da co suat chieu trong khung gio nay. Vui long chon thoi gian khac.");
         }
 
         ShowTime showTime = ShowTime.builder()
@@ -79,20 +79,20 @@ public class ShowTimeServiceImpl implements IShowTimeService {
 
     @Override
     public ShowTime updateShowTime(String showTimeId, String movieId, String roomId,
-                                    LocalDateTime startTime, LocalDateTime endTime) {
+                                   LocalDateTime startTime, LocalDateTime endTime) {
         validateTimes(startTime, endTime);
 
         ShowTime existing = showTimeRepository.findById(showTimeId)
-                .orElseThrow(() -> new IllegalArgumentException("Suất chiếu không tồn tại: " + showTimeId));
+                .orElseThrow(() -> new IllegalArgumentException("Suat chieu khong ton tai: " + showTimeId));
         Movie movie = movieRepository.findById(movieId)
-                .orElseThrow(() -> new IllegalArgumentException("Phim không tồn tại: " + movieId));
+                .orElseThrow(() -> new IllegalArgumentException("Phim khong ton tai: " + movieId));
         Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new IllegalArgumentException("Phòng chiếu không tồn tại: " + roomId));
+                .orElseThrow(() -> new IllegalArgumentException("Phong chieu khong ton tai: " + roomId));
 
-        // Loại trừ chính suất chiếu đang cập nhật khi kiểm tra xung đột
+        // Loai tru chinh suat chieu dang cap nhat khi kiem tra xung dot
         if (showTimeRepository.hasConflict(roomId, startTime, endTime, showTimeId)) {
             throw new IllegalArgumentException(
-                    "Phòng '" + room.getRoomName() + "' đã có suất chiếu trong khung giờ này.");
+                    "Phong '" + room.getRoomName() + "' da co suat chieu trong khung gio nay.");
         }
 
         existing.setMovie(movie);
@@ -104,25 +104,30 @@ public class ShowTimeServiceImpl implements IShowTimeService {
 
     @Override
     public void deleteShowTime(String showTimeId) {
-        ShowTime st = showTimeRepository.findById(showTimeId)
-                .orElseThrow(() -> new IllegalArgumentException("Suất chiếu không tồn tại: " + showTimeId));
-        if (st.getBookingSeats() != null && !st.getBookingSeats().isEmpty()) {
-            throw new IllegalStateException("Không thể xóa suất chiếu đã có vé đặt.");
+        showTimeRepository.findById(showTimeId)
+                .orElseThrow(() -> new IllegalArgumentException("Suat chieu khong ton tai: " + showTimeId));
+
+        if (showTimeRepository.hasAnyBookings(showTimeId)) {
+            throw new IllegalStateException("Khong the xoa suat chieu da co ve dat.");
         }
+        if (showTimeRepository.hasAnySeatLocks(showTimeId)) {
+            throw new IllegalStateException("Khong the xoa suat chieu dang co ghe bi khoa.");
+        }
+
         showTimeRepository.deleteById(showTimeId);
     }
 
-    // ── Validation helpers ──────────────────────────────────────────────────
+    // Validation helpers
 
     private void validateTimes(LocalDateTime startTime, LocalDateTime endTime) {
         if (startTime == null || endTime == null) {
-            throw new IllegalArgumentException("Thời gian bắt đầu và kết thúc không được để trống.");
+            throw new IllegalArgumentException("Thoi gian bat dau va ket thuc khong duoc de trong.");
         }
         if (!endTime.isAfter(startTime)) {
-            throw new IllegalArgumentException("Thời gian kết thúc phải sau thời gian bắt đầu.");
+            throw new IllegalArgumentException("Thoi gian ket thuc phai sau thoi gian bat dau.");
         }
         if (startTime.isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("Không thể tạo suất chiếu trong quá khứ.");
+            throw new IllegalArgumentException("Khong the tao suat chieu trong qua khu.");
         }
     }
 }

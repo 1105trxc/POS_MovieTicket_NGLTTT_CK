@@ -58,11 +58,19 @@ public class SeatController {
     }
 
     public SeatType updateSeatType(String seatTypeId, String typeName,
-                                    BigDecimal basePrice, String changedByUserId) {
+                                   BigDecimal basePrice, String changedByUserId) {
         return seatTypeService.updateSeatType(seatTypeId, typeName, basePrice, changedByUserId);
     }
 
     public void deleteSeatType(String seatTypeId) {
         seatTypeService.deleteSeatType(seatTypeId);
+    }
+
+    public void addSeatsByPattern(String id, String id1, String row, String pattern) {
+        seatService.addSeatsByPattern(id, id1, row, pattern);
+    }
+
+    public void cloneRoomLayout(String id, String id1) {
+        seatService.cloneRoomLayout(id, id1);
     }
 }

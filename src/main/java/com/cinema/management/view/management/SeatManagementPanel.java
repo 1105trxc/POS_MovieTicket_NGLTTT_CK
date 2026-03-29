@@ -10,334 +10,571 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.util.List;
 
-/**
- * Panel Quản lý Ghế và Loại Ghế.
- * Gồm 2 tab: "Danh sách ghế" (lọc theo phòng) và "Loại ghế" (CRUD SeatType).
- * Tuân thủ MVC: chỉ gọi Controller.
- */
 public class SeatManagementPanel extends JPanel {
 
-    private final SeatController seatController   = new SeatController();
-    private final RoomController roomController   = new RoomController();
+    private final SeatController seatController = new SeatController();
+    private final RoomController roomController = new RoomController();
 
-    // ── Colors ───────────────────────────────────────────────────────────────
-    private static final Color PRIMARY   = new Color(41, 128, 185);
-    private static final Color DANGER    = new Color(192, 57, 43);
-    private static final Color SUCCESS   = new Color(39, 174, 96);
-    private static final Color BG_HEADER = new Color(52, 73, 94);
+    // Bảng màu hiện đại
+    private static final Color BG = new Color(245, 247, 250);
+    private static final Color CARD = Color.WHITE;
+    private static final Color HEADER = new Color(30, 41, 59);
+    private static final Color PRIMARY = new Color(14, 165, 233);
+    private static final Color SUCCESS = new Color(34, 197, 94);
+    private static final Color DANGER = new Color(239, 68, 68);
+    private static final Color WARNING = new Color(245, 158, 11);
 
-    // ── Tab: Ghế ─────────────────────────────────────────────────────────────
-    private final JComboBox<RoomItem> cmbRoom        = new JComboBox<>();
-    private final String[] SEAT_COLS   = {"Mã ghế", "Hàng", "Số ghế", "Loại ghế", "Giá cơ bản"};
-    private final DefaultTableModel seatTableModel   = new DefaultTableModel(SEAT_COLS, 0) {
-        @Override public boolean isCellEditable(int r, int c) { return false; }
+    // --- SEAT TAB VARIABLES ---
+    private final JComboBox<RoomItem> cmbRoom = new JComboBox<>();
+    private final String[] SEAT_COLS = {"Seat ID", "Row", "Number", "Type", "Base Price"};
+    private final DefaultTableModel seatTableModel = new DefaultTableModel(SEAT_COLS, 0) {
+        @Override
+        public boolean isCellEditable(int r, int c) {
+            return false;
+        }
     };
-    private final JTable seatTable                   = new JTable(seatTableModel);
-    private final JTextField txtRowChar              = new JTextField(5);
-    private final JSpinner   spinSeatNumber          = new JSpinner(new SpinnerNumberModel(1, 1, 999, 1));
+    private final JTable seatTable = new JTable(seatTableModel);
+    private TableRowSorter<DefaultTableModel> seatRowSorter;
+
+    // Thay đổi: Dùng TextField cho chuỗi Pattern thay vì Spinner
+    private final JTextField txtRowChar = new JTextField(16);
+    private final JTextField txtSeatPattern = new JTextField(16);
     private final JComboBox<SeatTypeItem> cmbSeatType = new JComboBox<>();
-    private final JButton btnAddSeat    = new JButton("Thêm ghế");
-    private final JButton btnUpdateSeat = new JButton("Đổi loại ghế");
-    private final JButton btnDeleteSeat = new JButton("Xóa ghế");
-    private final JButton btnClearSeat  = new JButton("Làm mới");
-    private String selectedSeatId = null;
 
-    // ── Tab: Loại ghế ────────────────────────────────────────────────────────
-    private final String[] TYPE_COLS  = {"Mã loại ghế", "Tên loại ghế", "Giá cơ bản (VNĐ)"};
-    private final DefaultTableModel typeTableModel  = new DefaultTableModel(TYPE_COLS, 0) {
-        @Override public boolean isCellEditable(int r, int c) { return false; }
+    private final JButton btnAddSeat = new JButton("Add Seats (Batch)");
+    private final JButton btnUpdateSeat = new JButton("Update Type");
+    private final JButton btnDeleteSeat = new JButton("Delete Seat");
+    private final JButton btnClearSeat = new JButton("Reset Form");
+    private String selectedSeatId;
+
+    // --- SEAT TYPE TAB VARIABLES ---
+    private final String[] TYPE_COLS = {"SeatType ID", "Type Name", "Base Price"};
+    private final DefaultTableModel typeTableModel = new DefaultTableModel(TYPE_COLS, 0) {
+        @Override
+        public boolean isCellEditable(int r, int c) {
+            return false;
+        }
     };
-    private final JTable  typeTable       = new JTable(typeTableModel);
-    private final JTextField txtTypeName  = new JTextField(20);
+    private final JTable typeTable = new JTable(typeTableModel);
+    private TableRowSorter<DefaultTableModel> typeRowSorter;
+
+    private final JTextField txtTypeName = new JTextField(16);
     private final JFormattedTextField txtBasePrice;
-    private final JButton btnAddType    = new JButton("Thêm loại ghế");
-    private final JButton btnUpdateType = new JButton("Cập nhật");
-    private final JButton btnDeleteType = new JButton("Xóa loại ghế");
-    private final JButton btnClearType  = new JButton("Làm mới");
-    private String selectedSeatTypeId = null;
+
+    private final JButton btnAddType = new JButton("Add Type");
+    private final JButton btnUpdateType = new JButton("Update Type");
+    private final JButton btnDeleteType = new JButton("Delete Type");
+    private final JButton btnClearType = new JButton("Reset Form");
+    private String selectedSeatTypeId;
 
     public SeatManagementPanel() {
-        // Format số tiền
         java.text.NumberFormat fmt = java.text.NumberFormat.getNumberInstance();
         fmt.setGroupingUsed(false);
         txtBasePrice = new JFormattedTextField(fmt);
-        txtBasePrice.setColumns(12);
         txtBasePrice.setValue(0);
 
-        setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(0, 0, 0, 0));
-        setBackground(Color.WHITE);
+        setLayout(new BorderLayout(15, 15));
+        setBorder(new EmptyBorder(15, 15, 15, 15));
+        setBackground(BG);
+
+        // Placeholders
+        txtRowChar.putClientProperty("JTextField.placeholderText", "e.g., A, B, C...");
+        txtSeatPattern.putClientProperty("JTextField.placeholderText", "e.g., 1-5, 8-12, 15");
+        txtTypeName.putClientProperty("JTextField.placeholderText", "e.g., Standard, VIP...");
 
         add(buildHeader(), BorderLayout.NORTH);
-
-        JTabbedPane tabs = new JTabbedPane();
-        tabs.setFont(new Font("Arial", Font.BOLD, 13));
-        tabs.addTab("🪑 Danh sách ghế", buildSeatTab());
-        tabs.addTab("📋 Loại ghế",       buildSeatTypeTab());
-        add(tabs, BorderLayout.CENTER);
+        add(buildTabs(), BorderLayout.CENTER);
 
         loadRoomCombo();
         loadSeatTypeCombo();
         loadSeatTypeTable();
+
         configureSeatTableSelection();
         configureSeatTypeTableSelection();
 
-        // Khi chọn phòng → load ghế
         cmbRoom.addActionListener(e -> loadSeatTable());
     }
 
-    // ── Header ───────────────────────────────────────────────────────────────
-
     private JPanel buildHeader() {
-        JPanel h = new JPanel(new BorderLayout());
-        h.setBackground(BG_HEADER);
-        h.setBorder(new EmptyBorder(10, 16, 10, 16));
-        JLabel lbl = new JLabel("QUẢN LÝ GHẾ NGỒI");
-        lbl.setFont(new Font("Arial", Font.BOLD, 18));
-        lbl.setForeground(Color.WHITE);
-        h.add(lbl, BorderLayout.WEST);
-        return h;
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(HEADER);
+        header.setBorder(new EmptyBorder(16, 20, 16, 20));
+
+        JLabel title = new JLabel("SEAT MANAGEMENT");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        title.setForeground(Color.WHITE);
+
+        JLabel sub = new JLabel("Manage room seats, bulk layouts, and pricing categories");
+        sub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        sub.setForeground(new Color(148, 163, 184));
+
+        JPanel left = new JPanel();
+        left.setOpaque(false);
+        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
+        left.add(title);
+        left.add(Box.createVerticalStrut(4));
+        left.add(sub);
+
+        header.add(left, BorderLayout.WEST);
+        return header;
     }
 
-    // ── Tab: Ghế ─────────────────────────────────────────────────────────────
+    private JTabbedPane buildTabs() {
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        tabs.addTab("   Seat Layout Setup   ", buildSeatTab());
+        tabs.addTab("   Seat Types & Pricing   ", buildSeatTypeTab());
+        return tabs;
+    }
 
+    // ==========================================
+    // SEAT TAB
+    // ==========================================
     private JPanel buildSeatTab() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBorder(new EmptyBorder(12, 12, 12, 12));
-        panel.setBackground(Color.WHITE);
+        JPanel panel = new JPanel(new BorderLayout(15, 0));
+        panel.setBackground(BG);
+        panel.setBorder(new EmptyBorder(10, 0, 0, 0));
 
-        // Bộ lọc phòng
-        JPanel filter = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
-        filter.setBackground(Color.WHITE);
-        filter.add(new JLabel("Chọn phòng:"));
-        cmbRoom.setPreferredSize(new Dimension(220, 28));
-        filter.add(cmbRoom);
-        JButton btnLoadSeats = new JButton("Xem ghế");
-        btnLoadSeats.addActionListener(e -> loadSeatTable());
-        filter.add(btnLoadSeats);
-        panel.add(filter, BorderLayout.NORTH);
+        JPanel tableArea = new JPanel(new BorderLayout(0, 12));
+        tableArea.setBackground(CARD);
+        tableArea.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(226, 232, 240)),
+                new EmptyBorder(15, 15, 15, 15)));
+
+        // Filter Bar (Room + Live Search + Clone Button)
+        JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        filterBar.setOpaque(false);
+
+        filterBar.add(new JLabel("<html><b>Room:</b></html>"));
+        cmbRoom.setPreferredSize(new Dimension(150, 36));
+        filterBar.add(cmbRoom);
+
+        // Nút Clone Layout tích hợp
+        JButton btnClone = new JButton("Clone Layout");
+        btnClone.setBackground(WARNING);
+        btnClone.setForeground(Color.WHITE);
+        btnClone.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnClone.addActionListener(e -> onCloneLayout());
+        filterBar.add(btnClone);
+
+        filterBar.add(Box.createHorizontalStrut(10));
+        filterBar.add(new JLabel("<html><b>Search:</b></html>"));
+
+        JTextField txtLiveSearchSeat = new JTextField();
+        txtLiveSearchSeat.putClientProperty("JTextField.placeholderText", "Row, Number, Type...");
+        txtLiveSearchSeat.setPreferredSize(new Dimension(200, 36));
+        filterBar.add(txtLiveSearchSeat);
+
+        tableArea.add(filterBar, BorderLayout.NORTH);
 
         // Table
         styleTable(seatTable);
-        seatTable.getColumnModel().getColumn(0).setPreferredWidth(150);
-        seatTable.getColumnModel().getColumn(1).setPreferredWidth(60);
-        seatTable.getColumnModel().getColumn(2).setPreferredWidth(70);
-        seatTable.getColumnModel().getColumn(3).setPreferredWidth(150);
-        seatTable.getColumnModel().getColumn(4).setPreferredWidth(120);
-        panel.add(new JScrollPane(seatTable), BorderLayout.CENTER);
+        seatRowSorter = new TableRowSorter<>(seatTableModel);
+        seatTable.setRowSorter(seatRowSorter);
+        hideColumn(seatTable, 0); // Ẩn Seat ID
 
-        // Form
+        txtLiveSearchSeat.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                applyFilter();
+            }
+
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                applyFilter();
+            }
+
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                applyFilter();
+            }
+
+            private void applyFilter() {
+                String text = txtLiveSearchSeat.getText().trim();
+                seatRowSorter.setRowFilter(text.isEmpty() ? null : RowFilter.regexFilter("(?i)" + text));
+            }
+        });
+
+        JScrollPane scrollPane = new JScrollPane(seatTable);
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240)));
+        tableArea.add(scrollPane, BorderLayout.CENTER);
+
+        panel.add(tableArea, BorderLayout.CENTER);
         panel.add(buildSeatForm(), BorderLayout.EAST);
         return panel;
     }
 
     private JPanel buildSeatForm() {
-        JPanel panel = new JPanel(new BorderLayout(0, 10));
-        panel.setBackground(Color.WHITE);
-        panel.setPreferredSize(new Dimension(260, 0));
-        panel.setBorder(new EmptyBorder(0, 8, 0, 0));
+        JPanel panel = new JPanel(new BorderLayout(0, 15));
+        panel.setBackground(CARD);
+        panel.setPreferredSize(new Dimension(380, 0));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(226, 232, 240)),
+                new EmptyBorder(15, 15, 15, 15)));
 
         JPanel fields = new JPanel(new GridBagLayout());
-        fields.setBackground(Color.WHITE);
-        fields.setBorder(new TitledBorder(
-                BorderFactory.createLineBorder(PRIMARY), "Thông tin ghế",
-                TitledBorder.LEFT, TitledBorder.TOP, new Font("Arial", Font.BOLD, 12), PRIMARY));
+        fields.setOpaque(false);
+        fields.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(new Color(203, 213, 225)),
+                "  Seat Batch Generator  ", TitledBorder.LEFT, TitledBorder.TOP,
+                new Font("Segoe UI", Font.BOLD, 13), new Color(71, 85, 105)));
+
         GridBagConstraints gc = new GridBagConstraints();
-        gc.insets = new Insets(6, 6, 6, 6);
+        gc.insets = new Insets(10, 10, 10, 10);
         gc.anchor = GridBagConstraints.WEST;
 
-        gc.gridx = 0; gc.gridy = 0;
-        fields.add(new JLabel("Hàng (A-Z) (*):"), gc);
-        gc.gridx = 1; gc.fill = GridBagConstraints.HORIZONTAL; gc.weightx = 1;
-        txtRowChar.setToolTipText("Ví dụ: A, B, C...");
+        Dimension fieldSize = new Dimension(220, 36);
+        txtRowChar.setPreferredSize(fieldSize);
+        txtSeatPattern.setPreferredSize(fieldSize);
+        cmbSeatType.setPreferredSize(fieldSize);
+
+        gc.gridx = 0;
+        gc.gridy = 0;
+        fields.add(new JLabel("Row (A-Z):"), gc);
+        gc.gridx = 1;
+        gc.fill = GridBagConstraints.HORIZONTAL;
+        gc.weightx = 1;
         fields.add(txtRowChar, gc);
 
-        gc.gridx = 0; gc.gridy = 1; gc.fill = GridBagConstraints.NONE; gc.weightx = 0;
-        fields.add(new JLabel("Số ghế (*):"), gc);
-        gc.gridx = 1; gc.fill = GridBagConstraints.HORIZONTAL; gc.weightx = 1;
-        fields.add(spinSeatNumber, gc);
+        gc.gridx = 0;
+        gc.gridy = 1;
+        gc.fill = GridBagConstraints.NONE;
+        gc.weightx = 0;
+        fields.add(new JLabel("Number(s):"), gc);
+        gc.gridx = 1;
+        gc.fill = GridBagConstraints.HORIZONTAL;
+        gc.weightx = 1;
+        fields.add(txtSeatPattern, gc);
 
-        gc.gridx = 0; gc.gridy = 2; gc.fill = GridBagConstraints.NONE; gc.weightx = 0;
-        fields.add(new JLabel("Loại ghế (*):"), gc);
-        gc.gridx = 1; gc.fill = GridBagConstraints.HORIZONTAL; gc.weightx = 1;
-        cmbSeatType.setPreferredSize(new Dimension(140, 28));
+        gc.gridx = 0;
+        gc.gridy = 2;
+        gc.fill = GridBagConstraints.NONE;
+        gc.weightx = 0;
+        fields.add(new JLabel("Seat Type:"), gc);
+        gc.gridx = 1;
+        gc.fill = GridBagConstraints.HORIZONTAL;
+        gc.weightx = 1;
         fields.add(cmbSeatType, gc);
 
         panel.add(fields, BorderLayout.NORTH);
 
-        JPanel btns = new JPanel(new GridLayout(2, 2, 6, 6));
-        btns.setBackground(Color.WHITE);
-        styleButton(btnAddSeat,    SUCCESS, Color.WHITE);
-        styleButton(btnUpdateSeat, PRIMARY, Color.WHITE);
-        styleButton(btnDeleteSeat, DANGER,  Color.WHITE);
-        styleButton(btnClearSeat,  new Color(149, 165, 166), Color.WHITE);
-        btnAddSeat.addActionListener(e    -> onAddSeat());
+        JPanel buttons = new JPanel(new GridLayout(2, 2, 10, 10));
+        buttons.setOpaque(false);
+        styleActionButtons(btnAddSeat, btnUpdateSeat, btnDeleteSeat, btnClearSeat);
+
+        btnAddSeat.addActionListener(e -> onAddSeat());
         btnUpdateSeat.addActionListener(e -> onUpdateSeat());
         btnDeleteSeat.addActionListener(e -> onDeleteSeat());
-        btnClearSeat.addActionListener(e  -> clearSeatForm());
+        btnClearSeat.addActionListener(e -> clearSeatForm());
+
         btnUpdateSeat.setEnabled(false);
         btnDeleteSeat.setEnabled(false);
-        btns.add(btnAddSeat); btns.add(btnUpdateSeat);
-        btns.add(btnDeleteSeat); btns.add(btnClearSeat);
-        panel.add(btns, BorderLayout.CENTER);
+
+        buttons.add(btnAddSeat);
+        buttons.add(btnUpdateSeat);
+        buttons.add(btnDeleteSeat);
+        buttons.add(btnClearSeat);
+        panel.add(buttons, BorderLayout.SOUTH);
         return panel;
     }
 
-    // ── Tab: Loại ghế ────────────────────────────────────────────────────────
-
+    // ==========================================
+    // SEAT TYPE TAB (Không đổi)
+    // ==========================================
     private JPanel buildSeatTypeTab() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBorder(new EmptyBorder(12, 12, 12, 12));
-        panel.setBackground(Color.WHITE);
+        JPanel panel = new JPanel(new BorderLayout(15, 0));
+        panel.setBackground(BG);
+        panel.setBorder(new EmptyBorder(10, 0, 0, 0));
+
+        JPanel tableArea = new JPanel(new BorderLayout(0, 12));
+        tableArea.setBackground(CARD);
+        tableArea.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(226, 232, 240)),
+                new EmptyBorder(15, 15, 15, 15)));
+
+        JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        filterBar.setOpaque(false);
+        filterBar.add(new JLabel("<html><b>🔍 Quick Search:</b></html>"));
+
+        JTextField txtLiveSearchType = new JTextField();
+        txtLiveSearchType.putClientProperty("JTextField.placeholderText", "Search type name...");
+        txtLiveSearchType.setPreferredSize(new Dimension(350, 36));
+        filterBar.add(txtLiveSearchType);
+
+        tableArea.add(filterBar, BorderLayout.NORTH);
 
         styleTable(typeTable);
-        typeTable.getColumnModel().getColumn(0).setPreferredWidth(150);
-        typeTable.getColumnModel().getColumn(1).setPreferredWidth(200);
-        typeTable.getColumnModel().getColumn(2).setPreferredWidth(150);
-        panel.add(new JScrollPane(typeTable), BorderLayout.CENTER);
+        typeRowSorter = new TableRowSorter<>(typeTableModel);
+        typeTable.setRowSorter(typeRowSorter);
+        hideColumn(typeTable, 0);
+
+        txtLiveSearchType.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                applyFilter();
+            }
+
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                applyFilter();
+            }
+
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                applyFilter();
+            }
+
+            private void applyFilter() {
+                String text = txtLiveSearchType.getText().trim();
+                typeRowSorter.setRowFilter(text.isEmpty() ? null : RowFilter.regexFilter("(?i)" + text));
+            }
+        });
+
+        JScrollPane scrollPane = new JScrollPane(typeTable);
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240)));
+        tableArea.add(scrollPane, BorderLayout.CENTER);
+
+        panel.add(tableArea, BorderLayout.CENTER);
         panel.add(buildSeatTypeForm(), BorderLayout.EAST);
         return panel;
     }
 
     private JPanel buildSeatTypeForm() {
-        JPanel panel = new JPanel(new BorderLayout(0, 10));
-        panel.setBackground(Color.WHITE);
-        panel.setPreferredSize(new Dimension(270, 0));
-        panel.setBorder(new EmptyBorder(0, 8, 0, 0));
+        JPanel panel = new JPanel(new BorderLayout(0, 15));
+        panel.setBackground(CARD);
+        panel.setPreferredSize(new Dimension(380, 0));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(226, 232, 240)),
+                new EmptyBorder(15, 15, 15, 15)));
 
         JPanel fields = new JPanel(new GridBagLayout());
-        fields.setBackground(Color.WHITE);
-        fields.setBorder(new TitledBorder(
-                BorderFactory.createLineBorder(PRIMARY), "Thông tin loại ghế",
-                TitledBorder.LEFT, TitledBorder.TOP, new Font("Arial", Font.BOLD, 12), PRIMARY));
+        fields.setOpaque(false);
+        fields.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(new Color(203, 213, 225)),
+                "  Seat Type Details  ", TitledBorder.LEFT, TitledBorder.TOP,
+                new Font("Segoe UI", Font.BOLD, 13), new Color(71, 85, 105)));
+
         GridBagConstraints gc = new GridBagConstraints();
-        gc.insets = new Insets(6, 6, 6, 6);
+        gc.insets = new Insets(10, 10, 10, 10);
         gc.anchor = GridBagConstraints.WEST;
 
-        gc.gridx = 0; gc.gridy = 0;
-        fields.add(new JLabel("Tên loại ghế (*):"), gc);
-        gc.gridx = 1; gc.fill = GridBagConstraints.HORIZONTAL; gc.weightx = 1;
+        Dimension fieldSize = new Dimension(220, 36);
+        txtTypeName.setPreferredSize(fieldSize);
+        txtBasePrice.setPreferredSize(fieldSize);
+
+        gc.gridx = 0;
+        gc.gridy = 0;
+        fields.add(new JLabel("Type Name:"), gc);
+        gc.gridx = 1;
+        gc.fill = GridBagConstraints.HORIZONTAL;
+        gc.weightx = 1;
         fields.add(txtTypeName, gc);
 
-        gc.gridx = 0; gc.gridy = 1; gc.fill = GridBagConstraints.NONE; gc.weightx = 0;
-        fields.add(new JLabel("Giá cơ bản (VNĐ) (*):"), gc);
-        gc.gridx = 1; gc.fill = GridBagConstraints.HORIZONTAL; gc.weightx = 1;
+        gc.gridx = 0;
+        gc.gridy = 1;
+        gc.fill = GridBagConstraints.NONE;
+        gc.weightx = 0;
+        fields.add(new JLabel("Base Price:"), gc);
+        gc.gridx = 1;
+        gc.fill = GridBagConstraints.HORIZONTAL;
+        gc.weightx = 1;
         fields.add(txtBasePrice, gc);
-
-        JLabel note = new JLabel("* Đổi giá sẽ tự động ghi Audit Log");
-        note.setFont(new Font("Arial", Font.ITALIC, 11));
-        note.setForeground(Color.GRAY);
-        gc.gridx = 0; gc.gridy = 2; gc.gridwidth = 2; gc.fill = GridBagConstraints.HORIZONTAL;
-        fields.add(note, gc);
 
         panel.add(fields, BorderLayout.NORTH);
 
-        JPanel btns = new JPanel(new GridLayout(2, 2, 6, 6));
-        btns.setBackground(Color.WHITE);
-        styleButton(btnAddType,    SUCCESS, Color.WHITE);
-        styleButton(btnUpdateType, PRIMARY, Color.WHITE);
-        styleButton(btnDeleteType, DANGER,  Color.WHITE);
-        styleButton(btnClearType,  new Color(149, 165, 166), Color.WHITE);
-        btnAddType.addActionListener(e    -> onAddSeatType());
+        JPanel buttons = new JPanel(new GridLayout(2, 2, 10, 10));
+        buttons.setOpaque(false);
+        styleActionButtons(btnAddType, btnUpdateType, btnDeleteType, btnClearType);
+
+        btnAddType.addActionListener(e -> onAddSeatType());
         btnUpdateType.addActionListener(e -> onUpdateSeatType());
         btnDeleteType.addActionListener(e -> onDeleteSeatType());
-        btnClearType.addActionListener(e  -> clearSeatTypeForm());
+        btnClearType.addActionListener(e -> clearSeatTypeForm());
+
         btnUpdateType.setEnabled(false);
         btnDeleteType.setEnabled(false);
-        btns.add(btnAddType); btns.add(btnUpdateType);
-        btns.add(btnDeleteType); btns.add(btnClearType);
-        panel.add(btns, BorderLayout.CENTER);
+
+        buttons.add(btnAddType);
+        buttons.add(btnUpdateType);
+        buttons.add(btnDeleteType);
+        buttons.add(btnClearType);
+        panel.add(buttons, BorderLayout.SOUTH);
         return panel;
     }
 
-    // ── Event Handlers ───────────────────────────────────────────────────────
-
+    // ==========================================
+    // CONTROLLER ACTIONS (Đã cập nhật)
+    // ==========================================
     private void onAddSeat() {
         RoomItem ri = (RoomItem) cmbRoom.getSelectedItem();
-        if (ri == null) { showError("Vui lòng chọn phòng trước."); return; }
         SeatTypeItem sti = (SeatTypeItem) cmbSeatType.getSelectedItem();
-        if (sti == null) { showError("Vui lòng chọn loại ghế."); return; }
-        String row = txtRowChar.getText().trim();
-        int num = (int) spinSeatNumber.getValue();
+        if (ri == null || sti == null) {
+            showError("Please choose a room and a seat type.");
+            return;
+        }
+
+        String row = txtRowChar.getText().trim().toUpperCase();
+        String pattern = txtSeatPattern.getText().trim(); // Lấy chuỗi pattern
+
+        if (row.isEmpty() || pattern.isEmpty()) {
+            showError("Row and Number(s) cannot be empty.");
+            return;
+        }
+
         try {
-            seatController.addSeat(ri.id, sti.id, row, num);
-            showSuccess("Thêm ghế " + row.toUpperCase() + num + " thành công!");
+            // GỌI HÀM MỚI TỪ CONTROLLER
+            seatController.addSeatsByPattern(ri.id, sti.id, row, pattern);
+            showSuccess("Seats generated successfully!");
             clearSeatForm();
             loadSeatTable();
-        } catch (Exception ex) { showError(ex.getMessage()); }
+        } catch (Exception ex) {
+            showError("Error generating seats: " + ex.getMessage());
+        }
+    }
+
+    private void onCloneLayout() {
+        RoomItem targetRoom = (RoomItem) cmbRoom.getSelectedItem();
+        if (targetRoom == null) {
+            showError("Please select a target room in the filter bar first.");
+            return;
+        }
+
+        List<Room> allRooms = roomController.getAllRooms();
+        allRooms.removeIf(r -> r.getRoomId().equals(targetRoom.id));
+
+        if (allRooms.isEmpty()) {
+            showError("No other rooms available to clone from.");
+            return;
+        }
+
+        JComboBox<RoomItem> cmbSource = new JComboBox<>();
+        for (Room r : allRooms) {
+            cmbSource.addItem(new RoomItem(r.getRoomId(), r.getRoomName()));
+        }
+
+        Object[] message = {
+                "Cloning will replace or add to the current layout.",
+                "Select Source Room to Clone to [" + targetRoom.name + "]:",
+                cmbSource
+        };
+
+        int result = JOptionPane.showConfirmDialog(this, message, "Clone Room Layout", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            RoomItem sourceRoom = (RoomItem) cmbSource.getSelectedItem();
+            if (sourceRoom != null) {
+                try {
+                    // GỌI HÀM CLONE TỪ CONTROLLER
+                    seatController.cloneRoomLayout(sourceRoom.id, targetRoom.id);
+                    showSuccess("Layout cloned successfully from " + sourceRoom.name + " to " + targetRoom.name);
+                    loadSeatTable();
+                } catch (Exception ex) {
+                    showError("Error cloning layout: " + ex.getMessage());
+                }
+            }
+        }
     }
 
     private void onUpdateSeat() {
-        if (selectedSeatId == null) { showError("Vui lòng chọn ghế cần cập nhật."); return; }
+        if (selectedSeatId == null) {
+            showError("Please select a seat to update.");
+            return;
+        }
         SeatTypeItem sti = (SeatTypeItem) cmbSeatType.getSelectedItem();
-        if (sti == null) { showError("Vui lòng chọn loại ghế."); return; }
+        if (sti == null) {
+            showError("Please choose a seat type.");
+            return;
+        }
         try {
             seatController.updateSeatType(selectedSeatId, sti.id);
-            showSuccess("Cập nhật loại ghế thành công!");
+            showSuccess("Seat updated successfully.");
             clearSeatForm();
             loadSeatTable();
-        } catch (Exception ex) { showError(ex.getMessage()); }
+        } catch (Exception ex) {
+            showError(ex.getMessage());
+        }
     }
 
     private void onDeleteSeat() {
-        if (selectedSeatId == null) { showError("Vui lòng chọn ghế cần xóa."); return; }
-        int c = JOptionPane.showConfirmDialog(this, "Xóa ghế này?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+        if (selectedSeatId == null) {
+            showError("Please select a seat to delete.");
+            return;
+        }
+        int c = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete this seat?", "Confirm", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (c != JOptionPane.YES_OPTION) return;
         try {
             seatController.deleteSeat(selectedSeatId);
-            showSuccess("Xóa ghế thành công!");
+            showSuccess("Seat deleted successfully.");
             clearSeatForm();
             loadSeatTable();
-        } catch (Exception ex) { showError(ex.getMessage()); }
+        } catch (Exception ex) {
+            showError(ex.getMessage());
+        }
     }
 
-    private void onAddSeatType() {
+    private void onAddSeatType() { /* Giữ nguyên như cũ */
         String name = txtTypeName.getText().trim();
+        if (name.isEmpty()) {
+            showError("Type name cannot be empty.");
+            return;
+        }
         BigDecimal price = parsePriceField();
         if (price == null) return;
         try {
             seatController.addSeatType(name, price);
-            showSuccess("Thêm loại ghế '" + name + "' thành công!");
+            showSuccess("Seat type added successfully.");
             clearSeatTypeForm();
             loadSeatTypeTable();
             loadSeatTypeCombo();
-        } catch (Exception ex) { showError(ex.getMessage()); }
+        } catch (Exception ex) {
+            showError(ex.getMessage());
+        }
     }
 
-    private void onUpdateSeatType() {
-        if (selectedSeatTypeId == null) { showError("Vui lòng chọn loại ghế cần cập nhật."); return; }
+    private void onUpdateSeatType() { /* Giữ nguyên như cũ */
+        if (selectedSeatTypeId == null) {
+            showError("Please select a seat type to update.");
+            return;
+        }
         String name = txtTypeName.getText().trim();
+        if (name.isEmpty()) {
+            showError("Type name cannot be empty.");
+            return;
+        }
         BigDecimal price = parsePriceField();
         if (price == null) return;
         try {
-            // TODO: lấy userId từ session thực tế (Module 3 - Thành viên B)
-            seatController.updateSeatType(selectedSeatTypeId, name, price, null);
-            showSuccess("Cập nhật loại ghế thành công!");
+            seatController.updateSeatType(selectedSeatTypeId, name, price, "U001");
+            showSuccess("Seat type updated successfully.");
             clearSeatTypeForm();
             loadSeatTypeTable();
             loadSeatTypeCombo();
-        } catch (Exception ex) { showError(ex.getMessage()); }
+            loadSeatTable();
+        } catch (Exception ex) {
+            showError(ex.getMessage());
+        }
     }
 
-    private void onDeleteSeatType() {
-        if (selectedSeatTypeId == null) { showError("Vui lòng chọn loại ghế cần xóa."); return; }
-        int c = JOptionPane.showConfirmDialog(this, "Xóa loại ghế này?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+    private void onDeleteSeatType() { /* Giữ nguyên như cũ */
+        if (selectedSeatTypeId == null) {
+            showError("Please select a seat type to delete.");
+            return;
+        }
+        int c = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete this seat type?", "Confirm", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (c != JOptionPane.YES_OPTION) return;
         try {
             seatController.deleteSeatType(selectedSeatTypeId);
-            showSuccess("Xóa loại ghế thành công!");
+            showSuccess("Seat type deleted successfully.");
             clearSeatTypeForm();
             loadSeatTypeTable();
             loadSeatTypeCombo();
-        } catch (Exception ex) { showError(ex.getMessage()); }
+        } catch (Exception ex) {
+            showError(ex.getMessage());
+        }
     }
 
-    // ── Data loaders ─────────────────────────────────────────────────────────
-
+    // ==========================================
+    // UTILITY METHODS
+    // ==========================================
     private void loadRoomCombo() {
         cmbRoom.removeAllItems();
         for (Room r : roomController.getAllRooms()) {
@@ -358,11 +595,11 @@ public class SeatManagementPanel extends JPanel {
         if (ri == null) return;
         List<Seat> seats = seatController.getSeatsByRoom(ri.id);
         for (Seat s : seats) {
-            String typeName  = s.getSeatType() != null ? s.getSeatType().getTypeName() : "-";
-            String basePrice = s.getSeatType() != null
-                    ? String.format("%,.0f", s.getSeatType().getBasePrice()) : "-";
+            String typeName = s.getSeatType() != null ? s.getSeatType().getTypeName() : "-";
+            String basePrice = s.getSeatType() != null ? String.format("%,.0f", s.getSeatType().getBasePrice()) : "-";
             seatTableModel.addRow(new Object[]{
-                    s.getSeatId(), s.getRowChar(), s.getSeatNumber(), typeName, basePrice});
+                    s.getSeatId(), s.getRowChar(), s.getSeatNumber(), typeName, basePrice
+            });
         }
     }
 
@@ -370,47 +607,62 @@ public class SeatManagementPanel extends JPanel {
         typeTableModel.setRowCount(0);
         for (SeatType st : seatController.getAllSeatTypes()) {
             typeTableModel.addRow(new Object[]{
-                    st.getSeatTypeId(), st.getTypeName(),
-                    String.format("%,.0f", st.getBasePrice())});
+                    st.getSeatTypeId(), st.getTypeName(), String.format("%,.0f", st.getBasePrice())
+            });
         }
     }
 
     private void configureSeatTableSelection() {
         seatTable.getSelectionModel().addListSelectionListener(e -> {
             if (e.getValueIsAdjusting()) return;
-            int row = seatTable.getSelectedRow();
-            if (row < 0) { clearSeatForm(); return; }
-            selectedSeatId = (String) seatTableModel.getValueAt(row, 0);
-            txtRowChar.setText((String) seatTableModel.getValueAt(row, 1));
-            spinSeatNumber.setValue(seatTableModel.getValueAt(row, 2));
+            int viewRow = seatTable.getSelectedRow();
+            if (viewRow < 0) {
+                clearSeatForm();
+                return;
+            }
+            int modelRow = seatTable.convertRowIndexToModel(viewRow);
+
+            selectedSeatId = (String) seatTableModel.getValueAt(modelRow, 0);
+            txtRowChar.setText((String) seatTableModel.getValueAt(modelRow, 1));
+            // Đẩy số ghế vào ô Pattern để có thể xem/chỉnh sửa
+            txtSeatPattern.setText(seatTableModel.getValueAt(modelRow, 2).toString());
+
+            btnAddSeat.setEnabled(false); // Khi select thì chỉ được Update Type hoặc Delete
             btnUpdateSeat.setEnabled(true);
             btnDeleteSeat.setEnabled(true);
-            btnAddSeat.setEnabled(false);
         });
     }
 
     private void configureSeatTypeTableSelection() {
         typeTable.getSelectionModel().addListSelectionListener(e -> {
             if (e.getValueIsAdjusting()) return;
-            int row = typeTable.getSelectedRow();
-            if (row < 0) { clearSeatTypeForm(); return; }
-            selectedSeatTypeId = (String) typeTableModel.getValueAt(row, 0);
-            txtTypeName.setText((String) typeTableModel.getValueAt(row, 1));
-            String priceStr = ((String) typeTableModel.getValueAt(row, 2)).replace(",", "");
-            try { txtBasePrice.setValue(Long.parseLong(priceStr)); } catch (Exception ignored) {}
+            int viewRow = typeTable.getSelectedRow();
+            if (viewRow < 0) {
+                clearSeatTypeForm();
+                return;
+            }
+            int modelRow = typeTable.convertRowIndexToModel(viewRow);
+
+            selectedSeatTypeId = (String) typeTableModel.getValueAt(modelRow, 0);
+            txtTypeName.setText((String) typeTableModel.getValueAt(modelRow, 1));
+            String priceStr = ((String) typeTableModel.getValueAt(modelRow, 2)).replace(",", "");
+            try {
+                txtBasePrice.setValue(Long.parseLong(priceStr));
+            } catch (Exception ignored) {
+            }
+
+            btnAddType.setEnabled(false);
             btnUpdateType.setEnabled(true);
             btnDeleteType.setEnabled(true);
-            btnAddType.setEnabled(false);
         });
     }
-
-    // ── Clear forms ──────────────────────────────────────────────────────────
 
     private void clearSeatForm() {
         selectedSeatId = null;
         txtRowChar.setText("");
-        spinSeatNumber.setValue(1);
+        txtSeatPattern.setText("");
         seatTable.clearSelection();
+
         btnAddSeat.setEnabled(true);
         btnUpdateSeat.setEnabled(false);
         btnDeleteSeat.setEnabled(false);
@@ -421,65 +673,91 @@ public class SeatManagementPanel extends JPanel {
         txtTypeName.setText("");
         txtBasePrice.setValue(0);
         typeTable.clearSelection();
+
         btnAddType.setEnabled(true);
         btnUpdateType.setEnabled(false);
         btnDeleteType.setEnabled(false);
     }
-
-    // ── Utility ──────────────────────────────────────────────────────────────
 
     private BigDecimal parsePriceField() {
         try {
             Object val = txtBasePrice.getValue();
             return new BigDecimal(val.toString());
         } catch (Exception e) {
-            showError("Giá cơ bản không hợp lệ. Vui lòng nhập số.");
+            showError("Base price is invalid.");
             return null;
         }
     }
 
     private void styleTable(JTable tbl) {
-        tbl.setRowHeight(30);
-        tbl.setFont(new Font("Arial", Font.PLAIN, 13));
-        tbl.getTableHeader().setFont(new Font("Arial", Font.BOLD, 13));
-        tbl.getTableHeader().setBackground(PRIMARY);
-        tbl.getTableHeader().setForeground(Color.WHITE);
-        tbl.setSelectionBackground(new Color(210, 234, 255));
-        tbl.setGridColor(new Color(220, 220, 220));
+        tbl.setRowHeight(38);
+        tbl.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        tbl.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
+        tbl.setSelectionBackground(new Color(224, 242, 254));
+        tbl.setSelectionForeground(new Color(15, 23, 42));
+        tbl.setGridColor(new Color(241, 245, 249));
         tbl.setShowVerticalLines(false);
     }
 
-    private void styleButton(JButton btn, Color bg, Color fg) {
-        btn.setBackground(bg); btn.setForeground(fg);
-        btn.setFont(new Font("Arial", Font.BOLD, 12));
-        btn.setFocusPainted(false); btn.setBorderPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+    private void styleActionButtons(JButton add, JButton update, JButton delete, JButton clear) {
+        add.setBackground(SUCCESS);
+        add.setForeground(Color.WHITE);
+        add.setFont(new Font("Segoe UI", Font.BOLD, 13));
+
+        update.setBackground(PRIMARY);
+        update.setForeground(Color.WHITE);
+        update.setFont(new Font("Segoe UI", Font.BOLD, 13));
+
+        delete.setBackground(DANGER);
+        delete.setForeground(Color.WHITE);
+        delete.setFont(new Font("Segoe UI", Font.BOLD, 13));
+
+        clear.setFont(new Font("Segoe UI", Font.BOLD, 13));
+    }
+
+    private void hideColumn(JTable tbl, int colIndex) {
+        tbl.getColumnModel().getColumn(colIndex).setMinWidth(0);
+        tbl.getColumnModel().getColumn(colIndex).setMaxWidth(0);
+        tbl.getColumnModel().getColumn(colIndex).setPreferredWidth(0);
     }
 
     private void showSuccess(String msg) {
-        JOptionPane.showMessageDialog(this, msg, "Thành công", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this, msg, "Success", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void showError(String msg) {
-        JOptionPane.showMessageDialog(this, msg, "Lỗi", JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(this, msg, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
-    // ── Inner display classes ─────────────────────────────────────────────────
-
     private static class RoomItem {
-        final String id, name;
-        RoomItem(String id, String name) { this.id = id; this.name = name; }
-        @Override public String toString() { return name; }
+        final String id;
+        final String name;
+
+        RoomItem(String id, String name) {
+            this.id = id;
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
     }
 
     private static class SeatTypeItem {
-        final String id, name;
+        final String id;
+        final String name;
         final BigDecimal price;
+
         SeatTypeItem(String id, String name, BigDecimal price) {
-            this.id = id; this.name = name; this.price = price;
+            this.id = id;
+            this.name = name;
+            this.price = price;
         }
-        @Override public String toString() {
-            return name + " (" + String.format("%,.0f", price) + " VNĐ)";
+
+        @Override
+        public String toString() {
+            return name + " (" + String.format("%,.0f", price) + " VND)";
         }
     }
 }

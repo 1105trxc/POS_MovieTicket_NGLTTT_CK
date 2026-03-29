@@ -9,82 +9,82 @@ import com.cinema.management.service.IShowTimeService;
 import com.cinema.management.service.impl.BookingServiceImpl;
 import com.cinema.management.service.impl.ShowTimeServiceImpl;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
- * Controller cho luồng Bán vé (POS) – Module 2.
- * Cầu nối giữa BookingPanel/SeatMapPanel và BookingService.
- * Không chứa business logic.
+ * Controller cho luong Ban ve (POS).
  */
 public class BookingController {
 
-    private final IBookingService  bookingService;
+    private static final int POS_KEEP_PAST_MINUTES = 60;
+
+    private final IBookingService bookingService;
     private final IShowTimeService showTimeService;
     private final ProductRepository productRepository;
 
     public BookingController() {
-        this.bookingService     = new BookingServiceImpl();
-        this.showTimeService    = new ShowTimeServiceImpl();
-        this.productRepository  = new ProductRepository();
+        this.bookingService = new BookingServiceImpl();
+        this.showTimeService = new ShowTimeServiceImpl();
+        this.productRepository = new ProductRepository();
     }
 
     public BookingController(IBookingService bookingService,
                              IShowTimeService showTimeService,
                              ProductRepository productRepository) {
-        this.bookingService    = bookingService;
-        this.showTimeService   = showTimeService;
+        this.bookingService = bookingService;
+        this.showTimeService = showTimeService;
         this.productRepository = productRepository;
     }
 
-    // ── ShowTime ─────────────────────────────────────────────────────────────
-
-    /** Lấy danh sách suất chiếu để điền ComboBox chọn suất. */
+    /**
+     * Danh sach suat chieu hien tren POS:
+     * - Giu toan bo suat trong ngay hien tai.
+     * - Loai bo suat qua cu, chi giu cua so grace 60 phut gan nhat.
+     */
     public List<ShowTime> getAllShowTimes() {
-        return showTimeService.getAllShowTimes();
+        LocalDateTime now = LocalDateTime.now();
+        return showTimeService.getAllShowTimes()
+                .stream()
+                .filter(st -> isVisibleInPos(st, now))
+                .sorted(Comparator.comparing(ShowTime::getStartTime))
+                .collect(Collectors.toList());
     }
 
-    // ── Seat map ─────────────────────────────────────────────────────────────
+    private boolean isVisibleInPos(ShowTime showTime, LocalDateTime now) {
+        if (showTime == null || showTime.getStartTime() == null) {
+            return false;
+        }
+        LocalDateTime startTime = showTime.getStartTime();
+        if (startTime.toLocalDate().isEqual(LocalDate.now())) {
+            return true;
+        }
+        return startTime.isAfter(now.minusMinutes(POS_KEEP_PAST_MINUTES));
+    }
 
-    /**
-     * Trả về trạng thái tất cả ghế để vẽ sơ đồ ghế.
-     * @param showTimeId  suất chiếu
-     * @param currentUserId user đang thao tác (phân biệt SELECTED vs LOCKED)
-     */
     public List<SeatStatusDto> getSeatStatuses(String showTimeId, String currentUserId) {
         return bookingService.getSeatStatuses(showTimeId, currentUserId);
     }
 
-    // ── Lock / Unlock ────────────────────────────────────────────────────────
-
-    /**
-     * Khóa ghế 15 phút khi user click chọn.
-     * @throws IllegalStateException nếu ghế đã bị người khác khóa hoặc đã bán
-     */
     public void lockSeat(String showTimeId, String seatId, String userId) {
         bookingService.lockSeat(showTimeId, seatId, userId);
     }
 
-    /** Nhả 1 ghế khi user click bỏ chọn. */
     public void unlockSeat(String showTimeId, String seatId, String userId) {
         bookingService.unlockSeat(showTimeId, seatId, userId);
     }
 
-    /** Nhả toàn bộ ghế user đang giữ (hủy booking / reset). */
     public void unlockAllSeats(String showTimeId, String userId) {
         bookingService.unlockAllSeatsForUser(showTimeId, userId);
     }
 
-    /**
-     * Giây còn lại trước khi lock hết hạn.
-     * @return -1 nếu user không giữ ghế nào
-     */
     public long getSecondsUntilExpiry(String showTimeId, String userId) {
         return bookingService.getSecondsUntilExpiry(showTimeId, userId);
     }
 
-    // ── F&B Products ─────────────────────────────────────────────────────────
-
-    /** Lấy danh sách sản phẩm F&B để hiển thị trên ProductPanel. */
     public List<Product> getAllProducts() {
         return productRepository.findAll();
     }

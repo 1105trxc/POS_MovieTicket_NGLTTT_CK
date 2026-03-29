@@ -5,6 +5,7 @@ import com.cinema.management.model.entity.Seat;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,6 +49,37 @@ public class SeatRepository {
                     .setParameter("roomId", roomId)
                     .setParameter("row", rowChar)
                     .setParameter("num", seatNumber)
+                    .getSingleResult();
+            return count > 0;
+        } finally {
+            em.close();
+        }
+    }
+
+    public boolean hasAnyBookings(String seatId) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            Long count = em.createQuery(
+                            "SELECT COUNT(bs) FROM BookingSeat bs WHERE bs.id.seatId = :seatId",
+                            Long.class)
+                    .setParameter("seatId", seatId)
+                    .getSingleResult();
+            return count > 0;
+        } finally {
+            em.close();
+        }
+    }
+
+    public boolean hasActiveLocks(String seatId) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            Long count = em.createQuery(
+                            "SELECT COUNT(sl) FROM SeatLock sl " +
+                                    "WHERE sl.id.seatId = :seatId " +
+                                    "AND sl.expiresAt > :now",
+                            Long.class)
+                    .setParameter("seatId", seatId)
+                    .setParameter("now", LocalDateTime.now())
                     .getSingleResult();
             return count > 0;
         } finally {

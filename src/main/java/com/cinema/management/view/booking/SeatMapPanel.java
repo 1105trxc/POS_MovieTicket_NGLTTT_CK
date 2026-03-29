@@ -9,79 +9,60 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
-import java.math.BigDecimal;
 import java.util.*;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
-/**
- * Panel hiển thị Sơ đồ ghế theo GridLayout (FR-ST-01).
- *
- * Chức năng:
- *  - Vẽ lại sơ đồ mỗi khi showTime thay đổi hoặc refresh.
- *  - Click ghế AVAILABLE → lockSeat() → chuyển màu SELECTED.
- *  - Click ghế SELECTED  → unlockSeat() → chuyển màu AVAILABLE.
- *  - Timer 1 giây refresh đếm ngược thời gian lock (BR-03, BR-04).
- *  - Gọi callback onSelectionChanged khi danh sách ghế chọn thay đổi.
- */
 public class SeatMapPanel extends JPanel {
 
     private final BookingController bookingController;
-    private final String            currentUserId;
-
+    private final String currentUserId;
     private String showTimeId;
-
-    /** Map seatId → SeatButton để cập nhật nhanh không cần vẽ lại toàn bộ. */
     private final Map<String, SeatButton> buttonMap = new LinkedHashMap<>();
 
-    // ── UI components ────────────────────────────────────────────────────────
-    private final JPanel     gridPanel    = new JPanel();
-    private final JLabel     lblTimer     = new JLabel("⏱ --:--");
-    private final JLabel     lblSelected  = new JLabel("Đang chọn: 0 ghế");
-    private final JLabel     lblTotal     = new JLabel("Tổng ghế: 0");
-    private final JButton    btnRefresh   = new JButton("🔄 Làm mới");
-    private final JButton    btnCancelAll = new JButton("✖ Hủy tất cả");
+    // ── UI components ──
+    private final JPanel mapWrapperPanel = new JPanel(new BorderLayout(0, 20));
+    private final JPanel gridPanel = new JPanel();
+    private final JLabel lblTimer = new JLabel("⏱ --:--");
+    private final JLabel lblSelected = new JLabel("Đang chọn: 0 ghế");
+    private final JLabel lblTotal = new JLabel("Tổng ghế: 0");
+    private final JButton btnRefresh = new JButton("🔄 Làm mới");
+    private final JButton btnCancelAll = new JButton("✖ Hủy tất cả");
 
-    /** Callback về BookingPanel khi danh sách ghế đang chọn thay đổi. */
     private Consumer<List<SeatStatusDto>> onSelectionChanged;
-
-    /** Swing Timer để refresh đếm ngược 15 phút. */
     private javax.swing.Timer countdownTimer;
 
-    // ── Legend colors ────────────────────────────────────────────────────────
-    private static final Color COLOR_AVAILABLE = new Color(39, 174, 96);
-    private static final Color COLOR_SELECTED  = new Color(41, 128, 185);
-    private static final Color COLOR_LOCKED    = new Color(230, 126, 34);
-    private static final Color COLOR_BOOKED    = new Color(149, 165, 166);
+    // Bảng màu giống với SeatButton
+    private static final Color COLOR_AVAILABLE = new Color(255, 255, 255);
+    private static final Color COLOR_SELECTED = new Color(14, 165, 233);
+    private static final Color COLOR_LOCKED = new Color(245, 158, 11);
+    private static final Color COLOR_BOOKED = new Color(148, 163, 184);
 
     public SeatMapPanel(BookingController bookingController, String currentUserId) {
         this.bookingController = bookingController;
-        this.currentUserId     = currentUserId;
+        this.currentUserId = currentUserId;
 
         setLayout(new BorderLayout(8, 8));
         setBorder(new EmptyBorder(8, 8, 8, 8));
         setBackground(Color.WHITE);
 
-        add(buildTopBar(),    BorderLayout.NORTH);
-        add(buildScrollGrid(),BorderLayout.CENTER);
-        add(buildLegend(),    BorderLayout.SOUTH);
+        add(buildTopBar(), BorderLayout.NORTH);
+        add(buildScrollGrid(), BorderLayout.CENTER);
+        add(buildLegend(), BorderLayout.SOUTH);
 
         startCountdownTimer();
     }
-
-    // ── Public API ───────────────────────────────────────────────────────────
 
     public void setOnSelectionChanged(Consumer<List<SeatStatusDto>> callback) {
         this.onSelectionChanged = callback;
     }
 
-    /** Tải sơ đồ ghế cho suất chiếu mới. */
     public void loadShowTime(String showTimeId) {
         this.showTimeId = showTimeId;
         refreshSeatMap();
     }
 
-    /** Refresh toàn bộ sơ đồ (sau timeout hoặc khi cần sync). */
     public void refreshSeatMap() {
         if (showTimeId == null) return;
         List<SeatStatusDto> statuses = bookingController.getSeatStatuses(showTimeId, currentUserId);
@@ -89,48 +70,40 @@ public class SeatMapPanel extends JPanel {
         updateStatusBar(statuses);
     }
 
-    /** Trả về danh sách ghế đang ở trạng thái SELECTED. */
     public List<SeatStatusDto> getSelectedSeats() {
-        List<SeatStatusDto> selected = new ArrayList<>();
-        for (SeatButton btn : buttonMap.values()) {
-            if (btn.getStatus() == Status.SELECTED) {
-                selected.add(btn.getSeatStatus());
-            }
-        }
-        return selected;
+        return buttonMap.values().stream()
+                .filter(btn -> btn.getStatus() == Status.SELECTED)
+                .map(SeatButton::getSeatStatus)
+                .collect(Collectors.toList());
     }
-
-    // ── Build UI ─────────────────────────────────────────────────────────────
 
     private JPanel buildTopBar() {
         JPanel bar = new JPanel(new BorderLayout(8, 0));
         bar.setBackground(Color.WHITE);
 
-        // Trái: thông tin
         JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 2));
         left.setBackground(Color.WHITE);
-        lblSelected.setFont(new Font("Arial", Font.BOLD, 13));
-        lblSelected.setForeground(new Color(41, 128, 185));
-        lblTotal.setFont(new Font("Arial", Font.PLAIN, 12));
+        lblSelected.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblSelected.setForeground(COLOR_SELECTED);
+        lblTotal.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblTotal.setForeground(Color.GRAY);
         left.add(lblSelected);
         left.add(new JSeparator(SwingConstants.VERTICAL));
         left.add(lblTotal);
         bar.add(left, BorderLayout.WEST);
 
-        // Phải: timer + nút
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 2));
         right.setBackground(Color.WHITE);
-        lblTimer.setFont(new Font("Monospaced", Font.BOLD, 14));
-        lblTimer.setForeground(new Color(192, 57, 43));
-        lblTimer.setToolTipText("Thời gian còn lại trước khi ghế tự động nhả");
+        lblTimer.setFont(new Font("Monospaced", Font.BOLD, 15));
+        lblTimer.setForeground(new Color(239, 68, 68)); // Đỏ
 
-        styleSmallButton(btnRefresh,   new Color(52, 152, 219));
-        styleSmallButton(btnCancelAll, new Color(192, 57, 43));
-        btnRefresh.addActionListener(e   -> refreshSeatMap());
+        styleSmallButton(btnRefresh, new Color(100, 116, 139));
+        styleSmallButton(btnCancelAll, new Color(239, 68, 68));
+        btnRefresh.addActionListener(e -> refreshSeatMap());
         btnCancelAll.addActionListener(e -> cancelAllSeats());
 
         right.add(lblTimer);
+        right.add(Box.createHorizontalStrut(10));
         right.add(btnRefresh);
         right.add(btnCancelAll);
         bar.add(right, BorderLayout.EAST);
@@ -138,113 +111,120 @@ public class SeatMapPanel extends JPanel {
     }
 
     private JScrollPane buildScrollGrid() {
-        gridPanel.setBackground(new Color(30, 30, 30));
-        gridPanel.setBorder(new EmptyBorder(16, 16, 16, 16));
+        mapWrapperPanel.setBackground(new Color(241, 245, 249)); // Màu nền rạp phim
+        mapWrapperPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JScrollPane scroll = new JScrollPane(gridPanel);
-        scroll.setBorder(BorderFactory.createLineBorder(new Color(52, 73, 94), 2));
-        scroll.getViewport().setBackground(new Color(30, 30, 30));
+        // Vẽ màn hình
+        JLabel screenLabel = new JLabel("═════════════ MÀN HÌNH ═════════════", SwingConstants.CENTER);
+        screenLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        screenLabel.setForeground(new Color(148, 163, 184));
+        mapWrapperPanel.add(screenLabel, BorderLayout.NORTH);
+
+        gridPanel.setBackground(new Color(241, 245, 249));
+        mapWrapperPanel.add(gridPanel, BorderLayout.CENTER);
+
+        JScrollPane scroll = new JScrollPane(mapWrapperPanel);
+        scroll.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240), 1));
+        scroll.getViewport().setBackground(new Color(241, 245, 249));
+        // Tăng tốc độ cuộn chuột
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
         return scroll;
     }
 
     private JPanel buildLegend() {
-        JPanel legend = new JPanel(new FlowLayout(FlowLayout.CENTER, 16, 4));
-        legend.setBackground(new Color(245, 245, 245));
-        legend.setBorder(new TitledBorder("Chú thích"));
-        legend.add(buildLegendItem("Trống",        COLOR_AVAILABLE));
-        legend.add(buildLegendItem("Đang chọn",    COLOR_SELECTED));
-        legend.add(buildLegendItem("Người khác giữ", COLOR_LOCKED));
-        legend.add(buildLegendItem("Đã bán",       COLOR_BOOKED));
+        JPanel legend = new JPanel(new FlowLayout(FlowLayout.CENTER, 25, 8));
+        legend.setBackground(Color.WHITE);
+        legend.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(226, 232, 240)),
+                new EmptyBorder(5, 0, 0, 0)));
+
+        legend.add(buildLegendItem("Trống", COLOR_AVAILABLE, true));
+        legend.add(buildLegendItem("Đang chọn", COLOR_SELECTED, false));
+        legend.add(buildLegendItem("Đang xử lý (Locked)", COLOR_LOCKED, false));
+        legend.add(buildLegendItem("Đã bán", COLOR_BOOKED, false));
         return legend;
     }
 
-    private JPanel buildLegendItem(String label, Color color) {
-        JPanel item = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
-        item.setBackground(new Color(245, 245, 245));
+    private JPanel buildLegendItem(String label, Color color, boolean hasBorder) {
+        JPanel item = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        item.setBackground(Color.WHITE);
         JPanel box = new JPanel();
         box.setBackground(color);
-        box.setPreferredSize(new Dimension(20, 16));
-        box.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 1));
+        box.setPreferredSize(new Dimension(20, 20));
+        if (hasBorder) {
+            box.setBorder(BorderFactory.createLineBorder(new Color(203, 213, 225), 2));
+        } else {
+            box.setBorder(BorderFactory.createLineBorder(color.darker(), 2));
+        }
         item.add(box);
         JLabel lbl = new JLabel(label);
-        lbl.setFont(new Font("Arial", Font.PLAIN, 11));
+        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         item.add(lbl);
         return item;
     }
 
-    // ── Render grid ──────────────────────────────────────────────────────────
-
+    // ── THUẬT TOÁN VẼ LƯỚI TỰ ĐỘNG CĂN CHỈNH LỐI ĐI ──
     private void renderGrid(List<SeatStatusDto> statuses) {
         buttonMap.clear();
         gridPanel.removeAll();
 
         if (statuses.isEmpty()) {
             gridPanel.setLayout(new BorderLayout());
-            JLabel empty = new JLabel("Không có ghế nào trong phòng này.", SwingConstants.CENTER);
-            empty.setForeground(Color.LIGHT_GRAY);
-            empty.setFont(new Font("Arial", Font.ITALIC, 14));
+            JLabel empty = new JLabel("Sơ đồ phòng chiếu chưa được thiết lập.", SwingConstants.CENTER);
+            empty.setFont(new Font("Segoe UI", Font.ITALIC, 14));
             gridPanel.add(empty, BorderLayout.CENTER);
-            gridPanel.revalidate();
-            gridPanel.repaint();
+            revalidateAndRepaint();
             return;
         }
 
-        // Nhóm ghế theo hàng để tính số cột
+        // 1. Tìm số ghế lớn nhất để biết lưới có bao nhiêu cột
+        int maxSeatNum = statuses.stream().mapToInt(SeatStatusDto::getSeatNumber).max().orElse(1);
+
+        // 2. Nhóm ghế theo Hàng (RowChar)
         Map<String, List<SeatStatusDto>> byRow = new LinkedHashMap<>();
         for (SeatStatusDto s : statuses) {
             byRow.computeIfAbsent(s.getRowChar(), k -> new ArrayList<>()).add(s);
         }
-        int maxCols = byRow.values().stream().mapToInt(List::size).max().orElse(1);
-        // +1 cho cột nhãn hàng
-        gridPanel.setLayout(new GridLayout(byRow.size(), maxCols + 1, 4, 4));
 
-        // Màn hình chiếu ở trên
-        addScreenLabel(maxCols + 1);
+        // Set Layout: Số hàng thực tế, Số cột = maxSeatNum + 1 (1 cột cho nhãn A, B, C...)
+        gridPanel.setLayout(new GridLayout(byRow.size(), maxSeatNum + 1, 8, 8));
 
         for (Map.Entry<String, List<SeatStatusDto>> entry : byRow.entrySet()) {
-            // Nhãn hàng (A, B, C...)
+            // Cột 1: Nhãn hàng (A, B, C)
             JLabel rowLabel = new JLabel(entry.getKey(), SwingConstants.CENTER);
-            rowLabel.setForeground(Color.LIGHT_GRAY);
-            rowLabel.setFont(new Font("Arial", Font.BOLD, 12));
+            rowLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            rowLabel.setForeground(new Color(71, 85, 105));
             gridPanel.add(rowLabel);
 
-            for (SeatStatusDto dto : entry.getValue()) {
-                SeatButton btn = new SeatButton(dto);
-                btn.addActionListener(e -> onSeatClick(btn));
-                buttonMap.put(dto.getSeatId(), btn);
-                gridPanel.add(btn);
-            }
-            // Điền ô trống nếu hàng có ít ghế hơn maxCols
-            int fill = maxCols - entry.getValue().size();
-            for (int i = 0; i < fill; i++) {
-                JPanel empty = new JPanel();
-                empty.setBackground(new Color(30, 30, 30));
-                gridPanel.add(empty);
+            // Chuyển List thành Map theo Số ghế để tra cứu cực nhanh O(1)
+            Map<Integer, SeatStatusDto> seatByNum = entry.getValue().stream()
+                    .collect(Collectors.toMap(SeatStatusDto::getSeatNumber, s -> s));
+
+            // Duyệt từ 1 đến maxSeatNum để tự động vẽ lối đi (ô trống) nếu ghế bị thiếu
+            for (int i = 1; i <= maxSeatNum; i++) {
+                if (seatByNum.containsKey(i)) {
+                    SeatButton btn = new SeatButton(seatByNum.get(i));
+                    btn.addActionListener(e -> onSeatClick(btn));
+                    buttonMap.put(btn.getSeatId(), btn);
+                    gridPanel.add(btn);
+                } else {
+                    // Vẽ lối đi (Aisle)
+                    JPanel empty = new JPanel();
+                    empty.setOpaque(false); // Trong suốt
+                    gridPanel.add(empty);
+                }
             }
         }
 
+        revalidateAndRepaint();
+    }
+
+    private void revalidateAndRepaint() {
         gridPanel.revalidate();
         gridPanel.repaint();
+        mapWrapperPanel.revalidate();
+        mapWrapperPanel.repaint();
     }
-
-    /** Dải màn hình chiếu trên cùng sơ đồ. */
-    private void addScreenLabel(int cols) {
-        // Thêm ô trống để căn hàng đầu
-        for (int i = 0; i < cols; i++) {
-            if (i == cols / 2) {
-                JLabel screen = new JLabel("══════ MÀN HÌNH ══════", SwingConstants.CENTER);
-                screen.setForeground(new Color(241, 196, 15));
-                screen.setFont(new Font("Arial", Font.BOLD, 11));
-                gridPanel.add(screen);
-            } else {
-                JPanel empty = new JPanel();
-                empty.setBackground(new Color(30, 30, 30));
-                gridPanel.add(empty);
-            }
-        }
-    }
-
-    // ── Event: click ghế ────────────────────────────────────────────────────
 
     private void onSeatClick(SeatButton btn) {
         if (showTimeId == null) return;
@@ -253,23 +233,19 @@ public class SeatMapPanel extends JPanel {
 
         try {
             if (currentStatus == Status.AVAILABLE) {
-                // Khóa ghế → chuyển SELECTED
                 bookingController.lockSeat(showTimeId, seatId, currentUserId);
             } else if (currentStatus == Status.SELECTED) {
-                // Nhả ghế → chuyển AVAILABLE
                 bookingController.unlockSeat(showTimeId, seatId, currentUserId);
             }
         } catch (IllegalStateException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(),
-                    "Ghế không khả dụng", JOptionPane.WARNING_MESSAGE);
+                    "Cảnh báo", JOptionPane.WARNING_MESSAGE);
         }
 
-        // Refresh chỉ nút vừa click để tránh vẽ lại toàn bộ grid
         refreshSingleButton(seatId);
         notifySelectionChanged();
     }
 
-    /** Cập nhật 1 button dựa trên trạng thái mới từ service. */
     private void refreshSingleButton(String seatId) {
         List<SeatStatusDto> all = bookingController.getSeatStatuses(showTimeId, currentUserId);
         all.stream()
@@ -284,35 +260,46 @@ public class SeatMapPanel extends JPanel {
 
     private void cancelAllSeats() {
         if (showTimeId == null) return;
+        if (getSelectedSeats().isEmpty()) return;
+
         int c = JOptionPane.showConfirmDialog(this,
                 "Hủy tất cả ghế đang chọn?", "Xác nhận", JOptionPane.YES_NO_OPTION);
         if (c != JOptionPane.YES_OPTION) return;
+
         bookingController.unlockAllSeats(showTimeId, currentUserId);
         refreshSeatMap();
         notifySelectionChanged();
     }
 
-    // ── Countdown timer ───────────────────────────────────────────────────────
-
     private void startCountdownTimer() {
         countdownTimer = new javax.swing.Timer(1000, e -> {
-            if (showTimeId == null) { lblTimer.setText("⏱ --:--"); return; }
+            if (showTimeId == null) {
+                lblTimer.setText("⏱ --:--");
+                return;
+            }
             long secs = bookingController.getSecondsUntilExpiry(showTimeId, currentUserId);
+
             if (secs < 0) {
                 lblTimer.setText("⏱ --:--");
-                lblTimer.setForeground(new Color(149, 165, 166));
+                lblTimer.setForeground(new Color(148, 163, 184)); // Xám
             } else {
                 long min = secs / 60;
                 long sec = secs % 60;
                 lblTimer.setText(String.format("⏱ %02d:%02d", min, sec));
-                // Đỏ cảnh báo khi còn < 3 phút
-                lblTimer.setForeground(secs < 180 ? new Color(192, 57, 43) : new Color(39, 174, 96));
-                // Hết hạn → refresh để nhả ghế
-                if (secs <= 0) {
+
+                // Đỏ nhấp nháy khi còn dưới 2 phút
+                if (secs <= 120 && secs % 2 == 0) {
+                    lblTimer.setForeground(new Color(239, 68, 68));
+                } else {
+                    lblTimer.setForeground(new Color(15, 23, 42)); // Đen
+                }
+
+                // Hết hạn
+                if (secs == 0) {
                     refreshSeatMap();
                     notifySelectionChanged();
                     JOptionPane.showMessageDialog(this,
-                            "Thời gian giữ ghế đã hết!\nCác ghế đã được tự động nhả.",
+                            "Thời gian giữ ghế đã hết!\nCác ghế của bạn đã được tự động nhả.",
                             "Hết thời gian", JOptionPane.WARNING_MESSAGE);
                 }
             }
@@ -320,12 +307,9 @@ public class SeatMapPanel extends JPanel {
         countdownTimer.start();
     }
 
-    /** Gọi khi panel bị destroy để dừng timer tránh memory leak. */
     public void dispose() {
         if (countdownTimer != null) countdownTimer.stop();
     }
-
-    // ── Status bar update ─────────────────────────────────────────────────────
 
     private void updateStatusBar(List<SeatStatusDto> statuses) {
         long selectedCount = statuses.stream().filter(s -> s.getStatus() == Status.SELECTED).count();
@@ -339,15 +323,13 @@ public class SeatMapPanel extends JPanel {
         }
     }
 
-    // ── Utility ──────────────────────────────────────────────────────────────
-
     private void styleSmallButton(JButton btn, Color bg) {
         btn.setBackground(bg);
         btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("Arial", Font.BOLD, 11));
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(120, 28));
+        btn.setPreferredSize(new Dimension(110, 32));
     }
 }
