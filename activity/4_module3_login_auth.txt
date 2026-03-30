@@ -1,0 +1,27 @@
+@startuml
+title Activity Diagram: (Module 3) Phân quyền, Đăng nhập & Audit Log
+
+start
+:Nhân viên Khởi động Hệ thống (App.java);
+:Màn hình Đăng Nhập hiển thị (LoginFrame);
+:Nhập Username & Password;
+:Hệ thống băm (Hash) Mật Khẩu (nếu có) và đối chiếu Database;
+
+if (Tài khoản hợp lệ không?) then (Không)
+  :Hiển thị lỗi "Sai tài khoản mật khẩu";
+  :Trở lại Đăng nhập;
+else (Hợp lệ)
+  :Lấy thông tin User (Bao gồm Role_ID);
+  :Khởi tạo UserSessionContext (setCurrentUser);
+  
+  if (User.RoleName == "ADMIN"?) then (Có)
+    :Cho phép hiển thị tất cả Menu Quản lý (Staff, Promo...);
+    :Vào Màn Hình Chính của Admin;
+  else (Staff / Khác)
+    :Ẩn Menu Quản lý Staff, Doanh thu;
+    :Vào màn hình Bán Vé dành cho Nhân viên;
+  endif
+endif
+
+stop
+@enduml
