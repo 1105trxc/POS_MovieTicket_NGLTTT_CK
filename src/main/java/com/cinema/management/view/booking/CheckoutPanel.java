@@ -5,6 +5,7 @@ import com.cinema.management.model.dto.InvoiceDto;
 import com.cinema.management.model.dto.SeatStatusDto;
 import com.cinema.management.model.dto.TicketDto;
 import com.cinema.management.model.entity.Customer;
+import com.formdev.flatlaf.extras.FlatSVGIcon;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -21,7 +22,7 @@ public class CheckoutPanel extends JPanel {
 
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    // ── Bảng màu chuẩn hệ thống ───────────────────────────────────────────────
+    // ── Colors ────────────────────────────────────────────────────────────────
     private static final Color BG = new Color(245, 247, 250);
     private static final Color CARD = Color.WHITE;
     private static final Color HEADER = new Color(30, 41, 59);
@@ -68,7 +69,7 @@ public class CheckoutPanel extends JPanel {
     private final JLabel lblGrandTotal = new JLabel("0 VNĐ");
 
     // ── Action buttons ────────────────────────────────────────────────────────
-    private final JButton btnConfirm = new JButton("✅  Xác nhận thanh toán (F5)");
+    private final JButton btnConfirm = new JButton(" Xác nhận thanh toán (F5)");
     private final JButton btnBack = new JButton("← Quay lại");
 
     private Runnable onBack;
@@ -90,7 +91,6 @@ public class CheckoutPanel extends JPanel {
         setLayout(new BorderLayout(0, 0));
         setBackground(BG);
 
-        // Placeholders
         txtPhone.putClientProperty("JTextField.placeholderText", "Nhập SĐT khách hàng...");
         txtPromoCode.putClientProperty("JTextField.placeholderText", "Nhập mã KM...");
 
@@ -106,14 +106,25 @@ public class CheckoutPanel extends JPanel {
         this.onBack = callback;
     }
 
+    private Icon createIcon(String path, int size, Color color) {
+        try {
+            FlatSVGIcon icon = new FlatSVGIcon(path, size, size);
+            if (color != null) icon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> color));
+            return icon;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private JPanel buildHeader() {
         JPanel h = new JPanel(new BorderLayout());
         h.setBackground(HEADER);
         h.setBorder(new EmptyBorder(16, 20, 16, 20));
 
-        JLabel title = new JLabel("💳  THANH TOÁN & XUẤT VÉ");
+        JLabel title = new JLabel("THANH TOÁN & XUẤT VÉ");
         title.setFont(new Font("Segoe UI", Font.BOLD, 22));
         title.setForeground(Color.WHITE);
+        title.setIcon(createIcon("icons/wallet.svg", 24, Color.WHITE));
         h.add(title, BorderLayout.WEST);
 
         styleBtn(btnBack, new Color(71, 85, 105), Color.WHITE);
@@ -144,7 +155,7 @@ public class CheckoutPanel extends JPanel {
         seatSection.setBackground(CARD);
         seatSection.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER_COLOR),
-                BorderFactory.createTitledBorder(null, "  🪑 Ghế đã chọn  ", TitledBorder.LEFT, TitledBorder.TOP, new Font("Segoe UI", Font.BOLD, 14), PRIMARY)
+                BorderFactory.createTitledBorder(null, "  Ghế đã chọn  ", TitledBorder.LEFT, TitledBorder.TOP, new Font("Segoe UI", Font.BOLD, 14), PRIMARY)
         ));
 
         DefaultListModel<String> seatModel = new DefaultListModel<>();
@@ -165,7 +176,7 @@ public class CheckoutPanel extends JPanel {
         fbSection.setBackground(CARD);
         fbSection.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER_COLOR),
-                BorderFactory.createTitledBorder(null, "  🍿 F&B  ", TitledBorder.LEFT, TitledBorder.TOP, new Font("Segoe UI", Font.BOLD, 14), WARNING)
+                BorderFactory.createTitledBorder(null, "  F&B  ", TitledBorder.LEFT, TitledBorder.TOP, new Font("Segoe UI", Font.BOLD, 14), WARNING)
         ));
 
         DefaultListModel<String> fbModel = new DefaultListModel<>();
@@ -251,9 +262,7 @@ public class CheckoutPanel extends JPanel {
 
         int row = 0;
 
-        // ── Khách hàng thành viên ──
-        addSectionTitle(form, gc, row++, "👤 Khách hàng thành viên");
-
+        addSectionTitle(form, gc, row++, "Khách hàng thành viên");
         gc.gridx = 0;
         gc.gridy = row;
         gc.fill = GridBagConstraints.NONE;
@@ -282,9 +291,7 @@ public class CheckoutPanel extends JPanel {
         row++;
         gc.gridwidth = 1;
 
-        // ── Mã khuyến mãi ──
-        addSectionTitle(form, gc, row++, "🎟 Mã khuyến mãi");
-
+        addSectionTitle(form, gc, row++, "Mã khuyến mãi");
         gc.gridx = 0;
         gc.gridy = row;
         gc.fill = GridBagConstraints.NONE;
@@ -312,9 +319,7 @@ public class CheckoutPanel extends JPanel {
         row++;
         gc.gridwidth = 1;
 
-        // ── Điểm thưởng ──
-        addSectionTitle(form, gc, row++, "⭐ Điểm thưởng");
-
+        addSectionTitle(form, gc, row++, "Điểm thưởng");
         gc.gridx = 0;
         gc.gridy = row;
         gc.fill = GridBagConstraints.NONE;
@@ -345,8 +350,7 @@ public class CheckoutPanel extends JPanel {
         row++;
         gc.gridwidth = 1;
 
-        // ── Phương thức thanh toán ──
-        addSectionTitle(form, gc, row++, "💰 Phương thức thanh toán");
+        addSectionTitle(form, gc, row++, "Phương thức thanh toán");
 
         ButtonGroup bg = new ButtonGroup();
         bg.add(rdoCash);
@@ -379,7 +383,7 @@ public class CheckoutPanel extends JPanel {
         gc.gridwidth = 2;
         gc.fill = GridBagConstraints.HORIZONTAL;
         gc.weightx = 1;
-        gc.insets = new Insets(15, 0, 10, 0); // Spacing before title
+        gc.insets = new Insets(15, 0, 10, 0);
         JLabel lbl = new JLabel(title);
         lbl.setFont(new Font("Segoe UI", Font.BOLD, 15));
         lbl.setForeground(HEADER);
@@ -387,13 +391,14 @@ public class CheckoutPanel extends JPanel {
         panel.add(lbl, gc);
         gc.gridwidth = 1;
         gc.weightx = 0;
-        gc.insets = new Insets(5, 0, 5, 10); // Reset spacing
+        gc.insets = new Insets(5, 0, 5, 10);
     }
 
     private JPanel buildBottom() {
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 15));
         bottom.setOpaque(false);
 
+        btnConfirm.setIcon(createIcon("icons/check.svg", 20, Color.WHITE));
         styleBtn(btnConfirm, SUCCESS, Color.WHITE);
         btnConfirm.setFont(new Font("Segoe UI", Font.BOLD, 16));
         btnConfirm.setPreferredSize(new Dimension(300, 46));
@@ -403,7 +408,8 @@ public class CheckoutPanel extends JPanel {
         return bottom;
     }
 
-    // ── Giữ nguyên toàn bộ logic Event Handlers ở dưới (lookupCustomer, validatePromo, confirmCheckout, ...) ──
+    // ── Event handlers ────────────────────────────────────────────────────────
+
     private void lookupCustomer() {
         String phone = txtPhone.getText().trim();
         if (phone.isEmpty()) {
@@ -494,19 +500,22 @@ public class CheckoutPanel extends JPanel {
         } catch (Exception ex) {
             showError("Thanh toán thất bại:\n" + ex.getMessage());
             btnConfirm.setEnabled(true);
-            btnConfirm.setText("✅  Xác nhận thanh toán (F5)");
+            btnConfirm.setText(" Xác nhận thanh toán (F5)");
         }
     }
+
+    // ── XỬ LÝ IN ẤN (HÓA ĐƠN + VÉ RỜI) ──────────────────────────────────────────
 
     private void showInvoiceResult(InvoiceDto invoice) {
         JDialog dlg = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Hoá đơn – " + invoice.getInvoiceId(), true);
         dlg.setLayout(new BorderLayout(10, 10));
-        dlg.setSize(560, 640);
+        dlg.setSize(560, 680);
         dlg.setLocationRelativeTo(this);
         dlg.getContentPane().setBackground(BG);
 
-        JTextArea ta = new JTextArea(buildInvoiceText(invoice));
-        ta.setFont(new Font("Monospaced", Font.PLAIN, 14)); // Tăng size chữ hóa đơn cho dễ nhìn
+        // Nơi hiển thị bản Preview hóa đơn
+        JTextArea ta = new JTextArea(buildMultiPartInvoiceText(invoice));
+        ta.setFont(new Font("Monospaced", Font.PLAIN, 14));
         ta.setEditable(false);
         ta.setMargin(new Insets(15, 20, 15, 20));
 
@@ -516,10 +525,12 @@ public class CheckoutPanel extends JPanel {
 
         JPanel btns = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
         btns.setOpaque(false);
-        JButton btnPrint = new JButton("🖨 In hoá đơn");
+        JButton btnPrint = new JButton(" In hoá đơn & Vé");
+        btnPrint.setIcon(createIcon("icons/refresh.svg", 18, Color.WHITE)); // Thay bằng Icon Máy in nếu có
         JButton btnClose = new JButton("Đóng & Về màn hình chính");
+
         styleBtn(btnPrint, PRIMARY, Color.WHITE);
-        btnPrint.setPreferredSize(new Dimension(150, 40));
+        btnPrint.setPreferredSize(new Dimension(180, 40));
         styleBtn(btnClose, new Color(100, 116, 139), Color.WHITE);
         btnClose.setPreferredSize(new Dimension(220, 40));
 
@@ -534,45 +545,77 @@ public class CheckoutPanel extends JPanel {
         dlg.setVisible(true);
     }
 
-    private String buildInvoiceText(InvoiceDto inv) {
+    /**
+     * Thuật toán tạo 1 Hóa đơn tổng và N Vé xem phim rời.
+     * Cắt phân trang bằng nét đứt (Mô phỏng máy in cắt giấy tự động)
+     */
+    private String buildMultiPartInvoiceText(InvoiceDto inv) {
         StringBuilder sb = new StringBuilder();
-        String sep = "─".repeat(50) + "\n";
-        sb.append("          🎬  CINEMA MANAGEMENT SYSTEM\n");
-        sb.append("               HOÁ ĐƠN BÁN VÉ\n");
-        sb.append(sep);
+        String eqLine = "================================================\n";
+        String dashLine = "------------------------------------------------\n";
+        String cutLine = "\n               - - - ✂ CẮT ✂ - - -               \n\n";
+
+        // ================== PHẦN 1: HÓA ĐƠN TỔNG (RECEIPT) ==================
+        sb.append(eqLine);
+        sb.append("            CINEMA MANAGEMENT SYSTEM\n");
+        sb.append("                 HOÁ ĐƠN BÁN VÉ\n");
+        sb.append(eqLine);
         sb.append(String.format("Số HĐ   : %s\n", inv.getInvoiceId()));
         sb.append(String.format("Ngày    : %s\n", inv.getCreatedAt().format(DT_FMT)));
         sb.append(String.format("Thu ngân: %s\n", inv.getStaffName()));
-        sb.append(String.format("Khách   : %s  %s\n", inv.getCustomerName(), inv.getCustomerPhone()));
-        sb.append(sep);
-        sb.append("VÉ XEM PHIM:\n");
-        for (TicketDto t : inv.getTickets()) {
-            sb.append(String.format("  %-8s %-14s %s\n      -> %,.0f VNĐ\n",
-                    t.getSeatLabel(), "[" + t.getSeatTypeName() + "]",
-                    t.getShowTime().format(DT_FMT),
-                    t.getPrice()));
+        if (inv.getCustomerName() != null && !inv.getCustomerName().isEmpty()) {
+            sb.append(String.format("Khách   : %s (%s)\n", inv.getCustomerName(), inv.getCustomerPhone()));
         }
+        sb.append(dashLine);
+
+        // Gộp chung tiền vé xem phim (Tóm tắt)
+        sb.append(String.format("Vé xem phim (Số lượng: %d)\n", inv.getTickets().size()));
+        sb.append(String.format("%48s\n", fmt(inv.getSeatTotal())));
+
+        // Chi tiết F&B
         if (!inv.getFbLines().isEmpty()) {
-            sb.append("\nBẮP NƯỚC / F&B:\n");
-            for (String line : inv.getFbLines()) sb.append("  ").append(line).append("\n");
+            sb.append("Bắp Nước (F&B):\n");
+            for (String line : inv.getFbLines()) {
+                sb.append("  ").append(line).append("\n");
+            }
         }
-        sb.append(sep);
-        sb.append(String.format("%-28s %15s\n", "Tiền ghế:", fmt(inv.getSeatTotal())));
-        sb.append(String.format("%-28s %15s\n", "Tiền F&B:", fmt(inv.getFbTotal())));
+        sb.append(dashLine);
+
+        // Phần tổng kết tiền
+        sb.append(String.format("%-30s %17s\n", "Tạm tính:", fmt(inv.getSeatTotal().add(inv.getFbTotal()))));
         if (inv.getPromotionDiscount().compareTo(BigDecimal.ZERO) > 0) {
-            sb.append(String.format("%-28s %15s\n", "Giảm giá (KM):", "-" + fmt(inv.getPromotionDiscount())));
+            sb.append(String.format("%-30s %17s\n", "Giảm giá (Promo):", "-" + fmt(inv.getPromotionDiscount())));
         }
         if (inv.getPointDiscount().compareTo(BigDecimal.ZERO) > 0) {
-            sb.append(String.format("%-28s %15s\n", "Giảm giá (điểm):", "-" + fmt(inv.getPointDiscount())));
+            sb.append(String.format("%-30s %17s\n", "Giảm giá (Điểm):", "-" + fmt(inv.getPointDiscount())));
         }
-        sb.append(sep);
-        sb.append(String.format("%-28s %15s\n", "TỔNG PHẢI TRẢ:", fmt(inv.getGrandTotal())));
-        sb.append(String.format("%-28s %15s\n", "Phương thức TT:", inv.getPaymentMethod()));
+        sb.append(eqLine);
+        sb.append(String.format("%-28s %19s\n", "TỔNG PHẢI TRẢ:", fmt(inv.getGrandTotal())));
+        sb.append(String.format("%-30s %17s\n", "Hình thức TT:", inv.getPaymentMethod()));
         if (inv.getEarnedPoints() > 0) {
-            sb.append(String.format("%-28s %15s\n", "Điểm tích lũy:", "+" + inv.getEarnedPoints()));
+            sb.append(String.format("%-30s %17s\n", "Điểm tích lũy:", "+" + inv.getEarnedPoints()));
         }
-        sb.append(sep);
-        sb.append("     Cảm ơn quý khách! Chúc xem phim vui vẻ 🎉\n");
+        sb.append("\n         Cảm ơn quý khách đã sử dụng dịch vụ!\n");
+
+        // ================== PHẦN 2: CÁC VÉ RỜI (TICKETS) ==================
+        for (TicketDto t : inv.getTickets()) {
+            sb.append(cutLine);
+            sb.append(eqLine);
+            sb.append("                  VÉ XEM PHIM\n");
+            sb.append("            CINEMA MANAGEMENT SYSTEM\n");
+            sb.append(eqLine);
+            sb.append(String.format("Mã HĐ      : %s\n", inv.getInvoiceId()));
+            sb.append(String.format("Ngày chiếu : %s\n", t.getShowTime().format(DT_FMT)));
+            sb.append(String.format("Loại ghế   : %s\n", t.getSeatTypeName()));
+            sb.append(dashLine);
+            sb.append(String.format("GHẾ NGỒI   : %-20s\n", t.getSeatLabel()));
+
+            // Theo đúng nguyên tắc: In đúng giá Snapshot tại thời điểm mua
+            sb.append(String.format("GIÁ VÉ     : %s\n", fmt(t.getPrice())));
+            sb.append(eqLine);
+            sb.append("      Vui lòng xuất trình vé trước khi vào rạp\n");
+        }
+
         return sb.toString();
     }
 
@@ -584,6 +627,8 @@ public class CheckoutPanel extends JPanel {
         java.awt.print.PrinterJob job = java.awt.print.PrinterJob.getPrinterJob();
         job.setJobName("Hoá đơn " + invoice.getInvoiceId());
         job.setPrintable((graphics, pageFormat, pageIndex) -> {
+            // Máy in cuộn (Thermal Printer) sẽ cuộn giấy ra liên tục theo trục Y
+            // Vì text đã tự động Format xuống dòng \n và đường Cắt, ta in ra 1 trang siêu dài là đủ.
             if (pageIndex > 0) return java.awt.print.Printable.NO_SUCH_PAGE;
             graphics.setFont(new Font("Monospaced", Font.PLAIN, 10));
             FontMetrics fm = graphics.getFontMetrics();
@@ -604,6 +649,8 @@ public class CheckoutPanel extends JPanel {
             }
         }
     }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private BigDecimal calculatePointDiscount() {
         if (foundCustomer == null) return BigDecimal.ZERO;

@@ -7,7 +7,6 @@ import com.cinema.management.view.component.SeatButton;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.util.*;
 import java.util.List;
@@ -111,7 +110,7 @@ public class SeatMapPanel extends JPanel {
     }
 
     private JScrollPane buildScrollGrid() {
-        mapWrapperPanel.setBackground(new Color(241, 245, 249)); // Màu nền rạp phim
+        mapWrapperPanel.setBackground(new Color(241, 245, 249));
         mapWrapperPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
         // Vẽ màn hình
@@ -121,27 +120,42 @@ public class SeatMapPanel extends JPanel {
         mapWrapperPanel.add(screenLabel, BorderLayout.NORTH);
 
         gridPanel.setBackground(new Color(241, 245, 249));
-        mapWrapperPanel.add(gridPanel, BorderLayout.CENTER);
+
+        // Wrap gridPanel vào FlowLayout để nó tự căn giữa
+        JPanel centerWrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        centerWrapper.setBackground(new Color(241, 245, 249));
+        centerWrapper.add(gridPanel);
+
+        mapWrapperPanel.add(centerWrapper, BorderLayout.CENTER);
 
         JScrollPane scroll = new JScrollPane(mapWrapperPanel);
         scroll.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240), 1));
         scroll.getViewport().setBackground(new Color(241, 245, 249));
-        // Tăng tốc độ cuộn chuột
         scroll.getVerticalScrollBar().setUnitIncrement(16);
         return scroll;
     }
 
     private JPanel buildLegend() {
-        JPanel legend = new JPanel(new FlowLayout(FlowLayout.CENTER, 25, 8));
+        // Tăng khoảng cách và cấu hình lại Wrap layout để chứa nhiều chú thích hơn
+        JPanel legend = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 8));
         legend.setBackground(Color.WHITE);
         legend.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(226, 232, 240)),
                 new EmptyBorder(5, 0, 0, 0)));
 
-        legend.add(buildLegendItem("Trống", COLOR_AVAILABLE, true));
+        // Chú thích Loại ghế (Trạng thái Available)
+        legend.add(buildLegendItem("Thường", COLOR_AVAILABLE, true));
+        legend.add(buildLegendItem("VIP", new Color(254, 205, 211), false));
+        legend.add(buildLegendItem("Couple/Sofa", new Color(233, 213, 255), false));
+
+        // Dấu gạch đứng phân cách
+        legend.add(new JLabel(" | "));
+
+        // Chú thích Trạng thái
         legend.add(buildLegendItem("Đang chọn", COLOR_SELECTED, false));
-        legend.add(buildLegendItem("Đang xử lý (Locked)", COLOR_LOCKED, false));
+        legend.add(buildLegendItem("Đang xử lý", COLOR_LOCKED, false));
         legend.add(buildLegendItem("Đã bán", COLOR_BOOKED, false));
+
         return legend;
     }
 
@@ -163,7 +177,7 @@ public class SeatMapPanel extends JPanel {
         return item;
     }
 
-    // ── THUẬT TOÁN VẼ LƯỚI TỰ ĐỘNG CĂN CHỈNH LỐI ĐI ──
+    // ── THUẬT TOÁN VẼ LƯỚI TỰ ĐỘNG CĂN CHỈNH LỐI ĐI VÀ GHẾ SOFA ──
     private void renderGrid(List<SeatStatusDto> statuses) {
         buttonMap.clear();
         gridPanel.removeAll();
@@ -177,43 +191,71 @@ public class SeatMapPanel extends JPanel {
             return;
         }
 
-        // 1. Tìm số ghế lớn nhất để biết lưới có bao nhiêu cột
         int maxSeatNum = statuses.stream().mapToInt(SeatStatusDto::getSeatNumber).max().orElse(1);
 
-        // 2. Nhóm ghế theo Hàng (RowChar)
         Map<String, List<SeatStatusDto>> byRow = new LinkedHashMap<>();
         for (SeatStatusDto s : statuses) {
             byRow.computeIfAbsent(s.getRowChar(), k -> new ArrayList<>()).add(s);
         }
 
-        // Set Layout: Số hàng thực tế, Số cột = maxSeatNum + 1 (1 cột cho nhãn A, B, C...)
-        gridPanel.setLayout(new GridLayout(byRow.size(), maxSeatNum + 1, 8, 8));
+        // Chuyển sang GridBagLayout để hỗ trợ nối ô (Visual Spanning)
+        gridPanel.setLayout(new GridBagLayout());
+        GridBagConstraints gc = new GridBagConstraints();
+        gc.insets = new Insets(4, 4, 4, 4); // Khoảng cách 8px (4+4) giữa các ghế
+        gc.fill = GridBagConstraints.BOTH;
 
+        int rowY = 0;
         for (Map.Entry<String, List<SeatStatusDto>> entry : byRow.entrySet()) {
-            // Cột 1: Nhãn hàng (A, B, C)
+            // Cột 0: Label hàng ghế (A, B, C...)
+            gc.gridy = rowY;
+            gc.gridx = 0;
+            gc.gridwidth = 1;
             JLabel rowLabel = new JLabel(entry.getKey(), SwingConstants.CENTER);
             rowLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
             rowLabel.setForeground(new Color(71, 85, 105));
-            gridPanel.add(rowLabel);
+            rowLabel.setPreferredSize(new Dimension(30, 45));
+            gridPanel.add(rowLabel, gc);
 
-            // Chuyển List thành Map theo Số ghế để tra cứu cực nhanh O(1)
             Map<Integer, SeatStatusDto> seatByNum = entry.getValue().stream()
                     .collect(Collectors.toMap(SeatStatusDto::getSeatNumber, s -> s));
 
-            // Duyệt từ 1 đến maxSeatNum để tự động vẽ lối đi (ô trống) nếu ghế bị thiếu
-            for (int i = 1; i <= maxSeatNum; i++) {
-                if (seatByNum.containsKey(i)) {
-                    SeatButton btn = new SeatButton(seatByNum.get(i));
-                    btn.addActionListener(e -> onSeatClick(btn));
-                    buttonMap.put(btn.getSeatId(), btn);
-                    gridPanel.add(btn);
+            // Duyệt từ 1 đến maxSeatNum để đặt ghế
+            for (int colX = 1; colX <= maxSeatNum; colX++) {
+                gc.gridx = colX;
+
+                if (seatByNum.containsKey(colX)) {
+                    SeatStatusDto s = seatByNum.get(colX);
+                    String type = s.getSeatTypeName().toLowerCase();
+                    boolean isCouple = type.contains("couple") || type.contains("sofa") || type.contains("sweetbox");
+
+                    if (isCouple) {
+                        // NẾU LÀ GHẾ ĐÔI -> Cấp cho nó 2 cột (gridwidth = 2)
+                        gc.gridwidth = 2;
+                        SeatButton btn = new SeatButton(s, true); // true = Sofa mode
+                        btn.addActionListener(e -> onSeatClick(btn));
+                        buttonMap.put(btn.getSeatId(), btn);
+                        gridPanel.add(btn, gc);
+
+                        // Mẹo quan trọng: Nhảy qua cột tiếp theo vì ghế sofa đã chiếm 2 ô không gian
+                        colX++;
+                    } else {
+                        // NẾU LÀ GHẾ THƯỜNG -> Cấp 1 cột (gridwidth = 1)
+                        gc.gridwidth = 1;
+                        SeatButton btn = new SeatButton(s, false); // false = Normal mode
+                        btn.addActionListener(e -> onSeatClick(btn));
+                        buttonMap.put(btn.getSeatId(), btn);
+                        gridPanel.add(btn, gc);
+                    }
                 } else {
-                    // Vẽ lối đi (Aisle)
-                    JPanel empty = new JPanel();
-                    empty.setOpaque(false); // Trong suốt
-                    gridPanel.add(empty);
+                    // Ô LỐI ĐI (Trống) -> Vẽ một khối tàng hình để đẩy khoảng cách
+                    gc.gridwidth = 1;
+                    JPanel emptySpace = new JPanel();
+                    emptySpace.setOpaque(false);
+                    emptySpace.setPreferredSize(new Dimension(45, 45));
+                    gridPanel.add(emptySpace, gc);
                 }
             }
+            rowY++;
         }
 
         revalidateAndRepaint();
