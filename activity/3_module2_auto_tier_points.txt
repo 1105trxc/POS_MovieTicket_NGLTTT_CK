@@ -16,7 +16,6 @@ endif
 
 :Cộng dồn Tổng chi tiêu: Customer.TotalSpent += FinalAmount;
 
-:--- Quá trình Nâng hạng Tự động ---;
 
 if (TotalSpent >= 5.000.000đ ?) then (Vượt hạng Gold)
   :Đổi Hạng Customer -> GOLD;
