@@ -51,6 +51,18 @@ public class Invoice {
     @Builder.Default
     private Integer earnedPoints = 0;
 
+    @Column(name = "DiscountFromTier", precision = 15, scale = 2)
+    @Builder.Default
+    private BigDecimal discountFromTier = BigDecimal.ZERO;
+
+    @Column(name = "DiscountFromPromotion", precision = 15, scale = 2)
+    @Builder.Default
+    private BigDecimal discountFromPromotion = BigDecimal.ZERO;
+
+    @Column(name = "FinalAmount", precision = 19, scale = 2)
+    @Builder.Default
+    private BigDecimal finalAmount = BigDecimal.ZERO;
+
     @Column(name = "CreatedAt")
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

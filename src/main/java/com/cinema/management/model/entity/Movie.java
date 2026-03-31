@@ -42,4 +42,7 @@ public class Movie {
     @OneToMany(mappedBy = "applyToMovie", fetch = FetchType.LAZY)
     @ToString.Exclude
     private List<Promotion> promotions;
+
+    @Column(name = "AgeRestriction", length = 10)
+    private String ageRestriction;
 }
