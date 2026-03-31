@@ -1,0 +1,36 @@
+@startuml
+title Activity Diagram: (Module 1) Admin Thêm Danh Mục Phim / Sản phẩm F&B
+
+
+start
+:Admin đăng nhập thành công vào Hệ thống;
+:Chọn Module "Quản lý Phim" (hoặc Sản Phẩm);
+:Nhấn nút "Thêm Mới";
+
+repeat
+  :Admin nhập thông tin Phim (Tên phim, Thể loại/Genre, Thời lượng...);
+  
+  if (Tất cả thông tin nhập đầy đủ và hợp lệ?) then (Đúng)
+    :Hệ thống kiểm tra Trùng lặp (VD: trùng Mã Phim);
+    
+    if (Trùng mã?) then (Không trùng)
+      break
+    else (Trùng)
+      :Báo lỗi "Mã phim đã tồn tại";
+    endif
+    
+  else (Sai)
+    :Hiển thị thông báo lỗi Validate;
+  endif
+  
+repeat while (Dữ liệu chưa hợp lệ)
+
+:Hệ thống (Controller -> Service) thực hiện Create Data;
+:Lưu Record Movie vào Database;
+:Thêm các ràng buộc khoá ngoại (Movie_Genre);
+:Ghi vết hệ thống (AuditLog) thao tác Thêm Phim;
+:Hiển thị thông báo "Thêm thành công";
+:Tải lại danh sách (Reload List);
+
+stop
+@enduml
