@@ -6,6 +6,8 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 
 import java.util.List;
+
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -15,54 +17,57 @@ import java.util.Optional;
  */
 public class MovieRepository {
 
+    private final EntityManager em;
+
+    public MovieRepository() {
+        this.em = JpaUtil.getEntityManager();
+    }
+
     public List<Movie> findAll() {
-        EntityManager em = JpaUtil.getEntityManager();
         try {
-            return em.createQuery("SELECT m FROM Movie m ORDER BY m.title", Movie.class)
-                    .getResultList();
-        } finally {
-            em.close();
-        }
-    }
-
-    public Optional<Movie> findById(String movieId) {
-        EntityManager em = JpaUtil.getEntityManager();
-        try {
-            return Optional.ofNullable(em.find(Movie.class, movieId));
-        } finally {
-            em.close();
-        }
-    }
-
-    public Movie save(Movie movie) {
-        EntityManager em = JpaUtil.getEntityManager();
-        EntityTransaction tx = em.getTransaction();
-        try {
-            tx.begin();
-            Movie saved = em.merge(movie);
-            tx.commit();
-            return saved;
+            return em.createQuery("SELECT m FROM Movie m", Movie.class).getResultList();
         } catch (Exception e) {
-            if (tx.isActive()) tx.rollback();
-            throw e;
-        } finally {
-            em.close();
+            e.printStackTrace();
+            return java.util.Collections.emptyList();
         }
     }
 
-    public void deleteById(String movieId) {
-        EntityManager em = JpaUtil.getEntityManager();
-        EntityTransaction tx = em.getTransaction();
+    public Movie findById(String id) {
+        return em.find(Movie.class, id);
+    }
+
+    public void save(Movie movie) {
         try {
-            tx.begin();
-            Movie movie = em.find(Movie.class, movieId);
-            if (movie != null) em.remove(movie);
-            tx.commit();
+            em.getTransaction().begin();
+            em.persist(movie);
+            em.getTransaction().commit();
         } catch (Exception e) {
-            if (tx.isActive()) tx.rollback();
+            em.getTransaction().rollback();
             throw e;
-        } finally {
-            em.close();
+        }
+    }
+
+    public void update(Movie movie) {
+        try {
+            em.getTransaction().begin();
+            em.merge(movie);
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            em.getTransaction().rollback();
+            throw e;
+        }
+    }
+
+    public void delete(String id) {
+        try {
+            em.getTransaction().begin();
+            Movie movie = em.find(Movie.class, id);
+            if (movie != null)
+                em.remove(movie);
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            em.getTransaction().rollback();
+            throw e;
         }
     }
 }

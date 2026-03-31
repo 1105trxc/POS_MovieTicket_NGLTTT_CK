@@ -2,6 +2,7 @@ package com.cinema.management.repository;
 
 import com.cinema.management.config.JpaUtil;
 import com.cinema.management.model.entity.AuditLog;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 
@@ -33,7 +34,7 @@ public class AuditLogRepository {
         EntityManager em = JpaUtil.getEntityManager();
         try {
             return em.createQuery(
-                    "SELECT a FROM AuditLog a ORDER BY a.changedAt DESC", AuditLog.class)
+                            "SELECT a FROM AuditLog a ORDER BY a.changedAt DESC", AuditLog.class)
                     .getResultList();
         } finally {
             em.close();
@@ -44,8 +45,8 @@ public class AuditLogRepository {
         EntityManager em = JpaUtil.getEntityManager();
         try {
             return em.createQuery(
-                    "SELECT a FROM AuditLog a WHERE a.tableName = :table ORDER BY a.changedAt DESC",
-                    AuditLog.class)
+                            "SELECT a FROM AuditLog a WHERE a.tableName = :table ORDER BY a.changedAt DESC",
+                            AuditLog.class)
                     .setParameter("table", tableName)
                     .getResultList();
         } finally {

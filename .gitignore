@@ -56,7 +56,7 @@ delombok/
 .env.*
 application.properties
 hibernate.properties
-
+persistence.xml
 # ========================
 # 📦 OS files
 # ========================

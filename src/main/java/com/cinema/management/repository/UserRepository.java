@@ -2,8 +2,13 @@ package com.cinema.management.repository;
 
 import com.cinema.management.config.JpaUtil;
 import com.cinema.management.model.entity.User;
+
+
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.TypedQuery;
+import java.util.List;
+
 
 import java.util.List;
 import java.util.Optional;
@@ -14,41 +19,60 @@ import java.util.Optional;
  */
 public class UserRepository {
 
-    public Optional<User> findById(String userId) {
-        EntityManager em = JpaUtil.getEntityManager();
-        try {
-            return Optional.ofNullable(em.find(User.class, userId));
-        } finally {
-            em.close();
-        }
+    private final EntityManager em;
+
+    public UserRepository() {
+        this.em = JpaUtil.getEntityManager();
     }
 
-    public Optional<User> findByUsername(String username) {
-        EntityManager em = JpaUtil.getEntityManager();
+    public User findByUsername(String username) {
         try {
-            List<User> result = em.createQuery(
-                            "SELECT u FROM User u WHERE u.username = :uname", User.class)
-                    .setParameter("uname", username)
-                    .getResultList();
-            return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
-        } finally {
-            em.close();
-        }
-    }
-
-    public User save(User user) {
-        EntityManager em = JpaUtil.getEntityManager();
-        EntityTransaction tx = em.getTransaction();
-        try {
-            tx.begin();
-            User saved = em.merge(user);
-            tx.commit();
-            return saved;
+            String jpql = "SELECT u FROM User u JOIN FETCH u.role WHERE u.username = :username";
+            TypedQuery<User> query = em.createQuery(jpql, User.class);
+            query.setParameter("username", username);
+            return query.getSingleResult();
+        } catch (NoResultException e) {
+            return null;
         } catch (Exception e) {
-            if (tx.isActive()) tx.rollback();
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public User findById(String userId) {
+        return em.find(User.class, userId);
+    }
+
+    public List<User> findAll() {
+        try {
+            // Nhớ Join với Role để lấy được RoleName hiển thị lên bảng
+            String jpql = "SELECT u FROM User u JOIN FETCH u.role";
+            return em.createQuery(jpql, User.class).getResultList();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return java.util.Collections.emptyList();
+        }
+    }
+
+    public void save(User user) {
+        try {
+            em.getTransaction().begin();
+            em.persist(user);
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            em.getTransaction().rollback();
             throw e;
-        } finally {
-            em.close();
+        }
+    }
+
+    public void update(User user) {
+        try {
+            em.getTransaction().begin();
+            em.merge(user);
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            em.getTransaction().rollback();
+            throw e;
         }
     }
 }

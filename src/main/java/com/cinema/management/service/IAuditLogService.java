@@ -1,6 +1,5 @@
 package com.cinema.management.service;
 
-// TODO: define service contract
-
 public interface IAuditLogService {
+    void logAction(String actionType, String tableName, String fieldName, String oldValue, String newValue);
 }

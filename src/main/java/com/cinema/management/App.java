@@ -3,6 +3,11 @@ package com.cinema.management;
 import com.cinema.management.config.JpaUtil;
 import com.cinema.management.view.main.MainFrame;
 import com.formdev.flatlaf.themes.FlatMacLightLaf;
+import com.cinema.management.model.entity.User;
+import com.cinema.management.util.UserSessionContext;
+import com.cinema.management.view.auth.LoginFrame;
+import com.cinema.management.view.main.MainFrame;
+import com.cinema.management.model.entity.Role;
 
 import javax.swing.*;
 
@@ -10,6 +15,7 @@ import javax.swing.*;
  * Điểm khởi chạy ứng dụng Cinema Management System.
  */
 public class App {
+    public static final boolean DEV_MODE = true;
 
     public static void main(String[] args) {
 
@@ -30,9 +36,21 @@ public class App {
             try {
                 // Khởi tạo kết nối database (JPA/Hibernate) [cite: 56, 60]
                 JpaUtil.getEntityManagerFactory();
+                if (DEV_MODE) {
 
-                // TODO: Chức năng Đăng nhập - Mở LoginFrame trước, xác thực xong mới truyền User vào MainFrame [cite: 70]
-                // new LoginFrame().setVisible(true);
+                    // Giả lập trực tiếp 1 User có quyền ADMIN ném vào Session
+                    User devUser = new User();
+                    devUser.setFullName("Developer (Admin)");
+                    Role devRole = new Role();
+                    devRole.setRoleName("ADMIN");
+                    devUser.setRole(devRole);
+                    UserSessionContext.setCurrentUser(devUser);
+//                     Mở thẳng MainFrame
+//                     new MainFrame().setVisible(true);
+                } else {
+                    // Chế độ Production thực tế
+                    // new LoginFrame().setVisible(true);
+                }
 
                 // Tạm thời mở thẳng MainFrame để test.
                 // Truyền tham số UserID và Role để test phân quyền hiển thị (BR-02)[cite: 49, 87, 88].

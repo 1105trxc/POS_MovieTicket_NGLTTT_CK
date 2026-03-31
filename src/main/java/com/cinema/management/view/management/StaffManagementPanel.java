@@ -1,5 +1,5 @@
 package com.cinema.management.view.management;
 
-public class MovieManagementPanel {
+public class StaffManagementPanel {
 
 }
