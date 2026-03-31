@@ -5,6 +5,9 @@ import com.cinema.management.model.entity.Invoice;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 
+import java.util.Collections;
+import java.util.List;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -26,14 +29,16 @@ public class InvoiceRepository {
         EntityManager em = JpaUtil.getEntityManager();
         try {
             return em.createQuery(
-                    "SELECT i FROM Invoice i ORDER BY i.createdAt DESC", Invoice.class)
+                            "SELECT i FROM Invoice i ORDER BY i.createdAt DESC", Invoice.class)
                     .getResultList();
         } finally {
             em.close();
         }
     }
 
-    /** Lưu Invoice mới (persist) – không dùng merge để tránh overwrite snapshot. */
+    /**
+     * Lưu Invoice mới (persist) – không dùng merge để tránh overwrite snapshot.
+     */
     public Invoice save(Invoice invoice) {
         EntityManager em = JpaUtil.getEntityManager();
         EntityTransaction tx = em.getTransaction();

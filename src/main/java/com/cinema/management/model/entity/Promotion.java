@@ -23,11 +23,17 @@ public class Promotion {
     @Column(name = "Code", nullable = false, unique = true, length = 50)
     private String code;
 
+    @Column(name = "Description", columnDefinition = "TEXT")
+    private String description;
+
     @Column(name = "DiscountPercent", precision = 5, scale = 2)
     private BigDecimal discountPercent;
 
     @Column(name = "MaxDiscountAmount", precision = 15, scale = 2)
     private BigDecimal maxDiscountAmount;
+
+    @Column(name = "StartDate")
+    private LocalDate startDate;
 
     @Column(name = "ExpiryDate")
     private LocalDate expiryDate;

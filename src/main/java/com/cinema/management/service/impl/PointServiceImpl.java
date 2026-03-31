@@ -10,34 +10,40 @@ import com.cinema.management.service.IPointService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /**
  * Triển khai nghiệp vụ tích điểm và đổi điểm (FR-CR-01, FR-CR-02, BR-01).
- *
+ * <p>
  * Quy tắc:
- *   - EARN: 5% giá trị hoá đơn (làm tròn xuống).
- *   - REDEEM: 1 điểm = 1 VNĐ, tối đa 50% hoá đơn.
- *   - Ngưỡng nâng hạng: VIP ≥ 2.000.000 VNĐ, Diamond ≥ 5.000.000 VNĐ (FR-CR-02).
+ * - EARN: 5% giá trị hoá đơn (làm tròn xuống).
+ * - REDEEM: 1 điểm = 1 VNĐ, tối đa 50% hoá đơn.
+ * - Ngưỡng nâng hạng: VIP ≥ 2.000.000 VNĐ, Diamond ≥ 5.000.000 VNĐ (FR-CR-02).
  */
 public class PointServiceImpl implements IPointService {
 
-    private static final BigDecimal EARN_RATE          = new BigDecimal("0.05");
-    private static final BigDecimal MAX_REDEEM_RATE    = new BigDecimal("0.50");
-    private static final BigDecimal VIP_THRESHOLD      = new BigDecimal("2000000");
-    private static final BigDecimal DIAMOND_THRESHOLD  = new BigDecimal("5000000");
+    private static final BigDecimal EARN_RATE = new BigDecimal("0.05");
+    private static final BigDecimal MAX_REDEEM_RATE = new BigDecimal("0.50");
+    private static final BigDecimal VIP_THRESHOLD = new BigDecimal("2000000");
+    private static final BigDecimal DIAMOND_THRESHOLD = new BigDecimal("5000000");
 
-    private final CustomerRepository     customerRepository;
+    private final CustomerRepository customerRepository;
     private final PointHistoryRepository pointHistoryRepository;
 
     public PointServiceImpl() {
-        this.customerRepository     = new CustomerRepository();
+        this.customerRepository = new CustomerRepository();
         this.pointHistoryRepository = new PointHistoryRepository();
     }
 
     public PointServiceImpl(CustomerRepository customerRepository,
-                             PointHistoryRepository pointHistoryRepository) {
-        this.customerRepository     = customerRepository;
+                            PointHistoryRepository pointHistoryRepository) {
+        this.customerRepository = customerRepository;
+        this.pointHistoryRepository = pointHistoryRepository;
+    }
+
+    public PointServiceImpl(PointHistoryRepository pointHistoryRepository) {
+        this.customerRepository = null;
         this.pointHistoryRepository = pointHistoryRepository;
     }
 
@@ -105,6 +111,31 @@ public class PointServiceImpl implements IPointService {
         pointHistoryRepository.save(history);
     }
 
+    /**
+     * Ghi 1 bản ghi lịch sử tích điểm (EARN).
+     */
+    @Override
+    public void earnPoints(Customer customer, Invoice invoice, int points) {
+        if (customer == null || points <= 0) return;
+
+        PointHistory history = PointHistory.builder()
+                .historyId("PH-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+                .customer(customer)
+                .invoice(invoice)
+                .pointAmount(points)
+                .transactionType("EARN")
+                .description("Tích điểm từ hóa đơn " + (invoice != null ? invoice.getInvoiceId() : "N/A"))
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        pointHistoryRepository.save(history);
+    }
+
+    @Override
+    public List<PointHistory> getPointHistory(String customerId) {
+        return pointHistoryRepository.findByCustomerId(customerId);
+    }
+
     // ── Private helper ───────────────────────────────────────────────────────
 
     private void upgradeTierIfEligible(Customer customer) {
@@ -114,6 +145,9 @@ public class PointServiceImpl implements IPointService {
         } else if (spent.compareTo(VIP_THRESHOLD) >= 0) {
             customer.setMemberTier("VIP");
         }
+
     }
+
+
 }
 

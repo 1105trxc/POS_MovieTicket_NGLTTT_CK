@@ -5,6 +5,10 @@ import com.cinema.management.model.entity.Customer;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 
+import java.util.Collections;
+import java.util.List;
+
+
 import java.util.List;
 import java.util.Optional;
 
@@ -50,5 +54,29 @@ public class CustomerRepository {
             em.close();
         }
     }
+
+    public List<Customer> findAll() {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            return em.createQuery("SELECT c FROM Customer c", Customer.class).getResultList();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Collections.emptyList();
+        }
+    }
+
+    public void update(Customer customer) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            em.getTransaction().begin();
+            em.merge(customer);
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            em.getTransaction().rollback();
+            throw e;
+        }
+    }
+
+
 }
 
