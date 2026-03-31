@@ -23,7 +23,7 @@ public class RoomManagementPanel extends JPanel {
     private static final Color SUCCESS = new Color(34, 197, 94);  // Green
     private static final Color DANGER = new Color(239, 68, 68);   // Red
 
-    private final String[] COLUMNS = {"Room ID", "Room Name", "Capacity"};
+    private final String[] COLUMNS = {"Mã phòng", "Tên phòng", "Sức chứa"};
     private final DefaultTableModel tableModel = new DefaultTableModel(COLUMNS, 0) {
         @Override
         public boolean isCellEditable(int row, int col) {
@@ -36,10 +36,10 @@ public class RoomManagementPanel extends JPanel {
     private final JTextField txtRoomName = new JTextField(16);
     private final JSpinner spinCapacity = new JSpinner(new SpinnerNumberModel(100, 1, 1000, 1));
 
-    private final JButton btnAdd = new JButton("Add New");
-    private final JButton btnUpdate = new JButton("Update");
-    private final JButton btnDelete = new JButton("Delete");
-    private final JButton btnClear = new JButton("Reset Form");
+    private final JButton btnAdd = new JButton("Thêm mới");
+    private final JButton btnUpdate = new JButton("Cập nhật");
+    private final JButton btnDelete = new JButton("Xóa");
+    private final JButton btnClear = new JButton("Đặt lại form");
 
     private String selectedRoomId;
 
@@ -49,7 +49,7 @@ public class RoomManagementPanel extends JPanel {
         setBackground(BG);
 
         // Placeholder cho Textfield
-        txtRoomName.putClientProperty("JTextField.placeholderText", "Enter room name...");
+        txtRoomName.putClientProperty("JTextField.placeholderText", "Nhập tên phòng...");
 
         add(buildHeader(), BorderLayout.NORTH);
         add(buildCenter(), BorderLayout.CENTER);
@@ -63,11 +63,11 @@ public class RoomManagementPanel extends JPanel {
         header.setBackground(HEADER);
         header.setBorder(new EmptyBorder(16, 20, 16, 20));
 
-        JLabel title = new JLabel("ROOM MANAGEMENT");
+        JLabel title = new JLabel("QUẢN LÝ PHÒNG CHIẾU");
         title.setFont(new Font("Segoe UI", Font.BOLD, 22));
         title.setForeground(Color.WHITE);
 
-        JLabel sub = new JLabel("Manage screening rooms and their seat capacities");
+        JLabel sub = new JLabel("Quản lý phòng chiếu và sức chứa ghế");
         sub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         sub.setForeground(new Color(148, 163, 184));
 
@@ -104,12 +104,12 @@ public class RoomManagementPanel extends JPanel {
         JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         filterBar.setOpaque(false);
 
-        JLabel lblSearch = new JLabel("🔍 Quick Search:");
+        JLabel lblSearch = new JLabel("🔍 Tìm nhanh:");
         lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 13));
         filterBar.add(lblSearch);
 
         JTextField txtLiveSearch = new JTextField();
-        txtLiveSearch.putClientProperty("JTextField.placeholderText", "Search by room ID or name...");
+        txtLiveSearch.putClientProperty("JTextField.placeholderText", "Tìm theo mã phòng hoặc tên phòng...");
         txtLiveSearch.setPreferredSize(new Dimension(350, 36));
         filterBar.add(txtLiveSearch);
 
@@ -162,7 +162,7 @@ public class RoomManagementPanel extends JPanel {
         fields.setOpaque(false);
         fields.setBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createLineBorder(new Color(203, 213, 225)),
-                "  Room Details  ",
+                "  Thông tin phòng  ",
                 TitledBorder.LEFT, TitledBorder.TOP,
                 new Font("Segoe UI", Font.BOLD, 13),
                 new Color(71, 85, 105)));
@@ -178,7 +178,7 @@ public class RoomManagementPanel extends JPanel {
         gc.gridx = 0;
         gc.gridy = 0;
         gc.weightx = 0;
-        fields.add(new JLabel("Room Name:"), gc);
+        fields.add(new JLabel("Tên phòng:"), gc);
         gc.gridx = 1;
         gc.fill = GridBagConstraints.HORIZONTAL;
         gc.weightx = 1;
@@ -188,7 +188,7 @@ public class RoomManagementPanel extends JPanel {
         gc.gridy = 1;
         gc.fill = GridBagConstraints.NONE;
         gc.weightx = 0;
-        fields.add(new JLabel("Capacity:"), gc);
+        fields.add(new JLabel("Sức chứa:"), gc);
         gc.gridx = 1;
         gc.fill = GridBagConstraints.HORIZONTAL;
         gc.weightx = 1;
@@ -248,13 +248,13 @@ public class RoomManagementPanel extends JPanel {
     private void onAdd() {
         String name = txtRoomName.getText().trim();
         if (name.isEmpty()) {
-            showError("Room name cannot be empty.");
+            showError("Tên phòng không được để trống.");
             return;
         }
         int capacity = (int) spinCapacity.getValue();
         try {
             roomController.addRoom(name, capacity);
-            showSuccess("Room added successfully.");
+            showSuccess("Thêm phòng thành công.");
             clearForm();
             loadTable();
         } catch (Exception ex) {
@@ -264,18 +264,18 @@ public class RoomManagementPanel extends JPanel {
 
     private void onUpdate() {
         if (selectedRoomId == null) {
-            showError("Please select a room to update.");
+            showError("Vui lòng chọn phòng cần cập nhật.");
             return;
         }
         String name = txtRoomName.getText().trim();
         if (name.isEmpty()) {
-            showError("Room name cannot be empty.");
+            showError("Tên phòng không được để trống.");
             return;
         }
         int capacity = (int) spinCapacity.getValue();
         try {
             roomController.updateRoom(selectedRoomId, name, capacity);
-            showSuccess("Room updated successfully.");
+            showSuccess("Cập nhật phòng thành công.");
             clearForm();
             loadTable();
         } catch (Exception ex) {
@@ -285,18 +285,18 @@ public class RoomManagementPanel extends JPanel {
 
     private void onDelete() {
         if (selectedRoomId == null) {
-            showError("Please select a room to delete.");
+            showError("Vui lòng chọn phòng cần xóa.");
             return;
         }
         int confirm = JOptionPane.showConfirmDialog(
-                this, "Are you sure you want to delete this room?", "Confirm Deletion",
+                this, "Bạn có chắc chắn muốn xóa phòng này?", "Xác nhận xóa",
                 JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 
         if (confirm != JOptionPane.YES_OPTION) return;
 
         try {
             roomController.deleteRoom(selectedRoomId);
-            showSuccess("Room deleted successfully.");
+            showSuccess("Xóa phòng thành công.");
             clearForm();
             loadTable();
         } catch (Exception ex) {
@@ -345,10 +345,10 @@ public class RoomManagementPanel extends JPanel {
     }
 
     private void showSuccess(String msg) {
-        JOptionPane.showMessageDialog(this, msg, "Success", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this, msg, "Thành công", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void showError(String msg) {
-        JOptionPane.showMessageDialog(this, msg, "Error", JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(this, msg, "Lỗi", JOptionPane.ERROR_MESSAGE);
     }
 }

@@ -31,7 +31,7 @@ public class SeatManagementPanel extends JPanel {
 
     // --- SEAT TAB VARIABLES ---
     private final JComboBox<RoomItem> cmbRoom = new JComboBox<>();
-    private final String[] SEAT_COLS = {"Seat ID", "Row", "Number", "Type", "Base Price"};
+    private final String[] SEAT_COLS = {"Mã ghế", "Hàng", "Số", "Loại", "Giá cơ bản"};
     private final DefaultTableModel seatTableModel = new DefaultTableModel(SEAT_COLS, 0) {
         @Override
         public boolean isCellEditable(int r, int c) {
@@ -46,14 +46,14 @@ public class SeatManagementPanel extends JPanel {
     private final JTextField txtSeatPattern = new JTextField(16);
     private final JComboBox<SeatTypeItem> cmbSeatType = new JComboBox<>();
 
-    private final JButton btnAddSeat = new JButton("Add Seats (Batch)");
-    private final JButton btnUpdateSeat = new JButton("Update Type");
-    private final JButton btnDeleteSeat = new JButton("Delete Seat");
-    private final JButton btnClearSeat = new JButton("Reset Form");
+    private final JButton btnAddSeat = new JButton("Thêm ghế (hàng loạt)");
+    private final JButton btnUpdateSeat = new JButton("Cập nhật loại");
+    private final JButton btnDeleteSeat = new JButton("Xóa ghế");
+    private final JButton btnClearSeat = new JButton("Đặt lại form");
     private String selectedSeatId;
 
     // --- SEAT TYPE TAB VARIABLES ---
-    private final String[] TYPE_COLS = {"SeatType ID", "Type Name", "Base Price"};
+    private final String[] TYPE_COLS = {"Mã loại ghế", "Tên loại", "Giá cơ bản"};
     private final DefaultTableModel typeTableModel = new DefaultTableModel(TYPE_COLS, 0) {
         @Override
         public boolean isCellEditable(int r, int c) {
@@ -66,10 +66,10 @@ public class SeatManagementPanel extends JPanel {
     private final JTextField txtTypeName = new JTextField(16);
     private final JFormattedTextField txtBasePrice;
 
-    private final JButton btnAddType = new JButton("Add Type");
-    private final JButton btnUpdateType = new JButton("Update Type");
-    private final JButton btnDeleteType = new JButton("Delete Type");
-    private final JButton btnClearType = new JButton("Reset Form");
+    private final JButton btnAddType = new JButton("Thêm loại");
+    private final JButton btnUpdateType = new JButton("Cập nhật loại");
+    private final JButton btnDeleteType = new JButton("Xóa loại");
+    private final JButton btnClearType = new JButton("Đặt lại form");
     private String selectedSeatTypeId;
 
     public SeatManagementPanel() {
@@ -83,9 +83,9 @@ public class SeatManagementPanel extends JPanel {
         setBackground(BG);
 
         // Placeholders
-        txtRowChar.putClientProperty("JTextField.placeholderText", "e.g., A, B, C...");
-        txtSeatPattern.putClientProperty("JTextField.placeholderText", "e.g., 1-5, 8-12, 15");
-        txtTypeName.putClientProperty("JTextField.placeholderText", "e.g., Standard, VIP...");
+        txtRowChar.putClientProperty("JTextField.placeholderText", "Ví dụ: A, B, C...");
+        txtSeatPattern.putClientProperty("JTextField.placeholderText", "Ví dụ: 1-5, 8-12, 15");
+        txtTypeName.putClientProperty("JTextField.placeholderText", "Ví dụ: Thường, VIP...");
 
         add(buildHeader(), BorderLayout.NORTH);
         add(buildTabs(), BorderLayout.CENTER);
@@ -105,11 +105,11 @@ public class SeatManagementPanel extends JPanel {
         header.setBackground(HEADER);
         header.setBorder(new EmptyBorder(16, 20, 16, 20));
 
-        JLabel title = new JLabel("SEAT MANAGEMENT");
+        JLabel title = new JLabel("QUẢN LÝ GHẾ");
         title.setFont(new Font("Segoe UI", Font.BOLD, 22));
         title.setForeground(Color.WHITE);
 
-        JLabel sub = new JLabel("Manage room seats, bulk layouts, and pricing categories");
+        JLabel sub = new JLabel("Quản lý ghế theo phòng, bố cục hàng loạt và phân loại giá");
         sub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         sub.setForeground(new Color(148, 163, 184));
 
@@ -127,8 +127,8 @@ public class SeatManagementPanel extends JPanel {
     private JTabbedPane buildTabs() {
         JTabbedPane tabs = new JTabbedPane();
         tabs.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        tabs.addTab("   Seat Layout Setup   ", buildSeatTab());
-        tabs.addTab("   Seat Types & Pricing   ", buildSeatTypeTab());
+        tabs.addTab("   Thiết lập sơ đồ ghế   ", buildSeatTab());
+        tabs.addTab("   Loại ghế & đơn giá   ", buildSeatTypeTab());
         return tabs;
     }
 
@@ -150,12 +150,12 @@ public class SeatManagementPanel extends JPanel {
         JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         filterBar.setOpaque(false);
 
-        filterBar.add(new JLabel("<html><b>Room:</b></html>"));
+        filterBar.add(new JLabel("<html><b>Phòng:</b></html>"));
         cmbRoom.setPreferredSize(new Dimension(150, 36));
         filterBar.add(cmbRoom);
 
         // Nút Clone Layout tích hợp
-        JButton btnClone = new JButton("Clone Layout");
+        JButton btnClone = new JButton("Sao chép bố cục");
         btnClone.setBackground(WARNING);
         btnClone.setForeground(Color.WHITE);
         btnClone.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -163,10 +163,10 @@ public class SeatManagementPanel extends JPanel {
         filterBar.add(btnClone);
 
         filterBar.add(Box.createHorizontalStrut(10));
-        filterBar.add(new JLabel("<html><b>Search:</b></html>"));
+        filterBar.add(new JLabel("<html><b>Tìm kiếm:</b></html>"));
 
         JTextField txtLiveSearchSeat = new JTextField();
-        txtLiveSearchSeat.putClientProperty("JTextField.placeholderText", "Row, Number, Type...");
+        txtLiveSearchSeat.putClientProperty("JTextField.placeholderText", "Hàng, số ghế, loại...");
         txtLiveSearchSeat.setPreferredSize(new Dimension(200, 36));
         filterBar.add(txtLiveSearchSeat);
 
@@ -218,7 +218,7 @@ public class SeatManagementPanel extends JPanel {
         fields.setOpaque(false);
         fields.setBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createLineBorder(new Color(203, 213, 225)),
-                "  Seat Batch Generator  ", TitledBorder.LEFT, TitledBorder.TOP,
+                "  Tạo ghế hàng loạt  ", TitledBorder.LEFT, TitledBorder.TOP,
                 new Font("Segoe UI", Font.BOLD, 13), new Color(71, 85, 105)));
 
         GridBagConstraints gc = new GridBagConstraints();
@@ -232,7 +232,7 @@ public class SeatManagementPanel extends JPanel {
 
         gc.gridx = 0;
         gc.gridy = 0;
-        fields.add(new JLabel("Row (A-Z):"), gc);
+        fields.add(new JLabel("Hàng (A-Z):"), gc);
         gc.gridx = 1;
         gc.fill = GridBagConstraints.HORIZONTAL;
         gc.weightx = 1;
@@ -242,7 +242,7 @@ public class SeatManagementPanel extends JPanel {
         gc.gridy = 1;
         gc.fill = GridBagConstraints.NONE;
         gc.weightx = 0;
-        fields.add(new JLabel("Number(s):"), gc);
+        fields.add(new JLabel("Số ghế:"), gc);
         gc.gridx = 1;
         gc.fill = GridBagConstraints.HORIZONTAL;
         gc.weightx = 1;
@@ -252,7 +252,7 @@ public class SeatManagementPanel extends JPanel {
         gc.gridy = 2;
         gc.fill = GridBagConstraints.NONE;
         gc.weightx = 0;
-        fields.add(new JLabel("Seat Type:"), gc);
+        fields.add(new JLabel("Loại ghế:"), gc);
         gc.gridx = 1;
         gc.fill = GridBagConstraints.HORIZONTAL;
         gc.weightx = 1;
@@ -296,10 +296,10 @@ public class SeatManagementPanel extends JPanel {
 
         JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         filterBar.setOpaque(false);
-        filterBar.add(new JLabel("<html><b>🔍 Quick Search:</b></html>"));
+        filterBar.add(new JLabel("<html><b>🔍 Tìm nhanh:</b></html>"));
 
         JTextField txtLiveSearchType = new JTextField();
-        txtLiveSearchType.putClientProperty("JTextField.placeholderText", "Search type name...");
+        txtLiveSearchType.putClientProperty("JTextField.placeholderText", "Tìm theo tên loại ghế...");
         txtLiveSearchType.setPreferredSize(new Dimension(350, 36));
         filterBar.add(txtLiveSearchType);
 
@@ -350,7 +350,7 @@ public class SeatManagementPanel extends JPanel {
         fields.setOpaque(false);
         fields.setBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createLineBorder(new Color(203, 213, 225)),
-                "  Seat Type Details  ", TitledBorder.LEFT, TitledBorder.TOP,
+                "  Thông tin loại ghế  ", TitledBorder.LEFT, TitledBorder.TOP,
                 new Font("Segoe UI", Font.BOLD, 13), new Color(71, 85, 105)));
 
         GridBagConstraints gc = new GridBagConstraints();
@@ -363,7 +363,7 @@ public class SeatManagementPanel extends JPanel {
 
         gc.gridx = 0;
         gc.gridy = 0;
-        fields.add(new JLabel("Type Name:"), gc);
+        fields.add(new JLabel("Tên loại:"), gc);
         gc.gridx = 1;
         gc.fill = GridBagConstraints.HORIZONTAL;
         gc.weightx = 1;
@@ -373,7 +373,7 @@ public class SeatManagementPanel extends JPanel {
         gc.gridy = 1;
         gc.fill = GridBagConstraints.NONE;
         gc.weightx = 0;
-        fields.add(new JLabel("Base Price:"), gc);
+        fields.add(new JLabel("Giá cơ bản:"), gc);
         gc.gridx = 1;
         gc.fill = GridBagConstraints.HORIZONTAL;
         gc.weightx = 1;
@@ -408,7 +408,7 @@ public class SeatManagementPanel extends JPanel {
         RoomItem ri = (RoomItem) cmbRoom.getSelectedItem();
         SeatTypeItem sti = (SeatTypeItem) cmbSeatType.getSelectedItem();
         if (ri == null || sti == null) {
-            showError("Please choose a room and a seat type.");
+            showError("Vui lòng chọn phòng và loại ghế.");
             return;
         }
 
@@ -416,25 +416,25 @@ public class SeatManagementPanel extends JPanel {
         String pattern = txtSeatPattern.getText().trim(); // Lấy chuỗi pattern
 
         if (row.isEmpty() || pattern.isEmpty()) {
-            showError("Row and Number(s) cannot be empty.");
+            showError("Hàng ghế và số ghế không được để trống.");
             return;
         }
 
         try {
             // GỌI HÀM MỚI TỪ CONTROLLER
             seatController.addSeatsByPattern(ri.id, sti.id, row, pattern);
-            showSuccess("Seats generated successfully!");
+            showSuccess("Tạo ghế thành công.");
             clearSeatForm();
             loadSeatTable();
         } catch (Exception ex) {
-            showError("Error generating seats: " + ex.getMessage());
+            showError("Lỗi khi tạo ghế: " + ex.getMessage());
         }
     }
 
     private void onCloneLayout() {
         RoomItem targetRoom = (RoomItem) cmbRoom.getSelectedItem();
         if (targetRoom == null) {
-            showError("Please select a target room in the filter bar first.");
+            showError("Vui lòng chọn phòng đích ở bộ lọc trước.");
             return;
         }
 
@@ -442,7 +442,7 @@ public class SeatManagementPanel extends JPanel {
         allRooms.removeIf(r -> r.getRoomId().equals(targetRoom.id));
 
         if (allRooms.isEmpty()) {
-            showError("No other rooms available to clone from.");
+            showError("Không còn phòng nào khác để sao chép.");
             return;
         }
 
@@ -452,12 +452,12 @@ public class SeatManagementPanel extends JPanel {
         }
 
         Object[] message = {
-                "Cloning will replace or add to the current layout.",
-                "Select Source Room to Clone to [" + targetRoom.name + "]:",
+                "Sao chép có thể thay thế hoặc bổ sung bố cục hiện tại.",
+                "Chọn phòng nguồn để sao chép sang [" + targetRoom.name + "]:",
                 cmbSource
         };
 
-        int result = JOptionPane.showConfirmDialog(this, message, "Clone Room Layout", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+        int result = JOptionPane.showConfirmDialog(this, message, "Sao chép bố cục phòng", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
 
         if (result == JOptionPane.OK_OPTION) {
             RoomItem sourceRoom = (RoomItem) cmbSource.getSelectedItem();
@@ -465,10 +465,10 @@ public class SeatManagementPanel extends JPanel {
                 try {
                     // GỌI HÀM CLONE TỪ CONTROLLER
                     seatController.cloneRoomLayout(sourceRoom.id, targetRoom.id);
-                    showSuccess("Layout cloned successfully from " + sourceRoom.name + " to " + targetRoom.name);
+                    showSuccess("Sao chép bố cục thành công từ " + sourceRoom.name + " sang " + targetRoom.name);
                     loadSeatTable();
                 } catch (Exception ex) {
-                    showError("Error cloning layout: " + ex.getMessage());
+                    showError("Lỗi khi sao chép bố cục: " + ex.getMessage());
                 }
             }
         }
@@ -476,17 +476,17 @@ public class SeatManagementPanel extends JPanel {
 
     private void onUpdateSeat() {
         if (selectedSeatId == null) {
-            showError("Please select a seat to update.");
+            showError("Vui lòng chọn ghế cần cập nhật.");
             return;
         }
         SeatTypeItem sti = (SeatTypeItem) cmbSeatType.getSelectedItem();
         if (sti == null) {
-            showError("Please choose a seat type.");
+            showError("Vui lòng chọn loại ghế.");
             return;
         }
         try {
             seatController.updateSeatType(selectedSeatId, sti.id);
-            showSuccess("Seat updated successfully.");
+            showSuccess("Cập nhật ghế thành công.");
             clearSeatForm();
             loadSeatTable();
         } catch (Exception ex) {
@@ -496,14 +496,14 @@ public class SeatManagementPanel extends JPanel {
 
     private void onDeleteSeat() {
         if (selectedSeatId == null) {
-            showError("Please select a seat to delete.");
+            showError("Vui lòng chọn ghế cần xóa.");
             return;
         }
-        int c = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete this seat?", "Confirm", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        int c = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa ghế này?", "Xác nhận", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (c != JOptionPane.YES_OPTION) return;
         try {
             seatController.deleteSeat(selectedSeatId);
-            showSuccess("Seat deleted successfully.");
+            showSuccess("Xóa ghế thành công.");
             clearSeatForm();
             loadSeatTable();
         } catch (Exception ex) {
@@ -514,14 +514,14 @@ public class SeatManagementPanel extends JPanel {
     private void onAddSeatType() { /* Giữ nguyên như cũ */
         String name = txtTypeName.getText().trim();
         if (name.isEmpty()) {
-            showError("Type name cannot be empty.");
+            showError("Tên loại ghế không được để trống.");
             return;
         }
         BigDecimal price = parsePriceField();
         if (price == null) return;
         try {
             seatController.addSeatType(name, price);
-            showSuccess("Seat type added successfully.");
+            showSuccess("Thêm loại ghế thành công.");
             clearSeatTypeForm();
             loadSeatTypeTable();
             loadSeatTypeCombo();
@@ -532,19 +532,19 @@ public class SeatManagementPanel extends JPanel {
 
     private void onUpdateSeatType() { /* Giữ nguyên như cũ */
         if (selectedSeatTypeId == null) {
-            showError("Please select a seat type to update.");
+            showError("Vui lòng chọn loại ghế cần cập nhật.");
             return;
         }
         String name = txtTypeName.getText().trim();
         if (name.isEmpty()) {
-            showError("Type name cannot be empty.");
+            showError("Tên loại ghế không được để trống.");
             return;
         }
         BigDecimal price = parsePriceField();
         if (price == null) return;
         try {
             seatController.updateSeatType(selectedSeatTypeId, name, price, "U001");
-            showSuccess("Seat type updated successfully.");
+            showSuccess("Cập nhật loại ghế thành công.");
             clearSeatTypeForm();
             loadSeatTypeTable();
             loadSeatTypeCombo();
@@ -556,14 +556,14 @@ public class SeatManagementPanel extends JPanel {
 
     private void onDeleteSeatType() { /* Giữ nguyên như cũ */
         if (selectedSeatTypeId == null) {
-            showError("Please select a seat type to delete.");
+            showError("Vui lòng chọn loại ghế cần xóa.");
             return;
         }
-        int c = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete this seat type?", "Confirm", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        int c = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa loại ghế này?", "Xác nhận", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (c != JOptionPane.YES_OPTION) return;
         try {
             seatController.deleteSeatType(selectedSeatTypeId);
-            showSuccess("Seat type deleted successfully.");
+            showSuccess("Xóa loại ghế thành công.");
             clearSeatTypeForm();
             loadSeatTypeTable();
             loadSeatTypeCombo();
@@ -684,7 +684,7 @@ public class SeatManagementPanel extends JPanel {
             Object val = txtBasePrice.getValue();
             return new BigDecimal(val.toString());
         } catch (Exception e) {
-            showError("Base price is invalid.");
+            showError("Giá cơ bản không hợp lệ.");
             return null;
         }
     }
@@ -722,11 +722,11 @@ public class SeatManagementPanel extends JPanel {
     }
 
     private void showSuccess(String msg) {
-        JOptionPane.showMessageDialog(this, msg, "Success", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this, msg, "Thành công", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void showError(String msg) {
-        JOptionPane.showMessageDialog(this, msg, "Error", JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(this, msg, "Lỗi", JOptionPane.ERROR_MESSAGE);
     }
 
     private static class RoomItem {
@@ -757,7 +757,7 @@ public class SeatManagementPanel extends JPanel {
 
         @Override
         public String toString() {
-            return name + " (" + String.format("%,.0f", price) + " VND)";
+            return name + " (" + String.format("%,.0f", price) + " VNĐ)";
         }
     }
 }

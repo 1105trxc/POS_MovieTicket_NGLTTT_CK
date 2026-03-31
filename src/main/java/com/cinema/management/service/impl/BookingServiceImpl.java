@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 public class BookingServiceImpl implements IBookingService {
 
     private static final int MAX_LOCK_MINUTES = 15;
+    private static final int SELLABLE_AFTER_START_MINUTES = 30;
 
     private final SeatRepository seatRepository;
     private final SeatLockRepository seatLockRepository;
@@ -161,8 +162,10 @@ public class BookingServiceImpl implements IBookingService {
         if (showTime.getStartTime() == null) {
             throw new IllegalStateException("Suat chieu khong hop le de ban ve.");
         }
-        if (!showTime.getStartTime().isAfter(LocalDateTime.now())) {
-            throw new IllegalStateException("Khong the ban ve cho suat chieu da bat dau hoac da ket thuc.");
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime sellableUntil = showTime.getStartTime().plusMinutes(SELLABLE_AFTER_START_MINUTES);
+        if (now.isAfter(sellableUntil)) {
+            throw new IllegalStateException("Da qua 30 phut ke tu gio bat dau suat chieu. Khong the dat ve.");
         }
     }
 

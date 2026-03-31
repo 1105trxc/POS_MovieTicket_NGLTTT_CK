@@ -37,7 +37,7 @@ public class ShowTimeManagementPanel extends JPanel {
     private static final Color DANGER = new Color(239, 68, 68);
 
     // Thêm Movie ID và Room ID để lưu trữ ngầm, phục vụ việc click vào Table nạp lại dữ liệu
-    private final String[] COLUMNS = {"ShowTime ID", "Movie ID", "Room ID", "Movie", "Room", "Start Time", "End Time"};
+    private final String[] COLUMNS = {"Mã suất chiếu", "Mã phim", "Mã phòng", "Phim", "Phòng", "Giờ bắt đầu", "Giờ kết thúc"};
     private final DefaultTableModel tableModel = new DefaultTableModel(COLUMNS, 0) {
         @Override
         public boolean isCellEditable(int r, int c) {
@@ -54,14 +54,16 @@ public class ShowTimeManagementPanel extends JPanel {
     private final JTextField txtSelectedRoom = new JTextField(16);
     private String currentFormMovieId = null;
     private String currentFormRoomId = null;
+    private Integer currentFormMovieDuration = null;
+    private boolean autoSuggestEndTimeEnabled = true;
 
     private JFormattedTextField txtStartTime;
     private JFormattedTextField txtEndTime;
 
-    private final JButton btnAdd = new JButton("Add New");
-    private final JButton btnUpdate = new JButton("Update");
-    private final JButton btnDelete = new JButton("Delete");
-    private final JButton btnClear = new JButton("Reset Form");
+    private final JButton btnAdd = new JButton("Thêm mới");
+    private final JButton btnUpdate = new JButton("Cập nhật");
+    private final JButton btnDelete = new JButton("Xóa");
+    private final JButton btnClear = new JButton("Đặt lại form");
 
     private String selectedShowTimeId;
 
@@ -90,6 +92,7 @@ public class ShowTimeManagementPanel extends JPanel {
 
         add(buildHeader(), BorderLayout.NORTH);
         add(buildCenter(), BorderLayout.CENTER);
+        registerAutoSuggestListeners();
 
         loadTable();
         configureTableSelection();
@@ -100,11 +103,11 @@ public class ShowTimeManagementPanel extends JPanel {
         header.setBackground(HEADER);
         header.setBorder(new EmptyBorder(16, 20, 16, 20));
 
-        JLabel title = new JLabel("SHOWTIME MANAGEMENT");
+        JLabel title = new JLabel("QUẢN LÝ SUẤT CHIẾU");
         title.setFont(new Font("Segoe UI", Font.BOLD, 22));
         title.setForeground(Color.WHITE);
 
-        JLabel sub = new JLabel("Manage movie schedules, room allocations, and timings");
+        JLabel sub = new JLabel("Quản lý lịch chiếu phim, phòng chiếu và thời gian");
         sub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         sub.setForeground(new Color(148, 163, 184));
 
@@ -140,12 +143,12 @@ public class ShowTimeManagementPanel extends JPanel {
         JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         filterBar.setOpaque(false);
 
-        JLabel lblSearch = new JLabel("🔍 Quick Search:");
+        JLabel lblSearch = new JLabel("🔍 Tìm nhanh:");
         lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 13));
         filterBar.add(lblSearch);
 
         JTextField txtLiveSearch = new JTextField();
-        txtLiveSearch.putClientProperty("JTextField.placeholderText", "Search by movie, room, date, or ID...");
+        txtLiveSearch.putClientProperty("JTextField.placeholderText", "Tìm theo phim, phòng, thời gian hoặc mã...");
         txtLiveSearch.setPreferredSize(new Dimension(350, 36));
         filterBar.add(txtLiveSearch);
 
@@ -210,7 +213,7 @@ public class ShowTimeManagementPanel extends JPanel {
         fields.setOpaque(false);
         fields.setBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createLineBorder(new Color(203, 213, 225)),
-                "  Showtime Details  ",
+                "  Thông tin suất chiếu  ",
                 TitledBorder.LEFT, TitledBorder.TOP,
                 new Font("Segoe UI", Font.BOLD, 13),
                 new Color(71, 85, 105)));
@@ -221,7 +224,7 @@ public class ShowTimeManagementPanel extends JPanel {
 
         // --- Tích hợp Movie Dialog ---
         txtSelectedMovie.setEditable(false);
-        txtSelectedMovie.putClientProperty("JTextField.placeholderText", "No movie selected...");
+        txtSelectedMovie.putClientProperty("JTextField.placeholderText", "Chưa chọn phim...");
         JButton btnChooseMovie = new JButton("...");
         btnChooseMovie.addActionListener(e -> openMovieSelectionDialog());
 
@@ -232,7 +235,7 @@ public class ShowTimeManagementPanel extends JPanel {
 
         // --- Tích hợp Room Dialog ---
         txtSelectedRoom.setEditable(false);
-        txtSelectedRoom.putClientProperty("JTextField.placeholderText", "No room selected...");
+        txtSelectedRoom.putClientProperty("JTextField.placeholderText", "Chưa chọn phòng...");
         JButton btnChooseRoom = new JButton("...");
         btnChooseRoom.addActionListener(e -> openRoomSelectionDialog());
 
@@ -247,7 +250,7 @@ public class ShowTimeManagementPanel extends JPanel {
 
         gc.gridx = 0;
         gc.gridy = 0;
-        fields.add(new JLabel("Movie:"), gc);
+        fields.add(new JLabel("Phim:"), gc);
         gc.gridx = 1;
         gc.fill = GridBagConstraints.HORIZONTAL;
         gc.weightx = 1;
@@ -257,7 +260,7 @@ public class ShowTimeManagementPanel extends JPanel {
         gc.gridy = 1;
         gc.fill = GridBagConstraints.NONE;
         gc.weightx = 0;
-        fields.add(new JLabel("Room:"), gc);
+        fields.add(new JLabel("Phòng:"), gc);
         gc.gridx = 1;
         gc.fill = GridBagConstraints.HORIZONTAL;
         gc.weightx = 1;
@@ -267,7 +270,7 @@ public class ShowTimeManagementPanel extends JPanel {
         gc.gridy = 2;
         gc.fill = GridBagConstraints.NONE;
         gc.weightx = 0;
-        fields.add(new JLabel("Start Time:"), gc);
+        fields.add(new JLabel("Giờ bắt đầu:"), gc);
         gc.gridx = 1;
         gc.fill = GridBagConstraints.HORIZONTAL;
         gc.weightx = 1;
@@ -277,7 +280,7 @@ public class ShowTimeManagementPanel extends JPanel {
         gc.gridy = 3;
         gc.fill = GridBagConstraints.NONE;
         gc.weightx = 0;
-        fields.add(new JLabel("End Time:"), gc);
+        fields.add(new JLabel("Giờ kết thúc:"), gc);
         gc.gridx = 1;
         gc.fill = GridBagConstraints.HORIZONTAL;
         gc.weightx = 1;
@@ -333,7 +336,9 @@ public class ShowTimeManagementPanel extends JPanel {
         Movie selected = dialog.getSelectedMovie();
         if (selected != null) {
             currentFormMovieId = selected.getMovieId();
+            currentFormMovieDuration = selected.getDuration();
             txtSelectedMovie.setText(selected.getTitle());
+            suggestEndTimeFromMovieDuration();
         }
     }
 
@@ -352,17 +357,18 @@ public class ShowTimeManagementPanel extends JPanel {
 
     private void onAdd() {
         if (currentFormMovieId == null || currentFormRoomId == null) {
-            showError("Please choose a movie and a room.");
+            showError("Vui lòng chọn phim và phòng chiếu.");
             return;
         }
 
         LocalDateTime start = parseDateTime(txtStartTime.getText());
         LocalDateTime end = parseDateTime(txtEndTime.getText());
         if (start == null || end == null) return;
+        if (!validateEndTimeByMovieDuration(start, end)) return;
 
         try {
             showTimeController.addShowTime(currentFormMovieId, currentFormRoomId, start, end);
-            showSuccess("Showtime added successfully.");
+            showSuccess("Thêm suất chiếu thành công.");
             clearForm();
             loadTable();
         } catch (Exception ex) {
@@ -372,21 +378,22 @@ public class ShowTimeManagementPanel extends JPanel {
 
     private void onUpdate() {
         if (selectedShowTimeId == null) {
-            showError("Please select a showtime to update.");
+            showError("Vui lòng chọn suất chiếu cần cập nhật.");
             return;
         }
         if (currentFormMovieId == null || currentFormRoomId == null) {
-            showError("Please choose a movie and a room.");
+            showError("Vui lòng chọn phim và phòng chiếu.");
             return;
         }
 
         LocalDateTime start = parseDateTime(txtStartTime.getText());
         LocalDateTime end = parseDateTime(txtEndTime.getText());
         if (start == null || end == null) return;
+        if (!validateEndTimeByMovieDuration(start, end)) return;
 
         try {
             showTimeController.updateShowTime(selectedShowTimeId, currentFormMovieId, currentFormRoomId, start, end);
-            showSuccess("Showtime updated successfully.");
+            showSuccess("Cập nhật suất chiếu thành công.");
             clearForm();
             loadTable();
         } catch (Exception ex) {
@@ -396,17 +403,17 @@ public class ShowTimeManagementPanel extends JPanel {
 
     private void onDelete() {
         if (selectedShowTimeId == null) {
-            showError("Please select a showtime to delete.");
+            showError("Vui lòng chọn suất chiếu cần xóa.");
             return;
         }
         int c = JOptionPane.showConfirmDialog(this,
-                "Are you sure you want to delete this showtime?", "Confirm Deletion",
+                "Bạn có chắc chắn muốn xóa suất chiếu này?", "Xác nhận xóa",
                 JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (c != JOptionPane.YES_OPTION) return;
 
         try {
             showTimeController.deleteShowTime(selectedShowTimeId);
-            showSuccess("Showtime deleted successfully.");
+            showSuccess("Xóa suất chiếu thành công.");
             clearForm();
             loadTable();
         } catch (Exception ex) {
@@ -451,12 +458,15 @@ public class ShowTimeManagementPanel extends JPanel {
             selectedShowTimeId = (String) tableModel.getValueAt(row, 0);
             currentFormMovieId = (String) tableModel.getValueAt(row, 1);
             currentFormRoomId = (String) tableModel.getValueAt(row, 2);
+            currentFormMovieDuration = findMovieDurationById(currentFormMovieId);
 
             // Đưa lên Form hiển thị
+            autoSuggestEndTimeEnabled = false;
             txtSelectedMovie.setText((String) tableModel.getValueAt(row, 3));
             txtSelectedRoom.setText((String) tableModel.getValueAt(row, 4));
             txtStartTime.setText((String) tableModel.getValueAt(row, 5));
             txtEndTime.setText((String) tableModel.getValueAt(row, 6));
+            autoSuggestEndTimeEnabled = true;
 
             btnAdd.setEnabled(false);
             btnUpdate.setEnabled(true);
@@ -467,21 +477,92 @@ public class ShowTimeManagementPanel extends JPanel {
     private LocalDateTime parseDateTime(String text) {
         // Nếu chuỗi rỗng hoặc người dùng chưa nhập gì (chỉ chứa Mask)
         if (text == null || text.trim().isEmpty() || text.equals("__/__/____ __:__")) {
-            showError("Datetime fields cannot be empty.\nPlease enter a valid date and time.");
+            showError("Không được để trống thời gian.\nVui lòng nhập ngày giờ hợp lệ.");
             return null;
         }
         try {
             return LocalDateTime.parse(text.trim(), DT_FMT);
         } catch (DateTimeParseException ex) {
-            showError("Invalid datetime format.\nPlease input correctly as: dd/MM/yyyy HH:mm");
+            showError("Định dạng ngày giờ không hợp lệ.\nVui lòng nhập đúng: dd/MM/yyyy HH:mm");
             return null;
         }
+    }
+
+    private void registerAutoSuggestListeners() {
+        txtStartTime.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                suggestEndTimeFromMovieDuration();
+            }
+
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                suggestEndTimeFromMovieDuration();
+            }
+
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                suggestEndTimeFromMovieDuration();
+            }
+        });
+    }
+
+    private void suggestEndTimeFromMovieDuration() {
+        if (!autoSuggestEndTimeEnabled) return;
+        if (currentFormMovieDuration == null || currentFormMovieDuration <= 0) return;
+
+        LocalDateTime start = parseDateTimeSilently(txtStartTime.getText());
+        if (start == null) return;
+
+        LocalDateTime suggestedEnd = start.plusMinutes(currentFormMovieDuration);
+        txtEndTime.setText(suggestedEnd.format(DT_FMT));
+    }
+
+    private LocalDateTime parseDateTimeSilently(String text) {
+        if (text == null || text.trim().isEmpty() || text.equals("__/__/____ __:__")) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(text.trim(), DT_FMT);
+        } catch (DateTimeParseException ex) {
+            return null;
+        }
+    }
+
+    private Integer findMovieDurationById(String movieId) {
+        if (movieId == null || movieId.isBlank()) return null;
+        List<Movie> allMovies = showTimeController.getAllMovies();
+        for (Movie movie : allMovies) {
+            if (movieId.equals(movie.getMovieId())) {
+                return movie.getDuration();
+            }
+        }
+        return null;
+    }
+
+    private boolean validateEndTimeByMovieDuration(LocalDateTime start, LocalDateTime end) {
+        if (currentFormMovieDuration == null || currentFormMovieDuration <= 0) {
+            return true;
+        }
+        LocalDateTime minEnd = start.plusMinutes(currentFormMovieDuration);
+        if (end.isBefore(minEnd)) {
+            showError("Giờ kết thúc phải lớn hơn hoặc bằng Giờ bắt đầu + thời lượng phim (" +
+                    minEnd.format(DT_FMT) + ").");
+            return false;
+        }
+        if (false && end.isBefore(minEnd)) {
+            showError("End time phải lớn hơn hoặc bằng Start time + thời lượng phim (" +
+                    minEnd.format(DT_FMT) + ").");
+            return false;
+        }
+        return true;
     }
 
     private void clearForm() {
         selectedShowTimeId = null;
         currentFormMovieId = null;
         currentFormRoomId = null;
+        currentFormMovieDuration = null;
 
         txtSelectedMovie.setText("");
         txtSelectedRoom.setText("");
@@ -507,10 +588,10 @@ public class ShowTimeManagementPanel extends JPanel {
     }
 
     private void showSuccess(String msg) {
-        JOptionPane.showMessageDialog(this, msg, "Success", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this, msg, "Thành công", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void showError(String msg) {
-        JOptionPane.showMessageDialog(this, msg, "Error", JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(this, msg, "Lỗi", JOptionPane.ERROR_MESSAGE);
     }
 }

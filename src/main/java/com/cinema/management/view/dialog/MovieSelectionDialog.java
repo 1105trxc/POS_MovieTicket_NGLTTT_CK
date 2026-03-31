@@ -24,7 +24,7 @@ public class MovieSelectionDialog extends JDialog {
     private static final Color BG = new Color(245, 247, 250);
 
     public MovieSelectionDialog(Window owner, List<Movie> movies) {
-        super(owner, "Select Movie", ModalityType.APPLICATION_MODAL);
+        super(owner, "Chọn phim", ModalityType.APPLICATION_MODAL);
         this.movies = movies;
 
         setSize(700, 450);
@@ -43,11 +43,14 @@ public class MovieSelectionDialog extends JDialog {
         pnlSearch.setOpaque(false);
 
         JLabel lblSearch = new JLabel("🔍 Search Movie Title:");
+        lblSearch.setText("Tìm tên phim:");
         lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblSearch.setText("Tìm tên phim:");
+        lblSearch.setText("Tìm tên phim:");
         pnlSearch.add(lblSearch, BorderLayout.WEST);
 
         txtSearch = new JTextField();
-        txtSearch.putClientProperty("JTextField.placeholderText", "Enter title...");
+        txtSearch.putClientProperty("JTextField.placeholderText", "Nhập tên phim...");
         txtSearch.setPreferredSize(new Dimension(0, 36));
         pnlSearch.add(txtSearch, BorderLayout.CENTER);
         add(pnlSearch, BorderLayout.NORTH);
@@ -59,7 +62,7 @@ public class MovieSelectionDialog extends JDialog {
         });
 
         // --- Table Panel ---
-        String[] cols = {"Movie ID", "Title", "Duration (mins)", "Release Date"};
+        String[] cols = {"Mã phim", "Tên phim", "Thời lượng (phút)", "Ngày phát hành"};
         tableModel = new DefaultTableModel(cols, 0) {
             @Override
             public boolean isCellEditable(int row, int column) { return false; }
@@ -83,12 +86,12 @@ public class MovieSelectionDialog extends JDialog {
         JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlButtons.setOpaque(false);
 
-        JButton btnSelect = new JButton("Select Movie");
+        JButton btnSelect = new JButton("Chọn phim");
         btnSelect.setBackground(PRIMARY);
         btnSelect.setForeground(Color.WHITE);
         btnSelect.setFont(new Font("Segoe UI", Font.BOLD, 13));
 
-        JButton btnCancel = new JButton("Cancel");
+        JButton btnCancel = new JButton("Hủy");
         btnCancel.setFont(new Font("Segoe UI", Font.BOLD, 13));
 
         pnlButtons.add(btnCancel);
@@ -137,7 +140,7 @@ public class MovieSelectionDialog extends JDialog {
             selectedMovie = movies.stream().filter(m -> m.getMovieId().equals(id)).findFirst().orElse(null);
             dispose();
         } else {
-            JOptionPane.showMessageDialog(this, "Please select a movie from the list!", "Attention", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn một phim trong danh sách!", "Lưu ý", JOptionPane.WARNING_MESSAGE);
         }
     }
 

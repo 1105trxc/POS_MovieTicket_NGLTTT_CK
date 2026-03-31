@@ -6,6 +6,7 @@ import com.cinema.management.view.booking.CheckoutPanel;
 import com.cinema.management.view.management.RoomManagementPanel;
 import com.cinema.management.view.management.SeatManagementPanel;
 import com.cinema.management.view.management.ShowTimeManagementPanel;
+import com.formdev.flatlaf.extras.FlatSVGIcon;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -28,7 +29,7 @@ public class MainFrame extends JFrame {
 
     private final JTabbedPane tabbedPane;
     private String loggedInUserId = "U003";
-    private String userRole = "STAFF"; // Mặc định là Staff để đảm bảo an toàn
+    private String userRole = "STAFF";
 
     private static final String CARD_BOOKING = "BOOKING";
     private static final String CARD_CHECKOUT = "CHECKOUT";
@@ -38,12 +39,13 @@ public class MainFrame extends JFrame {
     private BookingPanel bookingPanel;
     private JPanel posTabPanel;
 
-    // Constructor cập nhật thêm userRole để phân quyền theo yêu cầu SRS
+    // Lưu trữ đường dẫn Icon để đổi màu
+    private final Map<Integer, String> tabIconPaths = new java.util.HashMap<>();
+
     public MainFrame(String userId, String userRole) {
         this.loggedInUserId = userId;
         this.userRole = userRole;
 
-        // Tinh chỉnh UIManager cho JTabbedPane nhìn phẳng và hiện đại hơn
         setupModernUI();
 
         tabbedPane = new JTabbedPane(JTabbedPane.LEFT);
@@ -52,15 +54,34 @@ public class MainFrame extends JFrame {
         setVisible(true);
     }
 
+    // ── Hàm hỗ trợ Load SVG Icon & Đổi màu ────────────────────────────────────
+    private Icon createIcon(String path, Color color) {
+        try {
+            FlatSVGIcon icon = new FlatSVGIcon(path, 22, 22);
+            if (color != null) {
+                icon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> color));
+            }
+            return icon;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private void setupModernUI() {
         UIManager.put("TabbedPane.contentBorderInsets", new Insets(0, 0, 0, 0));
         UIManager.put("TabbedPane.tabsOverlapBorder", true);
         UIManager.put("TabbedPane.selected", BG_APP);
         UIManager.put("TabbedPane.focus", new Color(0, 0, 0, 0));
+
+        // Căn lề an toàn cho Custom Tab (Top 18, Left 20, Bottom 18, Right 25)
+        UIManager.put("TabbedPane.tabInsets", new Insets(18, 20, 18, 25));
+
+        // Đẩy toàn bộ Menu xuống dưới một khoảng 15px cho thoáng
+        UIManager.put("TabbedPane.tabAreaInsets", new Insets(15, 0, 0, 0));
     }
 
     private void initFrame() {
-        setTitle("Cinema POS & Management System - Enterprise Edition");
+        setTitle("Hệ thống quản lý rạp chiếu phim");
         setSize(WIDTH, HEIGHT);
         setMinimumSize(new Dimension(1280, 720));
         setLocationRelativeTo(null);
@@ -68,20 +89,15 @@ public class MainFrame extends JFrame {
         setLayout(new BorderLayout(0, 0));
         getContentPane().setBackground(BG_APP);
 
-        // Header
         add(buildHeader(), BorderLayout.NORTH);
 
-        // Main Content Area
         JPanel centerPanel = new JPanel(new BorderLayout());
         centerPanel.setOpaque(false);
 
-        // Cấu hình Sidebar TabbedPane
         styleSidebarTabs();
         centerPanel.add(tabbedPane, BorderLayout.CENTER);
 
         add(centerPanel, BorderLayout.CENTER);
-
-        // Status Bar
         add(buildStatusBar(), BorderLayout.SOUTH);
     }
 
@@ -94,16 +110,17 @@ public class MainFrame extends JFrame {
         JLabel brand = new JLabel("  CINEMA NEXUS");
         brand.setFont(new Font("Segoe UI", Font.BOLD, 22));
         brand.setForeground(new Color(15, 23, 42));
-        brand.setIcon(UIManager.getIcon("FileView.computerIcon")); // Thay bằng Icon Logo thực tế
+        brand.setIcon(createIcon("icons/film.svg", new Color(15, 23, 42)));
 
         JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 15));
         rightPanel.setOpaque(false);
 
-        JLabel roleBadge = new JLabel("Role: " + userRole);
+        String roleDisplay = "ADMIN".equalsIgnoreCase(userRole) ? "Quản trị" : "Nhân viên";
+        JLabel roleBadge = new JLabel("Vai trò: " + roleDisplay);
         roleBadge.setFont(new Font("Segoe UI", Font.BOLD, 12));
         roleBadge.setForeground(ACCENT_COLOR);
 
-        JLabel userLabel = new JLabel("Hi, " + loggedInUserId);
+        JLabel userLabel = new JLabel("Xin chào, " + loggedInUserId);
         userLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
         rightPanel.add(roleBadge);
@@ -120,7 +137,7 @@ public class MainFrame extends JFrame {
         statusBar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(226, 232, 240)));
         statusBar.setPreferredSize(new Dimension(WIDTH, 30));
 
-        JLabel statusText = new JLabel("  System Online | Server Sync: OK");
+        JLabel statusText = new JLabel("  Hệ thống đang hoạt động | Đồng bộ máy chủ: OK");
         statusText.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         statusText.setForeground(new Color(100, 116, 139));
 
@@ -129,33 +146,97 @@ public class MainFrame extends JFrame {
     }
 
     private void styleSidebarTabs() {
-        tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 14));
         tabbedPane.setBackground(BG_SIDEBAR);
-        tabbedPane.setForeground(TEXT_SIDEBAR);
-        // Padding cho text trong tab để tạo cảm giác rộng rãi như button menu
-        UIManager.put("TabbedPane.tabAreaInsets", new Insets(10, 0, 0, 0));
+    }
+
+    // ── KỸ THUẬT CUSTOM TAB COMPONENT GIẢI QUYẾT LỖI LỆCH TRỤC ───────────────
+    private void addTab(String title, String iconPath, Component component) {
+        int index = tabbedPane.getTabCount();
+
+        // 1. Thêm Tab trống (Không xài chữ và Icon mặc định của Swing)
+        tabbedPane.addTab(null, component);
+
+        // 2. Tự vẽ 1 Panel đè lên Tab đó (Sử dụng FlowLayout ép lề TRÁI)
+        // FlowLayout.LEFT, hgap = 14 (Khoảng cách Icon và Chữ), vgap = 0
+        JPanel customTabPanel = new JPanel(new BorderLayout());
+        customTabPanel.setOpaque(false);
+        customTabPanel.setBorder(new EmptyBorder(0, 10, 0, 0));
+        customTabPanel.setPreferredSize(new Dimension(230, 30));
+
+        // 3. Khởi tạo Icon (Màu trắng mặc định) và Text
+        JLabel lblIcon = new JLabel(createIcon(iconPath, TEXT_SIDEBAR));
+        JLabel lblTitle = new JLabel(title);
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblTitle.setForeground(TEXT_SIDEBAR);
+        lblTitle.setHorizontalAlignment(SwingConstants.LEFT);
+
+        JPanel content = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        content.setOpaque(false);
+        content.add(lblIcon);
+        content.add(lblTitle);
+        customTabPanel.add(content, BorderLayout.WEST);
+
+        // 4. Gắn Panel vừa vẽ vào giao diện của Tab
+        tabbedPane.setTabComponentAt(index, customTabPanel);
+
+        // Lưu đường dẫn Icon để dùng cho sự kiện đổi màu
+        tabIconPaths.put(index, iconPath);
     }
 
     private void buildTabs() {
-        // Tab dùng chung cho cả Staff và Admin (POS, CRM) [cite: 37]
         posTabPanel = buildPosTab();
-        tabbedPane.addTab("   Ticket Sales (POS)   ", posTabPanel);
-        tabbedPane.addTab("   Customers (CRM)   ", buildPlaceholder("CRM Module is currently active."));
 
-        // Tab dành riêng cho Admin dựa trên Business Rule BR-02 [cite: 49, 87, 88]
+        addTab("Bán vé (POS)", "icons/ticket.svg", posTabPanel);
+        addTab("Khách hàng (CRM)", "icons/users.svg", buildPlaceholder("Mô-đun CRM đang hoạt động."));
+
         if ("ADMIN".equalsIgnoreCase(userRole)) {
-            tabbedPane.addTab("   Room Management   ", new RoomManagementPanel());
-            tabbedPane.addTab("   Seat Management   ", new SeatManagementPanel());
-            tabbedPane.addTab("   Showtime Mgmt     ", new ShowTimeManagementPanel());
-            tabbedPane.addTab("   Movies & F&B      ", buildPlaceholder("Catalog Management..."));
-            tabbedPane.addTab("   Users & Audit Log ", buildPlaceholder("System Logs & Staff Management..."));
+            addTab("Quản lý phòng", "icons/monitor.svg", new RoomManagementPanel());
+            addTab("Quản lý ghế", "icons/grid.svg", new SeatManagementPanel());
+            addTab("Quản lý suất chiếu", "icons/clock.svg", new ShowTimeManagementPanel());
+            addTab("Phim & F&B", "icons/popcorn.svg", buildPlaceholder("Quản lý danh mục..."));
+            addTab("Người dùng & nhật ký", "icons/settings.svg", buildPlaceholder("Nhật ký hệ thống & quản lý nhân sự..."));
         }
 
+        // LẮNG NGHE SỰ KIỆN ĐỂ ĐỔI MÀU TEXT VÀ ICON BÊN TRONG CUSTOM TAB
         tabbedPane.addChangeListener(e -> {
+            int selectedIndex = tabbedPane.getSelectedIndex();
+
+            for (int i = 0; i < tabbedPane.getTabCount(); i++) {
+                // Lấy Custom Panel ra
+                JPanel tabPanel = (JPanel) tabbedPane.getTabComponentAt(i);
+                if (tabPanel == null) continue;
+
+                // Lấy component Icon (thứ 0) và Text (thứ 1)
+                JPanel content = (JPanel) tabPanel.getComponent(0);
+                JLabel lblIcon = (JLabel) content.getComponent(0);
+                JLabel lblTitle = (JLabel) content.getComponent(1);
+                String path = tabIconPaths.get(i);
+
+                if (i == selectedIndex) {
+                    // Đổi sang màu Xanh Dương (Accent)
+                    lblIcon.setIcon(createIcon(path, ACCENT_COLOR));
+                    lblTitle.setForeground(ACCENT_COLOR);
+                } else {
+                    // Trả về màu Trắng nhạt (Mặc định)
+                    lblIcon.setIcon(createIcon(path, TEXT_SIDEBAR));
+                    lblTitle.setForeground(TEXT_SIDEBAR);
+                }
+            }
+
             if (tabbedPane.getSelectedComponent() == posTabPanel && bookingPanel != null) {
                 bookingPanel.refreshShowTimeList();
             }
         });
+
+        // KÍCH HOẠT MÀU XANH CHO TAB ĐẦU TIÊN KHI MỞ APP
+        if (tabbedPane.getTabCount() > 0) {
+            JPanel firstTab = (JPanel) tabbedPane.getTabComponentAt(0);
+            if (firstTab != null) {
+                JPanel content = (JPanel) firstTab.getComponent(0);
+                ((JLabel) content.getComponent(0)).setIcon(createIcon(tabIconPaths.get(0), ACCENT_COLOR));
+                ((JLabel) content.getComponent(1)).setForeground(ACCENT_COLOR);
+            }
+        }
     }
 
     private JPanel buildPosTab() {
@@ -180,7 +261,7 @@ public class MainFrame extends JFrame {
         BigDecimal seatTotal = seats.stream()
                 .map(SeatStatusDto::getBasePrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal fbTotal = BigDecimal.ZERO;
+        BigDecimal fbTotal = bookingPanel.getCurrentFbTotal();
 
         CheckoutPanel checkoutPanel = new CheckoutPanel(
                 showTimeId, staffUserId, seats, fb, seatTotal, fbTotal);
@@ -203,7 +284,7 @@ public class MainFrame extends JFrame {
     private JPanel buildPlaceholder(String message) {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBackground(BG_APP);
-        JLabel lbl = new JLabel("<html><center><h3>" + message + "</h3><p>Under construction or restricted access.</p></center></html>");
+        JLabel lbl = new JLabel("<html><center><h3>" + message + "</h3><p>Chức năng đang phát triển hoặc bị giới hạn quyền truy cập.</p></center></html>");
         lbl.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         lbl.setForeground(new Color(100, 116, 139));
         panel.add(lbl);

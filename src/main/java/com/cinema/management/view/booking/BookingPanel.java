@@ -13,6 +13,7 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
@@ -106,6 +107,23 @@ public class BookingPanel extends JPanel {
             result.put(e.getKey(), e.getValue()[0]);
         }
         return result;
+    }
+
+    public BigDecimal getCurrentFbTotal() {
+        BigDecimal fbSum = BigDecimal.ZERO;
+        List<Product> allProducts = bookingController.getAllProducts();
+        for (Map.Entry<String, int[]> entry : fbqMap.entrySet()) {
+            String pid = entry.getKey();
+            int qty = entry.getValue()[0];
+            Product p = allProducts.stream()
+                    .filter(x -> x.getProductId().equals(pid))
+                    .findFirst()
+                    .orElse(null);
+            if (p != null) {
+                fbSum = fbSum.add(p.getCurrentPrice().multiply(BigDecimal.valueOf(qty)));
+            }
+        }
+        return fbSum;
     }
 
     // ── Hàm tiện ích tải SVG Icon ─────────────────────────────────────────────
@@ -334,7 +352,15 @@ public class BookingPanel extends JPanel {
     // ── Logic Data Matrix & Vẽ Nút Custom ─────────────────────────────────────
 
     private void loadMatrixData() {
-        allShowTimes = bookingController.getAllShowTimes();
+        LocalDateTime now = LocalDateTime.now();
+        allShowTimes = bookingController.getAllShowTimes().stream()
+                .filter(st -> {
+                    // Thời hạn chót để mua vé = Giờ bắt đầu + 30 phút
+                    java.time.LocalDateTime cutoffTime = st.getStartTime().plusMinutes(30);
+                    // Chỉ giữ lại những suất chiếu chưa vượt quá thời hạn chót
+                    return !cutoffTime.isBefore(now);
+                })
+                .collect(Collectors.toList());
         selectedDate = null;
         selectedMovieId = null;
         currentShowTimeId = null;

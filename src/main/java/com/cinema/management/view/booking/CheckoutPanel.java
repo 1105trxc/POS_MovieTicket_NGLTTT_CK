@@ -215,7 +215,7 @@ public class CheckoutPanel extends JPanel {
 
         addBreakdownRow(p, gl, gr, 0, "Tiền ghế:", lblSeatTotal, new Color(15, 23, 42));
         addBreakdownRow(p, gl, gr, 1, "Tiền F&B:", lblFbTotal, new Color(15, 23, 42));
-        addBreakdownRow(p, gl, gr, 2, "Giảm giá (promo):", lblPromoDisc, SUCCESS);
+        addBreakdownRow(p, gl, gr, 2, "Giảm giá (khuyến mãi):", lblPromoDisc, SUCCESS);
         addBreakdownRow(p, gl, gr, 3, "Giảm giá (điểm):", lblPointDiscSum, SUCCESS);
 
         GridBagConstraints sep = new GridBagConstraints();
@@ -476,6 +476,8 @@ public class CheckoutPanel extends JPanel {
         }
 
         String paymentMethod = rdoCard.isSelected() ? "CARD" : rdoTransfer.isSelected() ? "TRANSFER" : "CASH";
+        String paymentMethodDisplay = rdoCard.isSelected() ? "Thẻ ngân hàng"
+                : rdoTransfer.isSelected() ? "Chuyển khoản" : "Tiền mặt";
         String customerId = (foundCustomer != null) ? foundCustomer.getCustomerId() : null;
         String promoCode = txtPromoCode.getText().trim().isEmpty() ? null : txtPromoCode.getText().trim().toUpperCase();
         int usedPoints = (int) spinPoints.getValue();
@@ -483,7 +485,7 @@ public class CheckoutPanel extends JPanel {
         BigDecimal grand = computeGrandTotal(promoCode, usedPoints);
         int confirm = JOptionPane.showConfirmDialog(this,
                 "<html>Xác nhận thanh toán <b>" + String.format("%,.0f", grand)
-                        + " VNĐ</b><br>Phương thức: <b>" + paymentMethod + "</b>?</html>",
+                        + " VNĐ</b><br>Phương thức: <b>" + paymentMethodDisplay + "</b>?</html>",
                 "Xác nhận", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
         if (confirm != JOptionPane.YES_OPTION) return;
 
@@ -557,7 +559,7 @@ public class CheckoutPanel extends JPanel {
 
         // ================== PHẦN 1: HÓA ĐƠN TỔNG (RECEIPT) ==================
         sb.append(eqLine);
-        sb.append("            CINEMA MANAGEMENT SYSTEM\n");
+        sb.append("            HỆ THỐNG QUẢN LÝ RẠP CHIẾU PHIM\n");
         sb.append("                 HOÁ ĐƠN BÁN VÉ\n");
         sb.append(eqLine);
         sb.append(String.format("Số HĐ   : %s\n", inv.getInvoiceId()));
@@ -584,14 +586,14 @@ public class CheckoutPanel extends JPanel {
         // Phần tổng kết tiền
         sb.append(String.format("%-30s %17s\n", "Tạm tính:", fmt(inv.getSeatTotal().add(inv.getFbTotal()))));
         if (inv.getPromotionDiscount().compareTo(BigDecimal.ZERO) > 0) {
-            sb.append(String.format("%-30s %17s\n", "Giảm giá (Promo):", "-" + fmt(inv.getPromotionDiscount())));
+            sb.append(String.format("%-30s %17s\n", "Giảm giá (Khuyến mãi):", "-" + fmt(inv.getPromotionDiscount())));
         }
         if (inv.getPointDiscount().compareTo(BigDecimal.ZERO) > 0) {
             sb.append(String.format("%-30s %17s\n", "Giảm giá (Điểm):", "-" + fmt(inv.getPointDiscount())));
         }
         sb.append(eqLine);
         sb.append(String.format("%-28s %19s\n", "TỔNG PHẢI TRẢ:", fmt(inv.getGrandTotal())));
-        sb.append(String.format("%-30s %17s\n", "Hình thức TT:", inv.getPaymentMethod()));
+        sb.append(String.format("%-30s %17s\n", "Hình thức TT:", toPaymentMethodLabel(inv.getPaymentMethod())));
         if (inv.getEarnedPoints() > 0) {
             sb.append(String.format("%-30s %17s\n", "Điểm tích lũy:", "+" + inv.getEarnedPoints()));
         }
@@ -602,7 +604,7 @@ public class CheckoutPanel extends JPanel {
             sb.append(cutLine);
             sb.append(eqLine);
             sb.append("                  VÉ XEM PHIM\n");
-            sb.append("            CINEMA MANAGEMENT SYSTEM\n");
+            sb.append("            HỆ THỐNG QUẢN LÝ RẠP CHIẾU PHIM\n");
             sb.append(eqLine);
             sb.append(String.format("Mã HĐ      : %s\n", inv.getInvoiceId()));
             sb.append(String.format("Ngày chiếu : %s\n", t.getShowTime().format(DT_FMT)));
@@ -621,6 +623,12 @@ public class CheckoutPanel extends JPanel {
 
     private String fmt(BigDecimal val) {
         return String.format("%,.0f VNĐ", val);
+    }
+
+    private String toPaymentMethodLabel(String paymentMethod) {
+        if ("CARD".equalsIgnoreCase(paymentMethod)) return "Thẻ ngân hàng";
+        if ("TRANSFER".equalsIgnoreCase(paymentMethod)) return "Chuyển khoản";
+        return "Tiền mặt";
     }
 
     private void printInvoice(InvoiceDto invoice, String text) {

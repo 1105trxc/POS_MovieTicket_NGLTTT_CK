@@ -40,6 +40,7 @@ import java.util.UUID;
  * Trien khai luong Thanh toan va Xuat ve.
  */
 public class InvoiceServiceImpl implements IInvoiceService {
+    private static final int SELLABLE_AFTER_START_MINUTES = 30;
 
     private final InvoiceRepository invoiceRepository;
     private final BookingSeatRepository bookingSeatRepository;
@@ -253,8 +254,10 @@ public class InvoiceServiceImpl implements IInvoiceService {
         if (showTime.getStartTime() == null) {
             throw new IllegalArgumentException("Suat chieu khong hop le de ban ve.");
         }
-        if (!showTime.getStartTime().isAfter(LocalDateTime.now())) {
-            throw new IllegalArgumentException("Khong the ban ve cho suat chieu da bat dau hoac da ket thuc.");
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime sellableUntil = showTime.getStartTime().plusMinutes(SELLABLE_AFTER_START_MINUTES);
+        if (now.isAfter(sellableUntil)) {
+            throw new IllegalArgumentException("Da qua 30 phut ke tu gio bat dau suat chieu. Khong the dat ve.");
         }
     }
 }

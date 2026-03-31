@@ -9,7 +9,6 @@ import com.cinema.management.service.IShowTimeService;
 import com.cinema.management.service.impl.BookingServiceImpl;
 import com.cinema.management.service.impl.ShowTimeServiceImpl;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -20,7 +19,7 @@ import java.util.stream.Collectors;
  */
 public class BookingController {
 
-    private static final int POS_KEEP_PAST_MINUTES = 60;
+    private static final int POS_SELLABLE_AFTER_START_MINUTES = 30;
 
     private final IBookingService bookingService;
     private final IShowTimeService showTimeService;
@@ -42,8 +41,8 @@ public class BookingController {
 
     /**
      * Danh sach suat chieu hien tren POS:
-     * - Giu toan bo suat trong ngay hien tai.
-     * - Loai bo suat qua cu, chi giu cua so grace 60 phut gan nhat.
+     * - Hien suat chieu con nam trong khung duoc phep ban ve:
+     *   tu truoc gio chieu den het 30 phut sau gio bat dau.
      */
     public List<ShowTime> getAllShowTimes() {
         LocalDateTime now = LocalDateTime.now();
@@ -59,10 +58,8 @@ public class BookingController {
             return false;
         }
         LocalDateTime startTime = showTime.getStartTime();
-        if (startTime.toLocalDate().isEqual(LocalDate.now())) {
-            return true;
-        }
-        return startTime.isAfter(now.minusMinutes(POS_KEEP_PAST_MINUTES));
+        LocalDateTime sellableUntil = startTime.plusMinutes(POS_SELLABLE_AFTER_START_MINUTES);
+        return !now.isAfter(sellableUntil);
     }
 
     public List<SeatStatusDto> getSeatStatuses(String showTimeId, String currentUserId) {

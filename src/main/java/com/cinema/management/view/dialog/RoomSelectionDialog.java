@@ -23,7 +23,7 @@ public class RoomSelectionDialog extends JDialog {
     private static final Color BG = new Color(245, 247, 250);
 
     public RoomSelectionDialog(Window owner, List<Room> rooms) {
-        super(owner, "Select Room", ModalityType.APPLICATION_MODAL);
+        super(owner, "Chọn phòng", ModalityType.APPLICATION_MODAL);
         this.rooms = rooms;
 
         setSize(600, 400);
@@ -40,11 +40,14 @@ public class RoomSelectionDialog extends JDialog {
         JPanel pnlSearch = new JPanel(new BorderLayout(10, 0));
         pnlSearch.setOpaque(false);
         JLabel lblSearch = new JLabel("🔍 Search Room Name:");
+        lblSearch.setText("Tìm tên phòng:");
         lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblSearch.setText("Tìm tên phòng:");
+        lblSearch.setText("Tìm tên phòng:");
         pnlSearch.add(lblSearch, BorderLayout.WEST);
 
         txtSearch = new JTextField();
-        txtSearch.putClientProperty("JTextField.placeholderText", "Enter room name...");
+        txtSearch.putClientProperty("JTextField.placeholderText", "Nhập tên phòng...");
         txtSearch.setPreferredSize(new Dimension(0, 36));
         pnlSearch.add(txtSearch, BorderLayout.CENTER);
         add(pnlSearch, BorderLayout.NORTH);
@@ -55,7 +58,7 @@ public class RoomSelectionDialog extends JDialog {
             public void changedUpdate(javax.swing.event.DocumentEvent e) { filterData(); }
         });
 
-        String[] cols = {"Room ID", "Room Name", "Capacity"};
+        String[] cols = {"Mã phòng", "Tên phòng", "Sức chứa"};
         tableModel = new DefaultTableModel(cols, 0) {
             @Override
             public boolean isCellEditable(int row, int column) { return false; }
@@ -76,11 +79,11 @@ public class RoomSelectionDialog extends JDialog {
 
         JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlButtons.setOpaque(false);
-        JButton btnSelect = new JButton("Select Room");
+        JButton btnSelect = new JButton("Chọn phòng");
         btnSelect.setBackground(PRIMARY);
         btnSelect.setForeground(Color.WHITE);
         btnSelect.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        JButton btnCancel = new JButton("Cancel");
+        JButton btnCancel = new JButton("Hủy");
         btnCancel.setFont(new Font("Segoe UI", Font.BOLD, 13));
 
         pnlButtons.add(btnCancel);
@@ -127,7 +130,7 @@ public class RoomSelectionDialog extends JDialog {
             selectedRoom = rooms.stream().filter(r -> r.getRoomId().equals(id)).findFirst().orElse(null);
             dispose();
         } else {
-            JOptionPane.showMessageDialog(this, "Please select a room!", "Attention", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn một phòng!", "Lưu ý", JOptionPane.WARNING_MESSAGE);
         }
     }
 

@@ -55,10 +55,9 @@ public class ShowTimeServiceImpl implements IShowTimeService {
     @Override
     public ShowTime addShowTime(String movieId, String roomId,
                                 LocalDateTime startTime, LocalDateTime endTime) {
-        validateTimes(startTime, endTime);
-
         Movie movie = movieRepository.findById(movieId)
                 .orElseThrow(() -> new IllegalArgumentException("Phim khong ton tai: " + movieId));
+        validateTimes(startTime, endTime, movie.getDuration());
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Phong chieu khong ton tai: " + roomId));
 
@@ -80,12 +79,11 @@ public class ShowTimeServiceImpl implements IShowTimeService {
     @Override
     public ShowTime updateShowTime(String showTimeId, String movieId, String roomId,
                                    LocalDateTime startTime, LocalDateTime endTime) {
-        validateTimes(startTime, endTime);
-
         ShowTime existing = showTimeRepository.findById(showTimeId)
                 .orElseThrow(() -> new IllegalArgumentException("Suat chieu khong ton tai: " + showTimeId));
         Movie movie = movieRepository.findById(movieId)
                 .orElseThrow(() -> new IllegalArgumentException("Phim khong ton tai: " + movieId));
+        validateTimes(startTime, endTime, movie.getDuration());
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Phong chieu khong ton tai: " + roomId));
 
@@ -119,12 +117,19 @@ public class ShowTimeServiceImpl implements IShowTimeService {
 
     // Validation helpers
 
-    private void validateTimes(LocalDateTime startTime, LocalDateTime endTime) {
+    private void validateTimes(LocalDateTime startTime, LocalDateTime endTime, Integer movieDurationMinutes) {
         if (startTime == null || endTime == null) {
             throw new IllegalArgumentException("Thoi gian bat dau va ket thuc khong duoc de trong.");
         }
         if (!endTime.isAfter(startTime)) {
             throw new IllegalArgumentException("Thoi gian ket thuc phai sau thoi gian bat dau.");
+        }
+        if (movieDurationMinutes != null && movieDurationMinutes > 0) {
+            LocalDateTime minEndTime = startTime.plusMinutes(movieDurationMinutes);
+            if (endTime.isBefore(minEndTime)) {
+                throw new IllegalArgumentException(
+                        "Thoi gian ket thuc khong hop le. End time phai lon hon hoac bang Start time + thoi luong phim.");
+            }
         }
         if (startTime.isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("Khong the tao suat chieu trong qua khu.");
