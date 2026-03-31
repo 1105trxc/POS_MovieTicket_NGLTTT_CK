@@ -7,6 +7,7 @@ import com.cinema.management.model.entity.User;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.TypedQuery;
+
 import java.util.List;
 
 
@@ -25,22 +26,26 @@ public class UserRepository {
         this.em = JpaUtil.getEntityManager();
     }
 
-    public User findByUsername(String username) {
+    public Optional<User> findById(String userId) {
+        EntityManager em = JpaUtil.getEntityManager();
         try {
-            String jpql = "SELECT u FROM User u JOIN FETCH u.role WHERE u.username = :username";
-            TypedQuery<User> query = em.createQuery(jpql, User.class);
-            query.setParameter("username", username);
-            return query.getSingleResult();
-        } catch (NoResultException e) {
-            return null;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+            return Optional.ofNullable(em.find(User.class, userId));
+        } finally {
+            em.close();
         }
     }
 
-    public User findById(String userId) {
-        return em.find(User.class, userId);
+    public Optional<User> findByUsername(String username) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            List<User> result = em.createQuery(
+                            "SELECT u FROM User u WHERE u.username = :uname", User.class)
+                    .setParameter("uname", username)
+                    .getResultList();
+            return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
+        } finally {
+            em.close();
+        }
     }
 
     public List<User> findAll() {

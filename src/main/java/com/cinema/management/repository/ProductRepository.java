@@ -28,8 +28,13 @@ public class ProductRepository {
         }
     }
 
-    public Product findById(String id) {
-        return em.find(Product.class, id);
+    public Optional<Product> findById(String productId) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            return Optional.ofNullable(em.find(Product.class, productId));
+        } finally {
+            em.close();
+        }
     }
 
     public void save(Product product) {

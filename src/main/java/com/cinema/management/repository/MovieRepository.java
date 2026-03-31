@@ -32,9 +32,15 @@ public class MovieRepository {
         }
     }
 
-    public Movie findById(String id) {
-        return em.find(Movie.class, id);
+    public Optional<Movie> findById(String movieId) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            return Optional.ofNullable(em.find(Movie.class, movieId));
+        } finally {
+            em.close();
+        }
     }
+
 
     public void save(Movie movie) {
         try {

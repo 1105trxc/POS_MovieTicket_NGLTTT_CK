@@ -4,6 +4,7 @@ import com.cinema.management.model.entity.Movie;
 import com.cinema.management.repository.MovieRepository;
 import com.cinema.management.service.IAuditLogService;
 import com.cinema.management.service.IMovieService;
+
 import java.util.List;
 
 public class MovieServiceImpl implements IMovieService {
@@ -22,7 +23,7 @@ public class MovieServiceImpl implements IMovieService {
 
     @Override
     public Movie getMovieById(String id) {
-        return movieRepo.findById(id);
+        return movieRepo.findById(id).orElse(null);
     }
 
     @Override

@@ -31,7 +31,7 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public User login(String username, String password) {
-        User user = userRepository.findByUsername(username);
+        User user = userRepository.findByUsername(username).orElseThrow(null);
 
         if (user != null) {
             if (!user.getIsActive()) {
@@ -51,7 +51,7 @@ public class UserServiceImpl implements IUserService {
         if (userRepository.findById(user.getUserId()) != null) {
             throw new RuntimeException("Mã Nhân Viên (UserID) '" + user.getUserId() + "' đã tồn tại!");
         }
-        User existUser = userRepository.findByUsername(user.getUsername());
+        User existUser = userRepository.findByUsername(user.getUsername()).orElseThrow(null);
         if (existUser != null && !existUser.getUsername().startsWith("[NV:")) {
             throw new RuntimeException("Tên đăng nhập này đã tồn tại trong phần mềm!");
         }
