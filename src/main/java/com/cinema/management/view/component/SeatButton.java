@@ -2,6 +2,7 @@ package com.cinema.management.view.component;
 
 import com.cinema.management.model.dto.SeatStatusDto;
 import com.cinema.management.model.dto.SeatStatusDto.Status;
+import com.cinema.management.view.component.style.SeatStyleFactory;
 
 import javax.swing.*;
 import java.awt.*;
@@ -42,21 +43,9 @@ public class SeatButton extends JButton {
 
         switch (status) {
             case AVAILABLE:
-                // Phân loại màu theo Tên loại ghế (Không phân biệt hoa thường)
-                String typeName = seatStatus.getSeatTypeName().toLowerCase();
+                // Thay thế khối if-else bằng ĐÚNG 1 DÒNG GỌI FACTORY
+                SeatStyleFactory.applyAvailableStyle(seatStatus.getSeatTypeName(), this);
 
-                if (typeName.contains("vip")) {
-                    setBackground(new Color(254, 205, 211)); // Nền Hồng nhạt
-                    setBorder(BorderFactory.createLineBorder(new Color(244, 63, 94), 2)); // Viền Hồng đậm
-                } else if (typeName.contains("couple") || typeName.contains("sofa") || typeName.contains("sweetbox")) {
-                    setBackground(new Color(233, 213, 255)); // Nền Tím nhạt
-                    setBorder(BorderFactory.createLineBorder(new Color(168, 85, 247), 2)); // Viền Tím đậm
-                } else {
-                    setBackground(COLOR_AVAILABLE); // Nền Trắng (Standard)
-                    setBorder(BorderFactory.createLineBorder(BORDER_AVAILABLE, 2));
-                }
-
-                setForeground(new Color(15, 23, 42)); // Chữ đen
                 setEnabled(true);
                 setToolTipText(String.format("Ghế %s - %s - %,.0f VNĐ",
                         seatStatus.getLabel(), seatStatus.getSeatTypeName(), seatStatus.getBasePrice()));
