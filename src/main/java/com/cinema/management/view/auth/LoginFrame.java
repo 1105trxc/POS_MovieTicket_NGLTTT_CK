@@ -126,7 +126,7 @@ public class LoginFrame extends JFrame {
                 if (success) {
                     com.cinema.management.model.entity.User loggedIn = UserSessionContext.getCurrentUser();
                     if (!UserSessionContext.isAdmin()) {
-                        UserSessionContext.setOpeningCash(promptOpeningCash());
+                        UserSessionContext.setOpeningCash(UserSessionContext.getStandardOpeningCash());
                     } else {
                         UserSessionContext.setOpeningCash(BigDecimal.ZERO);
                     }
@@ -139,28 +139,5 @@ public class LoginFrame extends JFrame {
                 }
             });
         }).start();
-    }
-
-    private BigDecimal promptOpeningCash() {
-        while (true) {
-            String input = JOptionPane.showInputDialog(
-                    this,
-                    "Nhap tien dau ca (VND):",
-                    "Khoi tao ca lam",
-                    JOptionPane.QUESTION_MESSAGE
-            );
-            if (input == null) {
-                return BigDecimal.ZERO;
-            }
-            String normalized = input.replaceAll("[^0-9]", "");
-            if (normalized.isBlank()) {
-                return BigDecimal.ZERO;
-            }
-            try {
-                return new BigDecimal(normalized);
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "So tien khong hop le. Vui long nhap lai.", "Loi", JOptionPane.ERROR_MESSAGE);
-            }
-        }
     }
 }

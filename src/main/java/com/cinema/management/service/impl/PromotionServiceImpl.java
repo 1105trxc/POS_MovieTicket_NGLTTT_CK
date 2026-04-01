@@ -12,7 +12,6 @@ import com.cinema.management.service.IPromotionService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -135,7 +134,11 @@ public class PromotionServiceImpl implements IPromotionService {
         }
 
         // Kiểm tra điều kiện phim (FR-AD-05)
-        if (promo.getApplyToMovie() != null && showTime.getMovie() != null) {
+        if (promo.getApplyToMovie() != null) {
+            if (showTime == null || showTime.getMovie() == null) {
+                throw new IllegalArgumentException(
+                        "Mã '" + code + "' chỉ áp dụng khi mua vé phim: " + promo.getApplyToMovie().getTitle());
+            }
             if (!promo.getApplyToMovie().getMovieId().equals(showTime.getMovie().getMovieId())) {
                 throw new IllegalArgumentException(
                         "Mã '" + code + "' chỉ áp dụng cho phim: " + promo.getApplyToMovie().getTitle());
@@ -144,7 +147,9 @@ public class PromotionServiceImpl implements IPromotionService {
 
         // Kiểm tra điều kiện ngày trong tuần (FR-AD-05)
         if (promo.getValidDays() != null && !promo.getValidDays().isBlank()) {
-            DayOfWeek today = showTime.getStartTime().getDayOfWeek();
+            java.time.DayOfWeek today = showTime != null && showTime.getStartTime() != null 
+                    ? showTime.getStartTime().getDayOfWeek() 
+                    : LocalDate.now().getDayOfWeek();
             List<String> validDays = Arrays.asList(promo.getValidDays().toUpperCase().split(","));
             if (!validDays.contains(today.name())) {
                 throw new IllegalArgumentException(

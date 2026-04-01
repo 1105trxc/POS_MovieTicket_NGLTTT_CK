@@ -46,7 +46,7 @@ public class CheckoutPanel extends JPanel {
 
     // ── Customer section ──────────────────────────────────────────────────────
     private final JTextField txtPhone = new JTextField(14);
-    private final JButton btnLookup = new JButton("Tra cứu");
+    private final JButton btnLookup = new JButton("Tìm/Thêm");
     private final JLabel lblCustomerInfo = new JLabel("Chưa nhập SĐT thành viên");
     private Customer foundCustomer = null;
 
@@ -303,6 +303,7 @@ public class CheckoutPanel extends JPanel {
         styleBtn(btnLookup, PRIMARY, Color.WHITE);
         phoneRow.add(txtPhone, BorderLayout.CENTER);
         phoneRow.add(btnLookup, BorderLayout.EAST);
+        btnLookup.addActionListener(e -> lookupCustomer());
         form.add(phoneRow, gc);
         row++;
 
@@ -437,14 +438,15 @@ public class CheckoutPanel extends JPanel {
 
     private void lookupCustomer() {
         String phone = txtPhone.getText().trim();
-        if (phone.isEmpty()) {
-            showError("Vui lòng nhập số điện thoại.");
-            return;
-        }
-        Optional<Customer> opt = invoiceController.findCustomerByPhone(phone);
-        if (opt.isPresent()) {
-            foundCustomer = opt.get();
-            int pts = foundCustomer.getRewardPoints();
+        com.cinema.management.view.dialog.CustomerSelectionDialog dialog = new com.cinema.management.view.dialog.CustomerSelectionDialog(
+                (Frame) SwingUtilities.getWindowAncestor(this), phone);
+        dialog.setVisible(true);
+
+        Customer c = dialog.getSelectedCustomer();
+        if (c != null) {
+            foundCustomer = c;
+            txtPhone.setText(c.getPhone());
+            int pts = foundCustomer.getRewardPoints() != null ? foundCustomer.getRewardPoints() : 0;
             lblCustomerInfo.setText("✅ " + foundCustomer.getFullName()
                     + "  |  Hạng: " + foundCustomer.getMemberTier()
                     + "  |  Điểm: " + pts);
@@ -452,16 +454,8 @@ public class CheckoutPanel extends JPanel {
             SpinnerNumberModel m = (SpinnerNumberModel) spinPoints.getModel();
             m.setMaximum(pts);
             lblPointsAvail.setText("Khả dụng: " + pts + " điểm");
-        } else {
-            foundCustomer = null;
-            lblCustomerInfo.setText("❌ Không tìm thấy thành viên với SĐT: " + phone);
-            lblCustomerInfo.setForeground(DANGER);
-            SpinnerNumberModel m = (SpinnerNumberModel) spinPoints.getModel();
-            m.setMaximum(0);
-            m.setValue(0);
-            lblPointsAvail.setText("Khả dụng: 0 điểm");
+            onPointsChanged();
         }
-        onPointsChanged();
     }
 
     private void validatePromo() {
@@ -501,8 +495,8 @@ public class CheckoutPanel extends JPanel {
             showQrPaymentDialog(pendingInvoice);
             return;
         }
-        if (selectedSeats.isEmpty()) {
-            showError("Không có ghế nào được chọn.");
+        if (selectedSeats.isEmpty() && fbItems.isEmpty()) {
+            showError("Vui lòng chọn vé hoặc sản phẩm F&B.");
             return;
         }
 

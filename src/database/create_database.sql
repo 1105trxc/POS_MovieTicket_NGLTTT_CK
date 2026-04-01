@@ -137,9 +137,13 @@ CREATE TABLE `Invoice` (
     `DiscountFromPoints` DECIMAL(15, 2) DEFAULT 0,
     `EarnedPoints` INT DEFAULT 0,
     `CreatedAt` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `Status` VARCHAR(20) DEFAULT 'COMPLETED',
+    `CancellationReason` TEXT,
+    `ApprovedBy` VARCHAR(50),
     FOREIGN KEY (`UserID`) REFERENCES `User`(`UserID`),
     FOREIGN KEY (`CustomerID`) REFERENCES `Customer`(`CustomerID`),
-    FOREIGN KEY (`PromotionID`) REFERENCES `Promotion`(`PromotionID`)
+    FOREIGN KEY (`PromotionID`) REFERENCES `Promotion`(`PromotionID`),
+    FOREIGN KEY (`ApprovedBy`) REFERENCES `User`(`UserID`)
 ) ENGINE=InnoDB;
 
 -- Bảng vé chính thức (Sau khi thanh toán)
@@ -198,4 +202,32 @@ CREATE TABLE `PointHistory` (
     `CreatedAt` DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`CustomerID`) REFERENCES `Customer`(`CustomerID`),
     FOREIGN KEY (`InvoiceID`) REFERENCES `Invoice`(`InvoiceID`)
+) ENGINE=InnoDB;
+
+-- ==========================================
+-- V. NHÓM QUẢN LÝ CA LÀM VIỆC & KẾT TOÁN
+-- ==========================================
+
+CREATE TABLE `ShiftReport` (
+    `ShiftReportID` VARCHAR(50) PRIMARY KEY,
+    `UserID` VARCHAR(50) NOT NULL,
+    `ShiftStart` DATETIME NOT NULL,
+    `ShiftEnd` DATETIME NOT NULL,
+    `OpeningCash` DECIMAL(19, 2) DEFAULT 0,
+    `CashRevenue` DECIMAL(19, 2) DEFAULT 0,
+    `TransferRevenue` DECIMAL(19, 2) DEFAULT 0,
+    `CardRevenue` DECIMAL(19, 2) DEFAULT 0,
+    `TotalRevenue` DECIMAL(19, 2) DEFAULT 0,
+    `ExpectedCash` DECIMAL(19, 2) DEFAULT 0,
+    `ActualCash` DECIMAL(19, 2) DEFAULT 0,
+    `Discrepancy` DECIMAL(19, 2) DEFAULT 0,
+    `RemittedCash` DECIMAL(19, 2) DEFAULT 0,
+    `CarryOverCash` DECIMAL(19, 2) DEFAULT 0,
+    `Status` VARCHAR(20) DEFAULT 'PENDING',
+    `ApprovedBy` VARCHAR(50),
+    `ApprovedAt` DATETIME,
+    `Notes` TEXT,
+    `CreatedAt` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`UserID`) REFERENCES `User`(`UserID`),
+    FOREIGN KEY (`ApprovedBy`) REFERENCES `User`(`UserID`)
 ) ENGINE=InnoDB;

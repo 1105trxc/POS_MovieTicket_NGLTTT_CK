@@ -67,6 +67,18 @@ public class Invoice {
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(name = "Status", length = 20)
+    @Builder.Default
+    private String status = "COMPLETED"; // COMPLETED, CANCELED, REFUNDED
+
+    @Column(name = "CancellationReason", length = 500)
+    private String cancellationReason;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ApprovedBy")
+    @ToString.Exclude
+    private User approvedBy;
+
     @OneToMany(mappedBy = "invoice", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @ToString.Exclude
     private List<BookingSeat> bookingSeats;

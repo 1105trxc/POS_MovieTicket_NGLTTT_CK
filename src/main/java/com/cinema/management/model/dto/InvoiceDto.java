@@ -41,5 +41,8 @@ public class InvoiceDto {
     private final String  paymentReference;
     private final String  qrPayload;
     private final LocalDateTime qrExpiredAt;
+
+    private final String status;
+    private final String cancellationReason;
 }
 

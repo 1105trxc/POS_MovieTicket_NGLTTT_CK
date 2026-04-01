@@ -7,11 +7,13 @@ import com.cinema.management.view.auth.LoginFrame;
 import com.cinema.management.view.booking.BookingPanel;
 import com.cinema.management.view.booking.CheckoutPanel;
 import com.cinema.management.view.management.MovieManagementPanel;
+import com.cinema.management.view.management.PaymentManagementPanel;
 import com.cinema.management.view.management.ProductManagementPanel;
 import com.cinema.management.view.management.PromotionManagementPanel;
 import com.cinema.management.view.management.RoomManagementPanel;
 import com.cinema.management.view.management.SeatManagementPanel;
 import com.cinema.management.view.management.ShiftReportPanel;
+import com.cinema.management.view.management.ShiftReportManagementPanel;
 import com.cinema.management.view.management.ShowTimeManagementPanel;
 import com.cinema.management.view.management.StaffManagementPanel;
 import com.cinema.management.view.management.UserManagementPanel;
@@ -78,11 +80,28 @@ public class MainFrame extends JFrame {
     }
 
     private void initFrame() {
-        setTitle("He thong quan ly rap chieu phim");
+        setTitle("Hệ thống quản lý rạp chiếu phim");
         setSize(WIDTH, HEIGHT);
         setMinimumSize(new Dimension(1280, 720));
         setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                if (!UserSessionContext.isAdmin()) {
+                    JOptionPane.showMessageDialog(MainFrame.this,
+                            "Nhân viên không thể tắt chương trình khi chưa chốt ca.\nVui lòng vào mục 'Chốt ca & Báo cáo' để tiến hành xuất báo cáo Z-Report trước khi nghỉ!",
+                            "Bắt Buộc Chốt Ca", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                int confirm = JOptionPane.showConfirmDialog(MainFrame.this,
+                        "Bạn có chắc chắn muốn thoát ứng dụng?",
+                        "Xác nhận thoát", JOptionPane.YES_NO_OPTION);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    System.exit(0);
+                }
+            }
+        });
         setLayout(new BorderLayout(0, 0));
         getContentPane().setBackground(BG_APP);
 
@@ -111,23 +130,29 @@ public class MainFrame extends JFrame {
         JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 15));
         rightPanel.setOpaque(false);
 
-        String roleDisplay = UserSessionContext.isAdmin() ? "Quan tri" : "Nhan vien";
-        JLabel roleBadge = new JLabel("Vai tro: " + roleDisplay);
+        String roleDisplay = UserSessionContext.isAdmin() ? "Quản trị" : "Nhân viên";
+        JLabel roleBadge = new JLabel("Vai trò: " + roleDisplay);
         roleBadge.setFont(new Font("Segoe UI", Font.BOLD, 12));
         roleBadge.setForeground(ACCENT_COLOR);
 
-        JLabel userLabel = new JLabel("Xin chao, " + (loggedInUserId != null ? loggedInUserId : ""));
+        JLabel userLabel = new JLabel("Xin chào, " + (loggedInUserId != null ? loggedInUserId : ""));
         userLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
-        JButton btnLogout = new JButton("Dang xuat");
+        JButton btnLogout = new JButton("Đăng xuất");
         btnLogout.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnLogout.setFocusPainted(false);
         btnLogout.setBackground(new Color(239, 68, 68));
         btnLogout.setForeground(Color.WHITE);
         btnLogout.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnLogout.addActionListener(e -> {
-            int confirm = JOptionPane.showConfirmDialog(this, "Ban co chac chan muon dang xuat?",
-                    "Xac nhan", JOptionPane.YES_NO_OPTION);
+            if (!UserSessionContext.isAdmin()) {
+                JOptionPane.showMessageDialog(this,
+                        "Bạn phải hoàn tất chốt ca trực tiếp tại quầy báo cáo trước khi đăng xuất!",
+                        "Hướng Dẫn", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn đăng xuất?",
+                    "Xác nhận", JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {
                 UserSessionContext.logout();
                 this.dispose();
@@ -150,7 +175,7 @@ public class MainFrame extends JFrame {
         statusBar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(226, 232, 240)));
         statusBar.setPreferredSize(new Dimension(WIDTH, 30));
 
-        JLabel statusText = new JLabel("  He thong dang hoat dong | Dong bo may chu: OK");
+        JLabel statusText = new JLabel("  Hệ thống đang hoạt động | Đồng bộ máy chủ: OK");
         statusText.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         statusText.setForeground(new Color(100, 116, 139));
         statusBar.add(statusText, BorderLayout.WEST);
@@ -188,19 +213,21 @@ public class MainFrame extends JFrame {
 
     private void buildTabs() {
         posTabPanel = buildPosTab();
-        addTab("Ban ve (POS)", "icons/ticket.svg", posTabPanel);
+        addTab("Bán vé (POS)", "icons/ticket.svg", posTabPanel);
 
         if (UserSessionContext.isAdmin()) {
-            addTab("Quan ly phong", "icons/monitor.svg", new RoomManagementPanel());
-            addTab("Quan ly ghe", "icons/grid.svg", new SeatManagementPanel());
-            addTab("Quan ly suat chieu", "icons/clock.svg", new ShowTimeManagementPanel());
-            addTab("Quan ly phim", "icons/film.svg", new MovieManagementPanel());
-            addTab("Quan ly F&B", "icons/popcorn.svg", new ProductManagementPanel());
-            addTab("Khuyen mai", "icons/gift.svg", new PromotionManagementPanel());
-            addTab("Quan ly nhan su", "icons/users.svg", new StaffManagementPanel());
-            addTab("Quan ly tai khoan", "icons/settings.svg", new UserManagementPanel());
+            addTab("Quản lý Doanh thu", "icons/wallet.svg", new PaymentManagementPanel());
+            addTab("Quản lý Phòng", "icons/monitor.svg", new RoomManagementPanel());
+            addTab("Quản lý Ghế", "icons/grid.svg", new SeatManagementPanel());
+            addTab("Quản lý Suất chiếu", "icons/clock.svg", new ShowTimeManagementPanel());
+            addTab("Quản lý Phim", "icons/movie.svg", new MovieManagementPanel());
+            addTab("Quản lý F&B", "icons/popcorn.svg", new ProductManagementPanel());
+            addTab("Quản lý Báo cáo ca", "icons/report.svg", new ShiftReportManagementPanel());
+            addTab("Khuyến mãi", "icons/promo.svg", new PromotionManagementPanel());
+            addTab("Quản lý Nhân sự", "icons/users.svg", new StaffManagementPanel());
+            addTab("Quản lý Tài khoản", "icons/settings.svg", new UserManagementPanel());
         } else {
-            addTab("Chot ca & Bao cao", "icons/settings.svg", new ShiftReportPanel(loggedInUserId));
+            addTab("Chốt ca & Báo cáo", "icons/settings.svg", new ShiftReportPanel(loggedInUserId));
         }
 
         tabbedPane.addChangeListener(e -> {

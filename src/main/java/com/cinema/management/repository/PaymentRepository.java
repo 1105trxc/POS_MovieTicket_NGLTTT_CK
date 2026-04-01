@@ -4,6 +4,7 @@ import com.cinema.management.config.JpaUtil;
 import com.cinema.management.model.entity.Payment;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.TypedQuery;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -99,6 +100,47 @@ public class PaymentRepository {
                     .setParameter("fromTime", from)
                     .setParameter("toTime", to)
                     .getResultList();
+        } finally {
+            em.close();
+        }
+    }
+
+    public List<Payment> searchPayments(LocalDateTime fromTime,
+                                        LocalDateTime toTime,
+                                        String staffUserId,
+                                        String paymentMethod) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            StringBuilder jpql = new StringBuilder(
+                    "SELECT p FROM Payment p " +
+                            "JOIN FETCH p.invoice i " +
+                            "JOIN FETCH i.user u " +
+                            "LEFT JOIN FETCH i.customer c " +
+                            "WHERE p.createdAt >= :fromTime AND p.createdAt <= :toTime");
+
+            if (staffUserId != null && !staffUserId.isBlank()) {
+                jpql.append(" AND u.userId = :staffId");
+            }
+            boolean useMethodFilter = paymentMethod != null && !paymentMethod.isBlank() && !"ALL".equalsIgnoreCase(paymentMethod);
+            boolean qrLikeFilter = useMethodFilter && "QR".equalsIgnoreCase(paymentMethod);
+            if (qrLikeFilter) {
+                jpql.append(" AND UPPER(p.paymentMethod) IN ('QR', 'TRANSFER')");
+            } else if (useMethodFilter) {
+                jpql.append(" AND UPPER(p.paymentMethod) = :method");
+            }
+            jpql.append(" ORDER BY p.createdAt DESC");
+
+            TypedQuery<Payment> query = em.createQuery(jpql.toString(), Payment.class)
+                    .setParameter("fromTime", fromTime)
+                    .setParameter("toTime", toTime);
+
+            if (staffUserId != null && !staffUserId.isBlank()) {
+                query.setParameter("staffId", staffUserId);
+            }
+            if (useMethodFilter && !qrLikeFilter) {
+                query.setParameter("method", paymentMethod.toUpperCase());
+            }
+            return query.getResultList();
         } finally {
             em.close();
         }

@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class UserSessionContext {
+    private static final BigDecimal STANDARD_OPENING_CASH = new BigDecimal("5000000");
     private static User currentUser;
     private static LocalDateTime shiftStartedAt;
     private static BigDecimal openingCash = BigDecimal.ZERO;
@@ -13,7 +14,7 @@ public class UserSessionContext {
     public static void setCurrentUser(User user) {
         currentUser = user;
         shiftStartedAt = LocalDateTime.now();
-        openingCash = BigDecimal.ZERO;
+        openingCash = STANDARD_OPENING_CASH;
     }
 
     public static User getCurrentUser() {
@@ -54,6 +55,10 @@ public class UserSessionContext {
 
     public static BigDecimal getOpeningCash() {
         return openingCash;
+    }
+
+    public static BigDecimal getStandardOpeningCash() {
+        return STANDARD_OPENING_CASH;
     }
 
     public static void setOpeningCash(BigDecimal cash) {

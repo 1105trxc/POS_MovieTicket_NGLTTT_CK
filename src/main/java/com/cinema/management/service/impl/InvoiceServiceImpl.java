@@ -82,29 +82,40 @@ public class InvoiceServiceImpl implements IInvoiceService {
                                int usedPoints,
                                String paymentMethod) {
 
-        if (selectedSeats == null || selectedSeats.isEmpty()) {
-            throw new IllegalArgumentException("Chua chon ghe nao de thanh toan.");
+        if ((selectedSeats == null || selectedSeats.isEmpty()) && (fbItems == null || fbItems.isEmpty())) {
+            throw new IllegalArgumentException("Chua chon ve hoac san pham F&B nao.");
         }
 
-        ShowTime showTime = showTimeRepository.findById(showTimeId)
-                .orElseThrow(() -> new IllegalArgumentException("Suat chieu khong ton tai."));
-        validateShowTimeIsSellable(showTime);
+        ShowTime showTime = null;
+        if (showTimeId != null && !showTimeId.isEmpty()) {
+            showTime = showTimeRepository.findById(showTimeId).orElse(null);
+            if (showTime != null) {
+                validateShowTimeIsSellable(showTime);
+            }
+        } else if (selectedSeats != null && !selectedSeats.isEmpty()) {
+            throw new IllegalArgumentException("Suat chieu khong hop le de ban ve.");
+        }
 
         User staff = userRepository.findById(staffUserId)
                 .orElseThrow(() -> new IllegalArgumentException("Nhan vien khong ton tai."));
         Customer customer = (customerId != null)
                 ? customerRepository.findById(customerId).orElse(null) : null;
 
-        for (SeatStatusDto seat : selectedSeats) {
-            if (bookingSeatRepository.existsById(new BookingSeatId(showTimeId, seat.getSeatId()))) {
-                throw new IllegalStateException(
-                        "Ghe " + seat.getLabel() + " vua duoc mua boi nhan vien khac. Vui long chon lai.");
+        if (selectedSeats != null) {
+            for (SeatStatusDto seat : selectedSeats) {
+                if (bookingSeatRepository.existsById(new BookingSeatId(showTimeId, seat.getSeatId()))) {
+                    throw new IllegalStateException(
+                            "Ghe " + seat.getLabel() + " vua duoc mua boi nhan vien khac. Vui long chon lai.");
+                }
             }
         }
 
-        BigDecimal seatTotal = selectedSeats.stream()
-                .map(SeatStatusDto::getBasePrice)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal seatTotal = BigDecimal.ZERO;
+        if (selectedSeats != null) {
+            seatTotal = selectedSeats.stream()
+                    .map(SeatStatusDto::getBasePrice)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
 
         Map<Product, Integer> fbProductQtyMap = new LinkedHashMap<>();
         BigDecimal fbTotal = BigDecimal.ZERO;
@@ -167,28 +178,30 @@ public class InvoiceServiceImpl implements IInvoiceService {
 
         List<BookingSeat> bookingSeats = new ArrayList<>();
         List<TicketDto> tickets = new ArrayList<>();
-        for (SeatStatusDto seat : selectedSeats) {
-            BookingSeat bs = BookingSeat.builder()
-                    .id(new BookingSeatId(showTimeId, seat.getSeatId()))
-                    .showTime(showTime)
-                    .seat(buildSeatRef(seat.getSeatId()))
-                    .invoice(invoice)
-                    .price(seat.getBasePrice())
-                    .build();
-            bookingSeats.add(bs);
+        if (selectedSeats != null && !selectedSeats.isEmpty() && showTime != null) {
+            for (SeatStatusDto seat : selectedSeats) {
+                BookingSeat bs = BookingSeat.builder()
+                        .id(new BookingSeatId(showTimeId, seat.getSeatId()))
+                        .showTime(showTime)
+                        .seat(buildSeatRef(seat.getSeatId()))
+                        .invoice(invoice)
+                        .price(seat.getBasePrice())
+                        .build();
+                bookingSeats.add(bs);
 
-            tickets.add(TicketDto.builder()
-                    .invoiceId(invoiceId)
-                    .movieTitle(showTime.getMovie() != null ? showTime.getMovie().getTitle() : "")
-                    .roomName(showTime.getRoom() != null ? showTime.getRoom().getRoomName() : "")
-                    .showTime(showTime.getStartTime())
-                    .seatLabel(seat.getLabel())
-                    .seatTypeName(seat.getSeatTypeName())
-                    .price(seat.getBasePrice())
-                    .customerName(customer != null ? customer.getFullName() : "Khach le")
-                    .build());
+                tickets.add(TicketDto.builder()
+                        .invoiceId(invoiceId)
+                        .movieTitle(showTime.getMovie() != null ? showTime.getMovie().getTitle() : "")
+                        .roomName(showTime.getRoom() != null ? showTime.getRoom().getRoomName() : "")
+                        .showTime(showTime.getStartTime())
+                        .seatLabel(seat.getLabel())
+                        .seatTypeName(seat.getSeatTypeName())
+                        .price(seat.getBasePrice())
+                        .customerName(customer != null ? customer.getFullName() : "Khach le")
+                        .build());
+            }
+            bookingSeatRepository.saveAll(bookingSeats);
         }
-        bookingSeatRepository.saveAll(bookingSeats);
 
         List<OrderDetail> orderDetails = new ArrayList<>();
         for (Map.Entry<Product, Integer> entry : fbProductQtyMap.entrySet()) {
@@ -224,7 +237,9 @@ public class InvoiceServiceImpl implements IInvoiceService {
                 .build();
         paymentRepository.save(payment);
 
-        seatLockRepository.deleteUserLocksForShowTime(showTimeId, staffUserId);
+        if (showTimeId != null && !showTimeId.isEmpty()) {
+            seatLockRepository.deleteUserLocksForShowTime(showTimeId, staffUserId);
+        }
 
         if (!isQrPayment && customer != null) {
             if (usedPoints > 0) {
@@ -260,6 +275,8 @@ public class InvoiceServiceImpl implements IInvoiceService {
                 .paymentReference(paymentReference)
                 .qrPayload(qrPayload)
                 .qrExpiredAt(qrExpiredAt)
+                .status(invoice.getStatus())
+                .cancellationReason(invoice.getCancellationReason())
                 .build();
     }
 
@@ -406,7 +423,61 @@ public class InvoiceServiceImpl implements IInvoiceService {
                         payment.getAmount() != null ? payment.getAmount() : BigDecimal.ZERO,
                         payment.getTransactionCode()))
                 .qrExpiredAt(qrExpiredAt)
+                .status(invoice.getStatus())
+                .cancellationReason(invoice.getCancellationReason())
                 .build();
+    }
+
+    @Override
+    public InvoiceDto requestCancelInvoice(String invoiceId, String reason, String staffId) {
+        Invoice invoice = invoiceRepository.findByIdWithDetails(invoiceId)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay hoa don."));
+        if (!"COMPLETED".equals(invoice.getStatus())) {
+            throw new IllegalStateException("Hoa don dang o trang thai: " + invoice.getStatus() + ", khong the huy.");
+        }
+        
+        invoice.setStatus("CANCEL_PENDING");
+        invoice.setCancellationReason(reason);
+        invoiceRepository.save(invoice);
+        
+        return buildInvoiceDtoFromPersistedData(paymentRepository.findByIdWithInvoice(
+                invoice.getPayments().isEmpty() ? null : invoice.getPayments().get(0).getPaymentId()
+        ).orElse(null), null);
+    }
+
+    @Override
+    public InvoiceDto approveCancelInvoice(String invoiceId, String managerId, boolean approved) {
+        Invoice invoice = invoiceRepository.findByIdWithDetails(invoiceId)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay hoa don."));
+        if (!"CANCEL_PENDING".equals(invoice.getStatus())) {
+            throw new IllegalStateException("Hoa don khong trong trang thai cho huy.");
+        }
+        
+        User manager = userRepository.findById(managerId)
+                .orElseThrow(() -> new IllegalArgumentException("Quan ly khong ton tai."));
+
+        if (approved) {
+            invoice.setStatus("CANCELED");
+            invoice.setApprovedBy(manager);
+            
+            // Tra lai diem thuong neu da dung
+            if (invoice.getCustomer() != null && invoice.getUsedPoints() > 0) {
+                pointService.addPoints(invoice.getCustomer(), invoice, invoice.getUsedPoints()); // Revert usage
+            }
+            // Tru diem thuong neu da cong
+            if (invoice.getCustomer() != null && invoice.getEarnedPoints() > 0) {
+                pointService.redeemPoints(invoice.getCustomer(), invoice, invoice.getEarnedPoints()); // Revert earned
+            }
+        } else {
+            invoice.setStatus("COMPLETED");
+            invoice.setCancellationReason(null);
+            invoice.setApprovedBy(manager);
+        }
+        invoiceRepository.save(invoice);
+
+        return buildInvoiceDtoFromPersistedData(paymentRepository.findByIdWithInvoice(
+                invoice.getPayments().isEmpty() ? null : invoice.getPayments().get(0).getPaymentId()
+        ).orElse(null), null);
     }
 
     private void validateShowTimeIsSellable(ShowTime showTime) {

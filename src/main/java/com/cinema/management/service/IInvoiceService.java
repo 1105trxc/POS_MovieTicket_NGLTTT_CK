@@ -59,5 +59,15 @@ public interface IInvoiceService {
      * Lay thong tin hoa don dang cho thanh toan QR theo paymentId.
      */
     InvoiceDto findPendingInvoiceByPaymentId(String paymentId, String staffUserId);
+
+    /**
+     * Yeu cau huy don hoac hoan tien. (Status -> CANCEL_PENDING)
+     */
+    InvoiceDto requestCancelInvoice(String invoiceId, String reason, String staffId);
+
+    /**
+     * Quan ly duyet huy don. Neu approved = true -> CANCELED. Neu false -> COMPLETED.
+     */
+    InvoiceDto approveCancelInvoice(String invoiceId, String managerId, boolean approved);
 }
 

@@ -62,7 +62,30 @@ public class ShiftReport {
     @Builder.Default
     private BigDecimal discrepancy = BigDecimal.ZERO;
 
+    @Column(name = "RemittedCash", nullable = false, precision = 19, scale = 2)
+    @Builder.Default
+    private BigDecimal remittedCash = BigDecimal.ZERO;
+
+    @Column(name = "CarryOverCash", nullable = false, precision = 19, scale = 2)
+    @Builder.Default
+    private BigDecimal carryOverCash = BigDecimal.ZERO;
+
     @Column(name = "CreatedAt", nullable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    @Column(name = "Status", length = 20)
+    @Builder.Default
+    private String status = "PENDING"; // PENDING, APPROVED, LOCKED
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ApprovedBy")
+    @ToString.Exclude
+    private User approvedBy;
+
+    @Column(name = "ApprovedAt")
+    private LocalDateTime approvedAt;
+
+    @Column(name = "Notes", length = 500)
+    private String notes;
 }

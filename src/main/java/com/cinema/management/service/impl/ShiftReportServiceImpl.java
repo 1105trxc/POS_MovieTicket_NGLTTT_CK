@@ -77,6 +77,12 @@ public class ShiftReportServiceImpl implements IShiftReportService {
 
         ShiftReportSummaryDto summary = getCurrentShiftSummary(staffUserId, shiftStart, openingCash);
         BigDecimal discrepancy = actualCash.subtract(summary.getExpectedCash());
+        BigDecimal standardCash = summary.getOpeningCash() != null ? summary.getOpeningCash() : BigDecimal.ZERO;
+        BigDecimal remittedCash = actualCash.subtract(standardCash);
+        if (remittedCash.compareTo(BigDecimal.ZERO) < 0) {
+            remittedCash = BigDecimal.ZERO;
+        }
+        BigDecimal carryOverCash = actualCash.subtract(remittedCash);
 
         User staff = userRepository.findById(staffUserId)
                 .orElseThrow(() -> new IllegalArgumentException("Nhan vien khong ton tai."));
@@ -94,9 +100,60 @@ public class ShiftReportServiceImpl implements IShiftReportService {
                 .expectedCash(summary.getExpectedCash())
                 .actualCash(actualCash)
                 .discrepancy(discrepancy)
+                .remittedCash(remittedCash)
+                .carryOverCash(carryOverCash)
                 .createdAt(LocalDateTime.now())
+                .status("PENDING")
                 .build();
 
+        return shiftReportRepository.save(report);
+    }
+
+    @Override
+    public List<ShiftReport> getAllShiftReports() {
+        return shiftReportRepository.findAll();
+    }
+
+    @Override
+    public List<ShiftReport> getShiftReportsByStatus(String status) {
+        return shiftReportRepository.findByStatus(status);
+    }
+
+    @Override
+    public ShiftReport approveShiftReport(String shiftReportId, String managerId, String notes) {
+        ShiftReport report = shiftReportRepository.findById(shiftReportId)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay bao cao ca."));
+
+        if ("LOCKED".equals(report.getStatus())) {
+            throw new IllegalStateException("Bao cao da bi khoa, khong the duyet.");
+        }
+
+        User manager = userRepository.findById(managerId)
+                .orElseThrow(() -> new IllegalArgumentException("Nguoi quan ly khong ton tai."));
+
+        report.setStatus("APPROVED");
+        report.setApprovedBy(manager);
+        report.setApprovedAt(LocalDateTime.now());
+        if (notes != null && !notes.trim().isEmpty()) {
+            report.setNotes(notes);
+        }
+
+        return shiftReportRepository.save(report);
+    }
+
+    @Override
+    public ShiftReport lockShiftReport(String shiftReportId, String managerId) {
+        ShiftReport report = shiftReportRepository.findById(shiftReportId)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay bao cao ca."));
+
+        if (!"APPROVED".equals(report.getStatus())) {
+            throw new IllegalStateException("Chi co the khoa bao cao da duyet.");
+        }
+
+        User manager = userRepository.findById(managerId)
+                .orElseThrow(() -> new IllegalArgumentException("Nguoi quan ly khong ton tai."));
+
+        report.setStatus("LOCKED");
         return shiftReportRepository.save(report);
     }
 }

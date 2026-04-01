@@ -731,9 +731,12 @@ public class BookingPanel extends JPanel {
     }
 
     private void proceedToCheckout() {
-        if (seatMapPanel == null || seatMapPanel.getSelectedSeats().isEmpty()) {
+        boolean hasSeats = seatMapPanel != null && !seatMapPanel.getSelectedSeats().isEmpty();
+        boolean hasFb = !fbqMap.isEmpty();
+        
+        if (!hasSeats && !hasFb) {
             JOptionPane.showMessageDialog(this,
-                    "Vui lòng chọn ít nhất 1 ghế trước khi thanh toán.",
+                    "Vui lòng chọn ít nhất 1 vé hoặc mua sản phẩm F&B trước khi thanh toán.",
                     "Chú ý", JOptionPane.WARNING_MESSAGE);
             return;
         }
