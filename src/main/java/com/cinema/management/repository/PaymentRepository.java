@@ -5,6 +5,8 @@ import com.cinema.management.model.entity.Payment;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -75,6 +77,28 @@ public class PaymentRepository {
         } catch (Exception e) {
             if (tx.isActive()) tx.rollback();
             throw e;
+        } finally {
+            em.close();
+        }
+    }
+
+    public List<Payment> findSuccessfulByStaffAndPeriod(String staffUserId, LocalDateTime from, LocalDateTime to) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            return em.createQuery(
+                            "SELECT p FROM Payment p " +
+                                    "JOIN FETCH p.invoice i " +
+                                    "JOIN FETCH i.user u " +
+                                    "WHERE u.userId = :uid " +
+                                    "AND p.status = :status " +
+                                    "AND p.createdAt >= :fromTime " +
+                                    "AND p.createdAt <= :toTime",
+                            Payment.class)
+                    .setParameter("uid", staffUserId)
+                    .setParameter("status", "SUCCESS")
+                    .setParameter("fromTime", from)
+                    .setParameter("toTime", to)
+                    .getResultList();
         } finally {
             em.close();
         }

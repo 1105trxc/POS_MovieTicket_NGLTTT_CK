@@ -11,6 +11,7 @@ import com.cinema.management.view.management.ProductManagementPanel;
 import com.cinema.management.view.management.PromotionManagementPanel;
 import com.cinema.management.view.management.RoomManagementPanel;
 import com.cinema.management.view.management.SeatManagementPanel;
+import com.cinema.management.view.management.ShiftReportPanel;
 import com.cinema.management.view.management.ShowTimeManagementPanel;
 import com.cinema.management.view.management.StaffManagementPanel;
 import com.cinema.management.view.management.UserManagementPanel;
@@ -91,8 +92,8 @@ public class MainFrame extends JFrame {
         centerPanel.setOpaque(false);
         styleSidebarTabs();
         centerPanel.add(tabbedPane, BorderLayout.CENTER);
-
         add(centerPanel, BorderLayout.CENTER);
+
         add(buildStatusBar(), BorderLayout.SOUTH);
     }
 
@@ -152,7 +153,6 @@ public class MainFrame extends JFrame {
         JLabel statusText = new JLabel("  He thong dang hoat dong | Dong bo may chu: OK");
         statusText.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         statusText.setForeground(new Color(100, 116, 139));
-
         statusBar.add(statusText, BorderLayout.WEST);
         return statusBar;
     }
@@ -188,9 +188,7 @@ public class MainFrame extends JFrame {
 
     private void buildTabs() {
         posTabPanel = buildPosTab();
-
         addTab("Ban ve (POS)", "icons/ticket.svg", posTabPanel);
-        addTab("Khach hang (CRM)", "icons/users.svg", buildPlaceholderPanel("Mo-dun CRM dang phat trien."));
 
         if (UserSessionContext.isAdmin()) {
             addTab("Quan ly phong", "icons/monitor.svg", new RoomManagementPanel());
@@ -201,6 +199,8 @@ public class MainFrame extends JFrame {
             addTab("Khuyen mai", "icons/gift.svg", new PromotionManagementPanel());
             addTab("Quan ly nhan su", "icons/users.svg", new StaffManagementPanel());
             addTab("Quan ly tai khoan", "icons/settings.svg", new UserManagementPanel());
+        } else {
+            addTab("Chot ca & Bao cao", "icons/settings.svg", new ShiftReportPanel(loggedInUserId));
         }
 
         tabbedPane.addChangeListener(e -> {
@@ -281,8 +281,7 @@ public class MainFrame extends JFrame {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal fbTotal = bookingPanel.getCurrentFbTotal();
 
-        CheckoutPanel checkoutPanel = new CheckoutPanel(
-                showTimeId, staffUserId, seats, fb, seatTotal, fbTotal);
+        CheckoutPanel checkoutPanel = new CheckoutPanel(showTimeId, staffUserId, seats, fb, seatTotal, fbTotal);
         checkoutPanel.setOnBack(this::switchToBooking);
 
         posCardContainer.add(checkoutPanel, CARD_CHECKOUT);
@@ -297,15 +296,5 @@ public class MainFrame extends JFrame {
             }
         }
         posCardLayout.show(posCardContainer, CARD_BOOKING);
-    }
-
-    private JPanel buildPlaceholderPanel(String message) {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(BG_APP);
-        JLabel lbl = new JLabel(message);
-        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        lbl.setForeground(new Color(100, 116, 139));
-        panel.add(lbl);
-        return panel;
     }
 }

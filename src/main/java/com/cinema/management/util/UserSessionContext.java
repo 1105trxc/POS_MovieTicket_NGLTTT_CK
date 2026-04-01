@@ -2,11 +2,18 @@ package com.cinema.management.util;
 
 import com.cinema.management.model.entity.User;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
 public class UserSessionContext {
     private static User currentUser;
+    private static LocalDateTime shiftStartedAt;
+    private static BigDecimal openingCash = BigDecimal.ZERO;
 
     public static void setCurrentUser(User user) {
         currentUser = user;
+        shiftStartedAt = LocalDateTime.now();
+        openingCash = BigDecimal.ZERO;
     }
 
     public static User getCurrentUser() {
@@ -15,6 +22,8 @@ public class UserSessionContext {
 
     public static void logout() {
         currentUser = null;
+        shiftStartedAt = null;
+        openingCash = BigDecimal.ZERO;
     }
 
     public static boolean isLoggedIn() {
@@ -37,5 +46,17 @@ public class UserSessionContext {
         return "R01".equalsIgnoreCase(roleId)
                 || "ADMIN".equalsIgnoreCase(roleName)
                 || "Qu\u1ea3n tr\u1ecb vi\u00ean".equalsIgnoreCase(roleName);
+    }
+
+    public static LocalDateTime getShiftStartedAt() {
+        return shiftStartedAt;
+    }
+
+    public static BigDecimal getOpeningCash() {
+        return openingCash;
+    }
+
+    public static void setOpeningCash(BigDecimal cash) {
+        openingCash = cash != null ? cash : BigDecimal.ZERO;
     }
 }

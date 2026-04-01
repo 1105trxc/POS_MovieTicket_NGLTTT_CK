@@ -10,7 +10,7 @@ import com.cinema.management.model.entity.User;
  * Điểm khởi chạy ứng dụng Cinema Management System.
  */
 public class App {
-    public static final boolean DEV_MODE = false;
+    public static final boolean DEV_MODE = true;
 
     public static void main(String[] args) {
 

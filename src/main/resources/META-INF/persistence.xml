@@ -31,6 +31,7 @@
         <class>com.cinema.management.model.entity.OrderDetailId</class>
         <class>com.cinema.management.model.entity.Payment</class>
         <class>com.cinema.management.model.entity.PointHistory</class>
+        <class>com.cinema.management.model.entity.ShiftReport</class>
 
         <properties>
             <!-- Database Connection -->
