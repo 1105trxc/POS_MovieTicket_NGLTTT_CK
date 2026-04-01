@@ -5,8 +5,8 @@ import com.cinema.management.controller.ShowTimeController;
 import com.cinema.management.model.entity.Movie;
 import com.cinema.management.model.entity.Room;
 import com.cinema.management.model.entity.ShowTime;
-import com.cinema.management.view.management.RoomSelectionDialog;
-import com.cinema.management.view.management.MovieSelectionDialog;
+import com.cinema.management.view.dialog.RoomSelectionDialog;
+import com.cinema.management.view.dialog.MovieSelectionDialog;
 
 import javax.swing.text.MaskFormatter;
 import java.text.ParseException;

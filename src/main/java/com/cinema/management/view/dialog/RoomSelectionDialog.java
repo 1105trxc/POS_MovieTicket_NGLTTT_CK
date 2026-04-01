@@ -1,4 +1,4 @@
-package com.cinema.management.view.management;
+package com.cinema.management.view.dialog;
 
 import com.cinema.management.model.entity.Room;
 
