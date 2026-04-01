@@ -1,6 +1,16 @@
 package com.cinema.management.view.management;
 
-// TODO: implement
+import javax.swing.*;
+import java.awt.*;
 
-public class AuditLogPanel {
+public class AuditLogPanel extends JPanel {
+
+    public AuditLogPanel() {
+        setLayout(new GridBagLayout());
+        setBackground(new Color(245, 247, 250));
+        JLabel lbl = new JLabel("Nhat ky he thong - dang phat trien");
+        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        lbl.setForeground(new Color(100, 116, 139));
+        add(lbl);
+    }
 }
