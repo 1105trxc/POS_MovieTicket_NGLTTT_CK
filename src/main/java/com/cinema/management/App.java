@@ -1,15 +1,10 @@
 package com.cinema.management;
 
 import com.cinema.management.config.JpaUtil;
-import com.cinema.management.view.main.MainFrame;
 import com.formdev.flatlaf.themes.FlatMacLightLaf;
-import com.cinema.management.model.entity.User;
-import com.cinema.management.util.UserSessionContext;
 import com.cinema.management.view.auth.LoginFrame;
-import com.cinema.management.view.main.MainFrame;
-import com.cinema.management.model.entity.Role;
-
 import javax.swing.*;
+import com.cinema.management.model.entity.User;
 
 /**
  * Điểm khởi chạy ứng dụng Cinema Management System.
@@ -19,7 +14,8 @@ public class App {
 
     public static void main(String[] args) {
 
-        // 1. Thiết lập Look and Feel (FlatLaf) ngay từ đầu để toàn bộ ứng dụng nhận giao diện mới
+        // 1. Thiết lập Look and Feel (FlatLaf) ngay từ đầu để toàn bộ ứng dụng nhận
+        // giao diện mới
         try {
             UIManager.setLookAndFeel(new FlatMacLightLaf());
             // Tùy chỉnh bo góc chuẩn hiện đại
@@ -34,28 +30,49 @@ public class App {
         // 2. Chạy ứng dụng trên Event Dispatch Thread (EDT)
         SwingUtilities.invokeLater(() -> {
             try {
-                // Khởi tạo kết nối database (JPA/Hibernate) [cite: 56, 60]
+                // Khởi tạo kết nối database (JPA/Hibernate)
                 JpaUtil.getEntityManagerFactory();
+
+                // 2. Kiểm tra chế độ Dev Mode hoặc Production
                 if (DEV_MODE) {
+                    // Ưu tiên tìm User có quyền ADMIN để test toàn bộ tính năng
+                    jakarta.persistence.EntityManager em = JpaUtil.getEntityManager();
+                    try {
+                        // Thử tìm admin trước
+                        User devUser = em.createQuery(
+                            "SELECT u FROM User u JOIN FETCH u.role WHERE u.role.roleName LIKE :role", User.class)
+                            .setParameter("role", "%ADMIN%")
+                            .setMaxResults(1)
+                            .getResultList()
+                            .stream().findFirst().orElse(null);
 
-                    // Giả lập trực tiếp 1 User có quyền ADMIN ném vào Session
-                    User devUser = new User();
-                    devUser.setFullName("Developer (Admin)");
-                    Role devRole = new Role();
-                    devRole.setRoleName("ADMIN");
-                    devUser.setRole(devRole);
-                    UserSessionContext.setCurrentUser(devUser);
-//                     Mở thẳng MainFrame
-//                     new MainFrame().setVisible(true);
+                        // Nếu không có admin, lấy đại 1 user bất kỳ
+                        if (devUser == null) {
+                            devUser = em.createQuery("SELECT u FROM User u LEFT JOIN FETCH u.role", User.class)
+                                .setMaxResults(1)
+                                .getResultList()
+                                .stream().findFirst().orElse(null);
+                        }
+
+                        if (devUser != null) {
+                            com.cinema.management.util.UserSessionContext.setCurrentUser(devUser);
+                            // Force "ADMIN" role in MainFrame so UI shows all tabs even if user is staff in DB
+                            new com.cinema.management.view.main.MainFrame(devUser.getUserId(), "ADMIN").setVisible(true);
+                        } else {
+                            // Fallback nếu DB trống trơn
+                            User mockDev = new User();
+                            mockDev.setUserId("DEV_ADMIN");
+                            mockDev.setFullName("Developer Admin");
+                            com.cinema.management.util.UserSessionContext.setCurrentUser(mockDev);
+                            new com.cinema.management.view.main.MainFrame("DEV_ADMIN", "ADMIN").setVisible(true);
+                        }
+                    } finally {
+                        em.close();
+                    }
                 } else {
-                    // Chế độ Production thực tế
-                    // new LoginFrame().setVisible(true);
+                    // Chế độ Production: Yêu cầu đăng nhập thực tế
+                    new LoginFrame().setVisible(true);
                 }
-
-                // Tạm thời mở thẳng MainFrame để test.
-                // Truyền tham số UserID và Role để test phân quyền hiển thị (BR-02)[cite: 49, 87, 88].
-                // Đổi thành "ADMIN" nếu muốn thấy các tab quản trị.
-                new MainFrame("U003", "ADMIN");
 
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(null,
