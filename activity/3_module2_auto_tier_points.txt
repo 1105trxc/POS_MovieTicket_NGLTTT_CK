@@ -1,0 +1,34 @@
+@startuml
+title Activity Diagram: (Module 2) Tự động Tích điểm 5% & Nâng Hạng Khách Hàng
+
+start
+:Đầu vào: CustomerID, FinalAmount, isExclusive (Trạng thái KM);
+:Hệ thống lấy thông tin Customer từ DB;
+
+if (Có xài Promo thuộc loại isExclusive?) then (Đúng)
+  :KHÔNG tính điểm thưởng;
+  :EarnedPoints = 0;
+else (Sai (Cho phép tích điểm))
+  :EarnedPoints = FinalAmount * 5%;
+  :Cộng dồn điểm: Customer.RewardPoints += EarnedPoints;
+  :Ghi Log vào PointHistory (TransactionType="EARN");
+endif
+
+:Cộng dồn Tổng chi tiêu: Customer.TotalSpent += FinalAmount;
+
+:--- Quá trình Nâng hạng Tự động ---;
+
+if (TotalSpent >= 5.000.000đ ?) then (Vượt hạng Gold)
+  :Đổi Hạng Customer -> GOLD;
+else (Dưới Gold)
+  if (TotalSpent >= 2.000.000đ ?) then (Vượt hạng Silver)
+     :Đổi Hạng Customer -> SILVER;
+  else (Dưới Silver)
+     :Mặc định Hạng -> REGULAR;
+  endif
+endif
+
+:Lưu (Update) Customer vào Database;
+:Phản hồi thông tin Điểm và Hạng cập nhật;
+stop
+@enduml

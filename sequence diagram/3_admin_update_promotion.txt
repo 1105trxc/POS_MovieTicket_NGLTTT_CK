@@ -1,0 +1,24 @@
+@startuml
+title Sequence Diagram: Quản lý Khuyến Mãi - Cập nhật
+
+actor Admin as admin
+participant "PromotionManagementPanel" as view
+participant "PromotionController" as ctl
+participant "PromotionServiceImpl" as svc
+participant "AuditLogServiceImpl" as audit
+participant "PromotionRepository" as repo
+database "Database" as db
+
+admin -> view: Chọn KM, cập nhật thông tin và nhấn "Sửa"
+view -> ctl: updatePromotion(promotion)
+ctl -> svc: updatePromotion(promotion)
+svc -> repo: update(promotion)
+repo -> db: UPDATE Promotion
+db --> repo: Success
+svc -> audit: logAction("UPDATE", "Promotion", ...)
+audit -> db: INSERT INTO AuditLog
+db --> audit: Success
+svc --> ctl: (void)
+ctl --> view: Hiển thị thông báo thành công
+view --> admin: Cập nhật lại JTable
+@enduml
