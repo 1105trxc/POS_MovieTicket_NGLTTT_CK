@@ -38,7 +38,7 @@
             <property name="jakarta.persistence.jdbc.url"
                       value="jdbc:mysql://127.0.0.1:3306/CinemaDB?useSSL=false&amp;serverTimezone=Asia/Ho_Chi_Minh&amp;allowPublicKeyRetrieval=true"/>
             <property name="jakarta.persistence.jdbc.user" value="root"/>
-            <property name="jakarta.persistence.jdbc.password" value="25032005"/>
+            <property name="jakarta.persistence.jdbc.password" value="123456"/>
 
             <!-- HikariCP Connection Pool -->
             <property name="hibernate.connection.provider_class"

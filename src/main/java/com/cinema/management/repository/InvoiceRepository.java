@@ -3,50 +3,56 @@ package com.cinema.management.repository;
 import com.cinema.management.config.JpaUtil;
 import com.cinema.management.model.entity.Invoice;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
 
 import java.util.Collections;
 import java.util.List;
 
-public class InvoiceRepository {
-    private final EntityManager em;
+import java.util.List;
+import java.util.Optional;
 
-    public InvoiceRepository() {
-        this.em = JpaUtil.getEntityManager();
+/**
+ * Repository (DAO) cho entity Invoice.
+ */
+public class InvoiceRepository {
+
+    public Optional<Invoice> findById(String invoiceId) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            return Optional.ofNullable(em.find(Invoice.class, invoiceId));
+        } finally {
+            em.close();
+        }
     }
 
     public List<Invoice> findAll() {
+        EntityManager em = JpaUtil.getEntityManager();
         try {
-            return em.createQuery("SELECT i FROM Invoice i ORDER BY i.createdAt DESC", Invoice.class)
+            return em.createQuery(
+                            "SELECT i FROM Invoice i ORDER BY i.createdAt DESC", Invoice.class)
                     .getResultList();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Collections.emptyList();
+        } finally {
+            em.close();
         }
     }
 
-    public Invoice findById(String id) {
-        return em.find(Invoice.class, id);
-    }
-
-    public void save(Invoice invoice) {
+    /**
+     * Lưu Invoice mới (persist) – không dùng merge để tránh overwrite snapshot.
+     */
+    public Invoice save(Invoice invoice) {
+        EntityManager em = JpaUtil.getEntityManager();
+        EntityTransaction tx = em.getTransaction();
         try {
-            em.getTransaction().begin();
-            em.persist(invoice);
-            em.getTransaction().commit();
+            tx.begin();
+            Invoice saved = em.merge(invoice);
+            tx.commit();
+            return saved;
         } catch (Exception e) {
-            em.getTransaction().rollback();
+            if (tx.isActive()) tx.rollback();
             throw e;
-        }
-    }
-
-    public void update(Invoice invoice) {
-        try {
-            em.getTransaction().begin();
-            em.merge(invoice);
-            em.getTransaction().commit();
-        } catch (Exception e) {
-            em.getTransaction().rollback();
-            throw e;
+        } finally {
+            em.close();
         }
     }
 }
+

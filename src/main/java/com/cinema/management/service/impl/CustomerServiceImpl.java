@@ -26,12 +26,12 @@ public class CustomerServiceImpl implements ICustomerService {
 
     @Override
     public Customer getCustomerById(String id) {
-        return customerRepo.findById(id);
+        return customerRepo.findById(id).orElseThrow(null);
     }
 
     @Override
     public Customer findByPhone(String phone) {
-        return customerRepo.findByPhone(phone);
+        return customerRepo.findByPhone(phone).orElseThrow(null);
     }
 
     @Override

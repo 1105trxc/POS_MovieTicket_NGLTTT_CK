@@ -3,18 +3,60 @@ package com.cinema.management.repository;
 import com.cinema.management.config.JpaUtil;
 import com.cinema.management.model.entity.Customer;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
 
 import java.util.Collections;
 import java.util.List;
 
-public class CustomerRepository {
-    private final EntityManager em;
 
-    public CustomerRepository() {
-        this.em = JpaUtil.getEntityManager();
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Repository (DAO) cho entity Customer.
+ */
+public class CustomerRepository {
+
+    public Optional<Customer> findById(String customerId) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            return Optional.ofNullable(em.find(Customer.class, customerId));
+        } finally {
+            em.close();
+        }
+    }
+
+    public Optional<Customer> findByPhone(String phone) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            List<Customer> result = em.createQuery(
+                            "SELECT c FROM Customer c WHERE c.phone = :phone", Customer.class)
+                    .setParameter("phone", phone)
+                    .getResultList();
+            return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
+        } finally {
+            em.close();
+        }
+    }
+
+    public Customer save(Customer customer) {
+        EntityManager em = JpaUtil.getEntityManager();
+        EntityTransaction tx = em.getTransaction();
+        try {
+            tx.begin();
+            Customer saved = em.merge(customer);
+            tx.commit();
+            return saved;
+        } catch (Exception e) {
+            if (tx.isActive()) tx.rollback();
+            throw e;
+        } finally {
+            em.close();
+        }
     }
 
     public List<Customer> findAll() {
+        EntityManager em = JpaUtil.getEntityManager();
         try {
             return em.createQuery("SELECT c FROM Customer c", Customer.class).getResultList();
         } catch (Exception e) {
@@ -23,36 +65,8 @@ public class CustomerRepository {
         }
     }
 
-    public Customer findById(String id) {
-        return em.find(Customer.class, id);
-    }
-
-    /**
-     * Tìm khách hàng theo số điện thoại.
-     */
-    public Customer findByPhone(String phone) {
-        try {
-            return em.createQuery(
-                            "SELECT c FROM Customer c WHERE c.phone = :phone", Customer.class)
-                    .setParameter("phone", phone)
-                    .getSingleResult();
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    public void save(Customer customer) {
-        try {
-            em.getTransaction().begin();
-            em.persist(customer);
-            em.getTransaction().commit();
-        } catch (Exception e) {
-            em.getTransaction().rollback();
-            throw e;
-        }
-    }
-
     public void update(Customer customer) {
+        EntityManager em = JpaUtil.getEntityManager();
         try {
             em.getTransaction().begin();
             em.merge(customer);
@@ -62,4 +76,7 @@ public class CustomerRepository {
             throw e;
         }
     }
+
+
 }
+

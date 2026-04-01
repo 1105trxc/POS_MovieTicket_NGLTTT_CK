@@ -3,25 +3,29 @@ package com.cinema.management.repository;
 import com.cinema.management.config.JpaUtil;
 import com.cinema.management.model.entity.PointHistory;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
 
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Repository (DAO) cho entity PointHistory.
+ */
 public class PointHistoryRepository {
-    private final EntityManager em;
 
-    public PointHistoryRepository() {
-        this.em = JpaUtil.getEntityManager();
-    }
-
-    public void save(PointHistory pointHistory) {
+    public PointHistory save(PointHistory pointHistory) {
+        EntityManager em = JpaUtil.getEntityManager();
+        EntityTransaction tx = em.getTransaction();
         try {
-            em.getTransaction().begin();
-            em.persist(pointHistory);
-            em.getTransaction().commit();
+            tx.begin();
+            PointHistory saved = em.merge(pointHistory);
+            tx.commit();
+            return saved;
         } catch (Exception e) {
-            em.getTransaction().rollback();
+            if (tx.isActive()) tx.rollback();
             throw e;
+        } finally {
+            em.close();
         }
     }
 
@@ -29,6 +33,7 @@ public class PointHistoryRepository {
      * Lấy lịch sử tích/dùng điểm của 1 khách hàng, sắp xếp mới nhất trước.
      */
     public List<PointHistory> findByCustomerId(String customerId) {
+        EntityManager em = JpaUtil.getEntityManager();
         try {
             return em.createQuery(
                             "SELECT ph FROM PointHistory ph WHERE ph.customer.customerId = :custId ORDER BY ph.createdAt DESC",
@@ -41,3 +46,4 @@ public class PointHistoryRepository {
         }
     }
 }
+

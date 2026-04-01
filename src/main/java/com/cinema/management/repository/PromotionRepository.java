@@ -8,7 +8,27 @@ import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Repository (DAO) cho entity Promotion.
+ */
 public class PromotionRepository {
+
+    public Optional<Promotion> findByCode(String code) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            List<Promotion> result = em.createQuery(
+                            "SELECT p FROM Promotion p WHERE p.code = :code", Promotion.class)
+                    .setParameter("code", code)
+                    .getResultList();
+            return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
+        } finally {
+            em.close();
+        }
+    }
+
     private final EntityManager em;
 
     public PromotionRepository() {
@@ -24,23 +44,15 @@ public class PromotionRepository {
         }
     }
 
-    public Promotion findById(String id) {
-        return em.find(Promotion.class, id);
-    }
-
-    /**
-     * Tìm khuyến mãi theo mã code.
-     */
-    public Promotion findByCode(String code) {
+    public Optional<Promotion> findById(String promotionId) {
+        EntityManager em = JpaUtil.getEntityManager();
         try {
-            return em.createQuery(
-                            "SELECT p FROM Promotion p WHERE p.code = :code", Promotion.class)
-                    .setParameter("code", code)
-                    .getSingleResult();
-        } catch (Exception e) {
-            return null;
+            return Optional.ofNullable(em.find(Promotion.class, promotionId));
+        } finally {
+            em.close();
         }
     }
+
 
     /**
      * Lấy danh sách khuyến mãi đang hoạt động tại thời điểm hiện tại.
@@ -112,3 +124,4 @@ public class PromotionRepository {
         }
     }
 }
+

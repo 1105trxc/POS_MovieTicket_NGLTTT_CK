@@ -3,8 +3,15 @@ package com.cinema.management.repository;
 import com.cinema.management.config.JpaUtil;
 import com.cinema.management.model.entity.Product;
 import jakarta.persistence.EntityManager;
+
 import java.util.List;
 
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Repository (DAO) cho entity Product (F&B).
+ */
 public class ProductRepository {
     private final EntityManager em;
 
@@ -21,8 +28,13 @@ public class ProductRepository {
         }
     }
 
-    public Product findById(String id) {
-        return em.find(Product.class, id);
+    public Optional<Product> findById(String productId) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            return Optional.ofNullable(em.find(Product.class, productId));
+        } finally {
+            em.close();
+        }
     }
 
     public void save(Product product) {
