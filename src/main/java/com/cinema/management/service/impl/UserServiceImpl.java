@@ -13,14 +13,16 @@ public class UserServiceImpl implements IUserService {
     }
 
     private String hashPassword(String password) {
-        if (password == null) return null;
+        if (password == null)
+            return null;
         try {
             java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
             byte[] hash = md.digest(password.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             StringBuilder hexString = new StringBuilder(2 * hash.length);
             for (byte b : hash) {
                 String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
+                if (hex.length() == 1)
+                    hexString.append('0');
                 hexString.append(hex);
             }
             return hexString.toString();
@@ -31,8 +33,8 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public User login(String username, String password) {
-        User user = userRepository.findByUsername(username).orElseThrow(null);
-
+        // User user = userRepository.findByUsername(username).orElseThrow(null);
+        User user = userRepository.findByUsername(username).orElse(null);
         if (user != null) {
             if (!user.getIsActive()) {
                 throw new RuntimeException("Tài khoản bạn không tồn tại.");
@@ -55,11 +57,11 @@ public class UserServiceImpl implements IUserService {
         if (existUser != null && !existUser.getUsername().startsWith("[NV:")) {
             throw new RuntimeException("Tên đăng nhập này đã tồn tại trong phần mềm!");
         }
-        
+
         if (user.getPassword() != null && user.getPassword().length() != 64) {
             user.setPassword(hashPassword(user.getPassword()));
         }
-        
+
         userRepository.save(user);
     }
 

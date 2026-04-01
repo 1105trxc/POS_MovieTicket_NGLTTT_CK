@@ -3,10 +3,16 @@ package com.cinema.management.controller;
 import com.cinema.management.model.entity.User;
 import com.cinema.management.service.IUserService;
 import com.cinema.management.util.UserSessionContext;
+import com.cinema.management.service.impl.UserServiceImpl;
+import com.cinema.management.repository.UserRepository;
 import java.util.List;
 
 public class UserController {
     private final IUserService userService;
+
+    public UserController() {
+        this.userService = new UserServiceImpl(new UserRepository());
+    }
 
     public UserController(IUserService userService) {
         this.userService = userService;

@@ -4,9 +4,14 @@ import com.cinema.management.model.dto.SeatStatusDto;
 import com.cinema.management.model.dto.InvoiceDto;
 import com.cinema.management.view.booking.BookingPanel;
 import com.cinema.management.view.booking.CheckoutPanel;
+import com.cinema.management.view.management.CustomerManagementPanel;
+import com.cinema.management.view.management.MovieGenreManagementPanel;
+import com.cinema.management.view.management.PromotionManagementPanel;
 import com.cinema.management.view.management.RoomManagementPanel;
 import com.cinema.management.view.management.SeatManagementPanel;
 import com.cinema.management.view.management.ShowTimeManagementPanel;
+import com.cinema.management.view.management.StaffManagementPanel;
+import com.cinema.management.view.management.UserManagementPanel;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 
 import javax.swing.*;
@@ -30,7 +35,6 @@ public class MainFrame extends JFrame {
 
     private final JTabbedPane tabbedPane;
     private String loggedInUserId = "U003";
-    private String userRole = "STAFF";
 
     private static final String CARD_BOOKING = "BOOKING";
     private static final String CARD_CHECKOUT = "CHECKOUT";
@@ -45,7 +49,6 @@ public class MainFrame extends JFrame {
 
     public MainFrame(String userId, String userRole) {
         this.loggedInUserId = userId;
-        this.userRole = userRole;
 
         setupModernUI();
 
@@ -116,16 +119,33 @@ public class MainFrame extends JFrame {
         JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 15));
         rightPanel.setOpaque(false);
 
-        String roleDisplay = "ADMIN".equalsIgnoreCase(userRole) ? "Quản trị" : "Nhân viên";
+        String roleDisplay = com.cinema.management.util.UserSessionContext.isAdmin() ? "Quản trị" : "Nhân viên";
         JLabel roleBadge = new JLabel("Vai trò: " + roleDisplay);
         roleBadge.setFont(new Font("Segoe UI", Font.BOLD, 12));
         roleBadge.setForeground(ACCENT_COLOR);
 
-        JLabel userLabel = new JLabel("Xin chào, " + loggedInUserId);
+        JLabel userLabel = new JLabel("Xin chào, " + (loggedInUserId != null ? loggedInUserId : ""));
         userLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
+        JButton btnLogout = new JButton("Đăng xuất");
+        btnLogout.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnLogout.setFocusPainted(false);
+        btnLogout.setBackground(new Color(239, 68, 68)); // Red color
+        btnLogout.setForeground(Color.WHITE);
+        btnLogout.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnLogout.addActionListener(e -> {
+            int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn đăng xuất?", 
+                "Xác nhận", JOptionPane.YES_NO_OPTION);
+            if (confirm == JOptionPane.YES_OPTION) {
+                com.cinema.management.util.UserSessionContext.logout();
+                this.dispose();
+                new com.cinema.management.view.auth.LoginFrame().setVisible(true);
+            }
+        });
 
         rightPanel.add(roleBadge);
         rightPanel.add(userLabel);
+        rightPanel.add(btnLogout);
 
         header.add(brand, BorderLayout.WEST);
         header.add(rightPanel, BorderLayout.EAST);
@@ -188,14 +208,17 @@ public class MainFrame extends JFrame {
         posTabPanel = buildPosTab();
 
         addTab("Bán vé (POS)", "icons/ticket.svg", posTabPanel);
-        addTab("Khách hàng (CRM)", "icons/users.svg", buildPlaceholder("Mô-đun CRM đang hoạt động."));
+        addTab("Khách hàng (CRM)", "icons/users.svg", new CustomerManagementPanel());
 
-        if ("ADMIN".equalsIgnoreCase(userRole)) {
+        if (com.cinema.management.util.UserSessionContext.isAdmin()) {
             addTab("Quản lý phòng", "icons/monitor.svg", new RoomManagementPanel());
             addTab("Quản lý ghế", "icons/grid.svg", new SeatManagementPanel());
             addTab("Quản lý suất chiếu", "icons/clock.svg", new ShowTimeManagementPanel());
-            addTab("Phim & F&B", "icons/popcorn.svg", buildPlaceholder("Quản lý danh mục..."));
-            addTab("Người dùng & nhật ký", "icons/settings.svg", buildPlaceholder("Nhật ký hệ thống & quản lý nhân sự..."));
+            // Merged Movie & Genre Panel
+            addTab("Phim & Thể loại", "icons/film.svg", new MovieGenreManagementPanel());
+            addTab("Khuyến mãi SK", "icons/popcorn.svg", new PromotionManagementPanel());
+            addTab("Quản lý nhân sự", "icons/users.svg", new StaffManagementPanel());
+            addTab("Quản lý tài khoản", "icons/settings.svg", new UserManagementPanel());
         }
 
         // LẮNG NGHE SỰ KIỆN ĐỂ ĐỔI MÀU TEXT VÀ ICON BÊN TRONG CUSTOM TAB
@@ -205,7 +228,8 @@ public class MainFrame extends JFrame {
             for (int i = 0; i < tabbedPane.getTabCount(); i++) {
                 // Lấy Custom Panel ra
                 JPanel tabPanel = (JPanel) tabbedPane.getTabComponentAt(i);
-                if (tabPanel == null) continue;
+                if (tabPanel == null)
+                    continue;
 
                 // Lấy component Icon (thứ 0) và Text (thứ 1)
                 JPanel content = (JPanel) tabPanel.getComponent(0);
@@ -298,15 +322,5 @@ public class MainFrame extends JFrame {
             }
         }
         posCardLayout.show(posCardContainer, CARD_BOOKING);
-    }
-
-    private JPanel buildPlaceholder(String message) {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(BG_APP);
-        JLabel lbl = new JLabel("<html><center><h3>" + message + "</h3><p>Chức năng đang phát triển hoặc bị giới hạn quyền truy cập.</p></center></html>");
-        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        lbl.setForeground(new Color(100, 116, 139));
-        panel.add(lbl);
-        return panel;
     }
 }

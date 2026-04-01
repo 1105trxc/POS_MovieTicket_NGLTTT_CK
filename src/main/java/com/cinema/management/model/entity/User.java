@@ -20,14 +20,14 @@ public class User {
     private String userId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "RoleID", nullable = false)
+    @JoinColumn(name = "RoleID", nullable = true)
     @ToString.Exclude
     private Role role;
 
-    @Column(name = "Username", nullable = false, unique = true, length = 100)
+    @Column(name = "Username", nullable = true, unique = true, length = 100)
     private String username;
 
-    @Column(name = "Password", nullable = false, length = 255)
+    @Column(name = "Password", nullable = true, length = 255)
     private String password;
 
     @Column(name = "FullName", length = 255)

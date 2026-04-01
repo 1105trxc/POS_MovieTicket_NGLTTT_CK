@@ -2,15 +2,7 @@ package com.cinema.management.repository;
 
 import com.cinema.management.config.JpaUtil;
 import com.cinema.management.model.entity.User;
-
-
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.NoResultException;
-import jakarta.persistence.TypedQuery;
-
-import java.util.List;
-
-
 import java.util.List;
 import java.util.Optional;
 
@@ -38,8 +30,9 @@ public class UserRepository {
     public Optional<User> findByUsername(String username) {
         EntityManager em = JpaUtil.getEntityManager();
         try {
+            // Sử dụng JOIN FETCH u.role để tải Role ngay lập tức, tránh LazyInitializationException khi session đóng [cite: 131]
             List<User> result = em.createQuery(
-                            "SELECT u FROM User u WHERE u.username = :uname", User.class)
+                    "SELECT u FROM User u JOIN FETCH u.role WHERE u.username = :uname", User.class)
                     .setParameter("uname", username)
                     .getResultList();
             return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
