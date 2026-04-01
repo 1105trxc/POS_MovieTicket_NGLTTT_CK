@@ -58,7 +58,8 @@ public class CustomerController {
      * Lấy tên hạng hiển thị (VD: "Vàng", "Bạc", "Thường").
      */
     public String getTierDisplayName(Customer customer) {
-        if (customer == null) return MemberTier.REGULAR.getDisplayName();
+        if (customer == null)
+            return MemberTier.REGULAR.getDisplayName();
         return MemberTier.fromString(customer.getMemberTier()).getDisplayName();
     }
 
@@ -66,7 +67,8 @@ public class CustomerController {
      * Lấy % giảm giá của hạng hiện tại.
      */
     public BigDecimal getTierDiscountPercent(Customer customer) {
-        if (customer == null) return BigDecimal.ZERO;
+        if (customer == null)
+            return BigDecimal.ZERO;
         return MemberTier.fromString(customer.getMemberTier()).getDiscountPercent();
     }
 
@@ -77,8 +79,9 @@ public class CustomerController {
      * Nếu KM là exclusive → không tích điểm.
      */
     public void processRewardPoints(Customer customer, Invoice invoice, BigDecimal finalAmount,
-                                     boolean isExclusivePromotion) {
-        if (customer == null || finalAmount == null) return;
+            boolean isExclusivePromotion) {
+        if (customer == null || finalAmount == null)
+            return;
 
         if (!isExclusivePromotion) {
             // Tích điểm = 5% finalAmount

@@ -36,4 +36,26 @@ public class GenreRepository {
             throw e;
         }
     }
+
+    public void update(Genre g) {
+        try {
+            em.getTransaction().begin();
+            em.merge(g);
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            em.getTransaction().rollback();
+            throw e;
+        }
+    }
+
+    public Genre findByName(String name) {
+        try {
+            List<Genre> result = em.createQuery("SELECT g FROM Genre g WHERE g.genreName = :name", Genre.class)
+                    .setParameter("name", name)
+                    .getResultList();
+            return result.isEmpty() ? null : result.get(0);
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }

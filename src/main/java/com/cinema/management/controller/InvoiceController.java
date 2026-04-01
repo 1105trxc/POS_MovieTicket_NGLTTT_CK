@@ -21,21 +21,21 @@ import java.util.Optional;
  */
 public class InvoiceController {
 
-    private final IInvoiceService    invoiceService;
-    private final IPromotionService  promotionService;
+    private final IInvoiceService invoiceService;
+    private final IPromotionService promotionService;
     private final CustomerRepository customerRepository;
 
     public InvoiceController() {
-        this.invoiceService     = new InvoiceServiceImpl();
-        this.promotionService   = new PromotionServiceImpl();
+        this.invoiceService = new InvoiceServiceImpl();
+        this.promotionService = new PromotionServiceImpl();
         this.customerRepository = new CustomerRepository();
     }
 
     public InvoiceController(IInvoiceService invoiceService,
-                              IPromotionService promotionService,
-                              CustomerRepository customerRepository) {
-        this.invoiceService     = invoiceService;
-        this.promotionService   = promotionService;
+            IPromotionService promotionService,
+            CustomerRepository customerRepository) {
+        this.invoiceService = invoiceService;
+        this.promotionService = promotionService;
         this.customerRepository = customerRepository;
     }
 
@@ -50,6 +50,7 @@ public class InvoiceController {
 
     /**
      * Kiểm tra nhanh mã promo trước khi bấm thanh toán.
+     * 
      * @return Promotion nếu hợp lệ
      * @throws IllegalArgumentException với thông báo lỗi cụ thể
      */
@@ -57,23 +58,33 @@ public class InvoiceController {
         return promotionService.validatePromoCode(code, showTime);
     }
 
+    /** Lấy danh sách khuyến mãi đang hoạt động (trong thời gian hiện tại). */
+    public List<Promotion> getActivePromotions() {
+        return promotionService.getActivePromotions();
+    }
+
+    /** Tính số tiền giảm giá từ 1 Promotion cho 1 tổng tiền. */
+    public java.math.BigDecimal calculatePromoDiscount(Promotion promo, java.math.BigDecimal subTotal) {
+        return promotionService.calculateDiscount(promo, subTotal);
+    }
+
     // ── Checkout ──────────────────────────────────────────────────────────────
 
     /**
      * Thực hiện thanh toán toàn bộ đơn.
+     * 
      * @return InvoiceDto đầy đủ để hiển thị và in vé
      */
     public InvoiceDto checkout(String showTimeId,
-                                String staffUserId,
-                                String customerId,
-                                List<SeatStatusDto> selectedSeats,
-                                Map<String, Integer> fbItems,
-                                String promoCode,
-                                int usedPoints,
-                                String paymentMethod) {
+            String staffUserId,
+            String customerId,
+            List<SeatStatusDto> selectedSeats,
+            Map<String, Integer> fbItems,
+            String promoCode,
+            int usedPoints,
+            String paymentMethod) {
         return invoiceService.checkout(
                 showTimeId, staffUserId, customerId,
                 selectedSeats, fbItems, promoCode, usedPoints, paymentMethod);
     }
 }
-

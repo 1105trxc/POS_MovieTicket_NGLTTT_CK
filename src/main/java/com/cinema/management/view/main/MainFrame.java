@@ -3,7 +3,6 @@ package com.cinema.management.view.main;
 import com.cinema.management.model.dto.SeatStatusDto;
 import com.cinema.management.view.booking.BookingPanel;
 import com.cinema.management.view.booking.CheckoutPanel;
-import com.cinema.management.view.management.CustomerManagementPanel;
 import com.cinema.management.view.management.MovieGenreManagementPanel;
 import com.cinema.management.view.management.PromotionManagementPanel;
 import com.cinema.management.view.management.RoomManagementPanel;
@@ -11,6 +10,9 @@ import com.cinema.management.view.management.SeatManagementPanel;
 import com.cinema.management.view.management.ShowTimeManagementPanel;
 import com.cinema.management.view.management.StaffManagementPanel;
 import com.cinema.management.view.management.UserManagementPanel;
+import com.cinema.management.util.UserSessionContext;
+import com.cinema.management.view.management.AuditLogPanel;
+import com.cinema.management.view.management.CustomerCRMPanel;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 
 import javax.swing.*;
@@ -19,6 +21,7 @@ import java.awt.*;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 public class MainFrame extends JFrame {
 
@@ -44,7 +47,7 @@ public class MainFrame extends JFrame {
     private JPanel posTabPanel;
 
     // Lưu trữ đường dẫn Icon để đổi màu
-    private final Map<Integer, String> tabIconPaths = new java.util.HashMap<>();
+    private final Map<Integer, String> tabIconPaths = new HashMap<>();
 
     public MainFrame(String userId, String userRole) {
         this.loggedInUserId = userId;
@@ -123,7 +126,12 @@ public class MainFrame extends JFrame {
         roleBadge.setFont(new Font("Segoe UI", Font.BOLD, 12));
         roleBadge.setForeground(ACCENT_COLOR);
 
-        JLabel userLabel = new JLabel("Xin chào, " + (loggedInUserId != null ? loggedInUserId : ""));
+        String displayName = loggedInUserId != null ? loggedInUserId : "";
+        if (UserSessionContext.getCurrentUser() != null &&
+                UserSessionContext.getCurrentUser().getFullName() != null) {
+            displayName = UserSessionContext.getCurrentUser().getFullName();
+        }
+        JLabel userLabel = new JLabel("Xin chào, " + displayName);
         userLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
         JButton btnLogout = new JButton("Đăng xuất");
@@ -133,8 +141,8 @@ public class MainFrame extends JFrame {
         btnLogout.setForeground(Color.WHITE);
         btnLogout.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnLogout.addActionListener(e -> {
-            int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn đăng xuất?", 
-                "Xác nhận", JOptionPane.YES_NO_OPTION);
+            int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn đăng xuất?",
+                    "Xác nhận", JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {
                 com.cinema.management.util.UserSessionContext.logout();
                 this.dispose();
@@ -207,7 +215,7 @@ public class MainFrame extends JFrame {
         posTabPanel = buildPosTab();
 
         addTab("Bán vé (POS)", "icons/ticket.svg", posTabPanel);
-        addTab("Khách hàng (CRM)", "icons/users.svg", new CustomerManagementPanel());
+        addTab("Khách hàng (CRM)", "icons/users.svg", new CustomerCRMPanel());
 
         if (com.cinema.management.util.UserSessionContext.isAdmin()) {
             addTab("Quản lý phòng", "icons/monitor.svg", new RoomManagementPanel());
@@ -218,6 +226,7 @@ public class MainFrame extends JFrame {
             addTab("Khuyến mãi SK", "icons/popcorn.svg", new PromotionManagementPanel());
             addTab("Quản lý nhân sự", "icons/users.svg", new StaffManagementPanel());
             addTab("Quản lý tài khoản", "icons/settings.svg", new UserManagementPanel());
+            addTab("Nhật ký hoạt động", "icons/log.svg", new AuditLogPanel());
         }
 
         // LẮNG NGHE SỰ KIỆN ĐỂ ĐỔI MÀU TEXT VÀ ICON BÊN TRONG CUSTOM TAB

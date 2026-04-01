@@ -38,7 +38,7 @@ public class Customer {
 
     @Column(name = "MemberTier", length = 50)
     @Builder.Default
-    private String memberTier = "Member";
+    private String memberTier = "Basic";
 
     @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY)
     @ToString.Exclude

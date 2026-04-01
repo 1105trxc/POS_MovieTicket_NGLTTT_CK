@@ -26,16 +26,23 @@ public class CustomerServiceImpl implements ICustomerService {
 
     @Override
     public Customer getCustomerById(String id) {
-        return customerRepo.findById(id).orElseThrow(null);
+        return customerRepo.findById(id).orElse(null);
     }
 
     @Override
     public Customer findByPhone(String phone) {
-        return customerRepo.findByPhone(phone).orElseThrow(null);
+        return customerRepo.findByPhone(phone).orElse(null);
     }
 
     @Override
     public void createCustomer(Customer customer) {
+        // Kiểm tra trùng SĐT
+        if (customer.getPhone() != null && !customer.getPhone().trim().isEmpty()) {
+            if (customerRepo.findByPhone(customer.getPhone().trim()).isPresent()) {
+                throw new RuntimeException("Số điện thoại này đã được đăng ký cho khách hàng khác!");
+            }
+        }
+
         // Mặc định hạng Thường cho khách mới
         if (customer.getMemberTier() == null || customer.getMemberTier().isBlank()) {
             customer.setMemberTier(MemberTier.REGULAR.name());
@@ -47,6 +54,25 @@ public class CustomerServiceImpl implements ICustomerService {
 
     @Override
     public void updateCustomer(Customer customer) {
+        // Kiểm tra trùng SĐT
+        if (customer.getPhone() != null && !customer.getPhone().trim().isEmpty()) {
+            Customer exist = customerRepo.findByPhone(customer.getPhone().trim()).orElse(null);
+            if (exist != null && !exist.getCustomerId().equals(customer.getCustomerId())) {
+                throw new RuntimeException("Số điện thoại này đã thuộc về khách hàng khác!");
+            }
+        }
+
+        Customer old = customerRepo.findById(customer.getCustomerId()).orElse(null);
+        if (old != null) {
+            if (!old.getFullName().equals(customer.getFullName())) {
+                auditLogService.logAction("UPDATE", "Customer", "Tên KH: " + customer.getCustomerId(),
+                        old.getFullName(), customer.getFullName());
+            }
+            if (!old.getPhone().equals(customer.getPhone())) {
+                auditLogService.logAction("UPDATE", "Customer", "SĐT KH: " + customer.getCustomerId(), old.getPhone(),
+                        customer.getPhone());
+            }
+        }
         customerRepo.update(customer);
     }
 
@@ -93,7 +119,8 @@ public class CustomerServiceImpl implements ICustomerService {
      */
     @Override
     public void updateMemberTier(Customer customer) {
-        if (customer == null) return;
+        if (customer == null)
+            return;
 
         MemberTier newTier = MemberTier.determineTier(customer.getTotalSpent());
         String oldTier = customer.getMemberTier();

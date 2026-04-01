@@ -19,14 +19,14 @@ import java.util.UUID;
  * Quy tắc:
  * - EARN: 5% giá trị hoá đơn (làm tròn xuống).
  * - REDEEM: 1 điểm = 1 VNĐ, tối đa 50% hoá đơn.
- * - Ngưỡng nâng hạng: VIP ≥ 2.000.000 VNĐ, Diamond ≥ 5.000.000 VNĐ (FR-CR-02).
+ * - Ngưỡng nâng hạng: Silver ≥ 2.000.000 VNĐ, Gold ≥ 5.000.000 VNĐ (FR-CR-02).
  */
 public class PointServiceImpl implements IPointService {
 
     private static final BigDecimal EARN_RATE = new BigDecimal("0.05");
     private static final BigDecimal MAX_REDEEM_RATE = new BigDecimal("0.50");
-    private static final BigDecimal VIP_THRESHOLD = new BigDecimal("2000000");
-    private static final BigDecimal DIAMOND_THRESHOLD = new BigDecimal("5000000");
+    private static final BigDecimal SILVER_THRESHOLD = new BigDecimal("2000000");
+    private static final BigDecimal GOLD_THRESHOLD = new BigDecimal("5000000");
 
     private final CustomerRepository customerRepository;
     private final PointHistoryRepository pointHistoryRepository;
@@ -37,7 +37,7 @@ public class PointServiceImpl implements IPointService {
     }
 
     public PointServiceImpl(CustomerRepository customerRepository,
-                            PointHistoryRepository pointHistoryRepository) {
+            PointHistoryRepository pointHistoryRepository) {
         this.customerRepository = customerRepository;
         this.pointHistoryRepository = pointHistoryRepository;
     }
@@ -49,14 +49,17 @@ public class PointServiceImpl implements IPointService {
 
     @Override
     public int calculateEarnedPoints(BigDecimal totalAmount) {
-        if (totalAmount == null || totalAmount.compareTo(BigDecimal.ZERO) <= 0) return 0;
+        if (totalAmount == null || totalAmount.compareTo(BigDecimal.ZERO) <= 0)
+            return 0;
         return totalAmount.multiply(EARN_RATE).setScale(0, RoundingMode.FLOOR).intValue();
     }
 
     @Override
     public BigDecimal calculatePointDiscount(Customer customer, int usedPoints, BigDecimal subTotal) {
-        if (usedPoints <= 0) return BigDecimal.ZERO;
-        if (customer == null) throw new IllegalArgumentException("Khách hàng không tồn tại.");
+        if (usedPoints <= 0)
+            return BigDecimal.ZERO;
+        if (customer == null)
+            throw new IllegalArgumentException("Khách hàng không tồn tại.");
         if (usedPoints > customer.getRewardPoints()) {
             throw new IllegalArgumentException(
                     "Không đủ điểm. Hiện có: " + customer.getRewardPoints() + " điểm.");
@@ -68,7 +71,8 @@ public class PointServiceImpl implements IPointService {
 
     @Override
     public void addPoints(Customer customer, Invoice invoice, int earnedPoints) {
-        if (customer == null || earnedPoints <= 0) return;
+        if (customer == null || earnedPoints <= 0)
+            return;
 
         customer.setRewardPoints(customer.getRewardPoints() + earnedPoints);
         customer.setTotalSpent(customer.getTotalSpent().add(invoice.getTotalAmount()));
@@ -92,7 +96,8 @@ public class PointServiceImpl implements IPointService {
 
     @Override
     public void redeemPoints(Customer customer, Invoice invoice, int usedPoints) {
-        if (customer == null || usedPoints <= 0) return;
+        if (customer == null || usedPoints <= 0)
+            return;
         if (usedPoints > customer.getRewardPoints()) {
             throw new IllegalArgumentException("Không đủ điểm để đổi.");
         }
@@ -116,7 +121,8 @@ public class PointServiceImpl implements IPointService {
      */
     @Override
     public void earnPoints(Customer customer, Invoice invoice, int points) {
-        if (customer == null || points <= 0) return;
+        if (customer == null || points <= 0)
+            return;
 
         PointHistory history = PointHistory.builder()
                 .historyId("PH-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
@@ -136,18 +142,22 @@ public class PointServiceImpl implements IPointService {
         return pointHistoryRepository.findByCustomerId(customerId);
     }
 
+    @Override
+    public List<PointHistory> getAllPointHistories() {
+        return pointHistoryRepository.findAll();
+    }
+
     // ── Private helper ───────────────────────────────────────────────────────
 
     private void upgradeTierIfEligible(Customer customer) {
         BigDecimal spent = customer.getTotalSpent();
-        if (spent.compareTo(DIAMOND_THRESHOLD) >= 0) {
-            customer.setMemberTier("Diamond");
-        } else if (spent.compareTo(VIP_THRESHOLD) >= 0) {
-            customer.setMemberTier("VIP");
+        if (spent.compareTo(GOLD_THRESHOLD) >= 0) {
+            customer.setMemberTier("Gold");
+        } else if (spent.compareTo(SILVER_THRESHOLD) >= 0) {
+            customer.setMemberTier("Silver");
+        } else {
+            customer.setMemberTier("Basic");
         }
-
     }
 
-
 }
-

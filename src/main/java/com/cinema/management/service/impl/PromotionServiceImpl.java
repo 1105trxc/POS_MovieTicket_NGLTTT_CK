@@ -4,8 +4,6 @@ import com.cinema.management.model.entity.Promotion;
 import com.cinema.management.model.entity.ShowTime;
 import com.cinema.management.repository.PromotionRepository;
 import com.cinema.management.model.entity.Movie;
-import com.cinema.management.model.entity.Promotion;
-import com.cinema.management.repository.PromotionRepository;
 import com.cinema.management.service.IAuditLogService;
 import com.cinema.management.service.IPromotionService;
 
@@ -55,17 +53,44 @@ public class PromotionServiceImpl implements IPromotionService {
 
     @Override
     public void createPromotion(Promotion promotion) {
+        // Kiểm tra trùng Mã KM
+        if (promotion.getCode() != null && !promotion.getCode().trim().isEmpty()) {
+            if (promotionRepo.findByCode(promotion.getCode().trim().toUpperCase()).isPresent()) {
+                throw new RuntimeException("Mã khuyến mãi '" + promotion.getCode() + "' đã tồn tại!");
+            }
+        }
+        
         promotionRepo.save(promotion);
-        auditLogService.logAction("CREATE", "Promotion",
+        if (auditLogService != null) {
+            auditLogService.logAction("CREATE", "Promotion",
                 "ID: " + promotion.getPromotionId(), "None", promotion.getCode());
+        }
     }
 
     @Override
     public void updatePromotion(Promotion promotion) {
+        // Kiểm tra trùng Mã KM
+        if (promotion.getCode() != null && !promotion.getCode().trim().isEmpty()) {
+            Promotion exist = promotionRepo.findByCode(promotion.getCode().trim().toUpperCase()).orElse(null);
+            if (exist != null && !exist.getPromotionId().equals(promotion.getPromotionId())) {
+                throw new RuntimeException("Mã khuyến mãi '" + promotion.getCode() + "' đã thuộc về chương trình khác!");
+            }
+        }
+
+        // Fetch old state for logging
+        Promotion oldPromo = promotionRepo.findById(promotion.getPromotionId()).orElse(null);
+        String oldVal = "Unknown";
+        if (oldPromo != null) {
+            oldVal = "Mã: " + oldPromo.getCode() + " | Giảm: " + oldPromo.getDiscountPercent() + "%";
+        }
+        
         promotionRepo.update(promotion);
-        auditLogService.logAction("UPDATE", "Promotion",
-                "Cập nhật khuyến mãi", promotion.getCode(),
-                promotion.getDiscountPercent() + "%");
+        
+        String newVal = "Mã: " + promotion.getCode() + " | Giảm: " + promotion.getDiscountPercent() + "%";
+        
+        if (auditLogService != null) {
+            auditLogService.logAction("UPDATE", "Promotion", "Cập nhật khuyến mãi", oldVal, newVal);
+        }
     }
 
     @Override

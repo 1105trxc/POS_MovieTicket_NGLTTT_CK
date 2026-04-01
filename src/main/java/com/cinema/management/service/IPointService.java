@@ -13,14 +13,14 @@ import java.util.List;
 public interface IPointService {
 
     /**
-     * <<<<<<< HEAD
      * Tính số điểm thưởng sẽ được cộng sau giao dịch.
      * Quy tắc: 5% giá trị hoá đơn (làm tròn xuống).
      */
     int calculateEarnedPoints(BigDecimal totalAmount);
 
     /**
-     * Tính số tiền giảm từ điểm thưởng (1 điểm = 1 VNĐ, giới hạn tối đa 50% hoá đơn).
+     * Tính số tiền giảm từ điểm thưởng (1 điểm = 1 VNĐ, giới hạn tối đa 50% hoá
+     * đơn).
      *
      * @param customer   khách hàng
      * @param usedPoints số điểm muốn dùng
@@ -48,5 +48,6 @@ public interface IPointService {
     void earnPoints(Customer customer, Invoice invoice, int points);
 
     List<PointHistory> getPointHistory(String customerId);
-}
 
+    List<PointHistory> getAllPointHistories();
+}

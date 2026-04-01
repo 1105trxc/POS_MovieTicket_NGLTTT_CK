@@ -28,6 +28,8 @@ import com.cinema.management.service.IInvoiceService;
 import com.cinema.management.service.IPointService;
 import com.cinema.management.service.IPromotionService;
 
+import com.cinema.management.service.IAuditLogService;
+import com.cinema.management.repository.AuditLogRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -53,6 +55,7 @@ public class InvoiceServiceImpl implements IInvoiceService {
     private final UserRepository userRepository;
     private final IPromotionService promotionService;
     private final IPointService pointService;
+    private final IAuditLogService auditLogService;
 
     public InvoiceServiceImpl() {
         this.invoiceRepository = new InvoiceRepository();
@@ -66,17 +69,18 @@ public class InvoiceServiceImpl implements IInvoiceService {
         this.userRepository = new UserRepository();
         this.promotionService = new PromotionServiceImpl();
         this.pointService = new PointServiceImpl();
+        this.auditLogService = new AuditLogServiceImpl(new AuditLogRepository());
     }
 
     @Override
     public InvoiceDto checkout(String showTimeId,
-                               String staffUserId,
-                               String customerId,
-                               List<SeatStatusDto> selectedSeats,
-                               Map<String, Integer> fbItems,
-                               String promoCode,
-                               int usedPoints,
-                               String paymentMethod) {
+            String staffUserId,
+            String customerId,
+            List<SeatStatusDto> selectedSeats,
+            Map<String, Integer> fbItems,
+            String promoCode,
+            int usedPoints,
+            String paymentMethod) {
 
         if (selectedSeats == null || selectedSeats.isEmpty()) {
             throw new IllegalArgumentException("Chua chon ghe nao de thanh toan.");
@@ -89,7 +93,8 @@ public class InvoiceServiceImpl implements IInvoiceService {
         User staff = userRepository.findById(staffUserId)
                 .orElseThrow(() -> new IllegalArgumentException("Nhan vien khong ton tai."));
         Customer customer = (customerId != null)
-                ? customerRepository.findById(customerId).orElse(null) : null;
+                ? customerRepository.findById(customerId).orElse(null)
+                : null;
 
         for (SeatStatusDto seat : selectedSeats) {
             if (bookingSeatRepository.existsById(new BookingSeatId(showTimeId, seat.getSeatId()))) {
@@ -224,6 +229,9 @@ public class InvoiceServiceImpl implements IInvoiceService {
         String staffDisplay = staff.getUsername();
         String customerDisplay = customer != null ? customer.getFullName() : "Khach le";
         String customerPhone = customer != null ? customer.getPhone() : "";
+
+        auditLogService.logAction("TRANSACTION", "Invoice", "Xác nhận thanh toán", "None",
+                invoiceId + " (" + String.format("%,.0f VND", grandTotal) + ")");
 
         return InvoiceDto.builder()
                 .invoiceId(invoiceId)

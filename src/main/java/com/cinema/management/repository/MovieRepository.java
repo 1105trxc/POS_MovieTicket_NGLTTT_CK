@@ -4,17 +4,12 @@ import com.cinema.management.config.JpaUtil;
 import com.cinema.management.model.entity.Movie;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
-
+import com.cinema.management.model.entity.Genre;
 import java.util.List;
 
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repository (DAO) cho entity Movie.
- * Thuộc phạm vi Thành viên B – khai báo đủ để Thành viên A dùng được
- * theo "Interface First" pattern (Skill_agent – Git Workflow Rule 4).
- */
 public class MovieRepository {
 
     private final EntityManager em;
@@ -41,10 +36,17 @@ public class MovieRepository {
         }
     }
 
-
     public void save(Movie movie) {
         try {
             em.getTransaction().begin();
+            if (movie.getMovieGenres() != null) {
+                for (com.cinema.management.model.entity.MovieGenre mg : movie.getMovieGenres()) {
+                    if (mg.getGenre() != null) {
+                        mg.setGenre(em.getReference(Genre.class,
+                                mg.getGenre().getGenreId()));
+                    }
+                }
+            }
             em.persist(movie);
             em.getTransaction().commit();
         } catch (Exception e) {
@@ -56,6 +58,13 @@ public class MovieRepository {
     public void update(Movie movie) {
         try {
             em.getTransaction().begin();
+            if (movie.getMovieGenres() != null) {
+                for (com.cinema.management.model.entity.MovieGenre mg : movie.getMovieGenres()) {
+                    if (mg.getGenre() != null) {
+                        mg.setGenre(em.getReference(Genre.class, mg.getGenre().getGenreId()));
+                    }
+                }
+            }
             em.merge(movie);
             em.getTransaction().commit();
         } catch (Exception e) {

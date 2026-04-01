@@ -10,7 +10,7 @@ import com.cinema.management.model.entity.User;
  * Điểm khởi chạy ứng dụng Cinema Management System.
  */
 public class App {
-    public static final boolean DEV_MODE = true;
+    public static final boolean DEV_MODE = false;
 
     public static void main(String[] args) {
 
@@ -40,24 +40,26 @@ public class App {
                     try {
                         // Thử tìm admin trước
                         User devUser = em.createQuery(
-                            "SELECT u FROM User u JOIN FETCH u.role WHERE u.role.roleName LIKE :role", User.class)
-                            .setParameter("role", "%ADMIN%")
-                            .setMaxResults(1)
-                            .getResultList()
-                            .stream().findFirst().orElse(null);
+                                "SELECT u FROM User u JOIN FETCH u.role WHERE u.role.roleName LIKE :role", User.class)
+                                .setParameter("role", "%ADMIN%")
+                                .setMaxResults(1)
+                                .getResultList()
+                                .stream().findFirst().orElse(null);
 
                         // Nếu không có admin, lấy đại 1 user bất kỳ
                         if (devUser == null) {
                             devUser = em.createQuery("SELECT u FROM User u LEFT JOIN FETCH u.role", User.class)
-                                .setMaxResults(1)
-                                .getResultList()
-                                .stream().findFirst().orElse(null);
+                                    .setMaxResults(1)
+                                    .getResultList()
+                                    .stream().findFirst().orElse(null);
                         }
 
                         if (devUser != null) {
                             com.cinema.management.util.UserSessionContext.setCurrentUser(devUser);
-                            // Force "ADMIN" role in MainFrame so UI shows all tabs even if user is staff in DB
-                            new com.cinema.management.view.main.MainFrame(devUser.getUserId(), "ADMIN").setVisible(true);
+                            // Force "ADMIN" role in MainFrame so UI shows all tabs even if user is staff in
+                            // DB
+                            new com.cinema.management.view.main.MainFrame(devUser.getUserId(), "ADMIN")
+                                    .setVisible(true);
                         } else {
                             // Fallback nếu DB trống trơn
                             User mockDev = new User();
