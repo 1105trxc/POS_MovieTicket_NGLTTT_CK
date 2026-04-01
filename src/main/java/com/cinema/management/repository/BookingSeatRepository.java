@@ -7,9 +7,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 
 import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Repository (DAO) cho entity BookingSeat.
@@ -72,11 +70,11 @@ public class BookingSeatRepository {
         }
     }
 
-    public Map<String, String> findProcessingSeatPaymentMap(String showTimeId, LocalDateTime validFrom) {
+    public List<Object[]> findProcessingSeatRows(String showTimeId, LocalDateTime validFrom) {
         EntityManager em = JpaUtil.getEntityManager();
         try {
-            List<Object[]> rows = em.createQuery(
-                            "SELECT bs.id.seatId, p.paymentId " +
+            return em.createQuery(
+                            "SELECT bs.id.seatId, p.paymentId, i.user.userId " +
                                     "FROM BookingSeat bs " +
                                     "JOIN bs.invoice i " +
                                     "JOIN i.payments p " +
@@ -90,11 +88,6 @@ public class BookingSeatRepository {
                     .setParameter("status", "PENDING")
                     .setParameter("validFrom", validFrom)
                     .getResultList();
-            Map<String, String> map = new LinkedHashMap<>();
-            for (Object[] row : rows) {
-                map.put(String.valueOf(row[0]), String.valueOf(row[1]));
-            }
-            return map;
         } finally {
             em.close();
         }

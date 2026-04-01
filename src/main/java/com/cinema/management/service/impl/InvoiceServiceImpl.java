@@ -313,12 +313,17 @@ public class InvoiceServiceImpl implements IInvoiceService {
     }
 
     @Override
-    public InvoiceDto findPendingInvoiceByPaymentId(String paymentId) {
+    public InvoiceDto findPendingInvoiceByPaymentId(String paymentId, String staffUserId) {
         Payment payment = paymentRepository.findByIdWithInvoice(paymentId)
                 .orElseThrow(() -> new IllegalArgumentException("Khong tim thay giao dich thanh toan."));
 
         if (!"QR".equalsIgnoreCase(payment.getPaymentMethod())) {
             throw new IllegalArgumentException("Giao dich khong phai thanh toan QR.");
+        }
+        String ownerUserId = payment.getInvoice() != null && payment.getInvoice().getUser() != null
+                ? payment.getInvoice().getUser().getUserId() : null;
+        if (!java.util.Objects.equals(ownerUserId, staffUserId)) {
+            throw new IllegalArgumentException("Ban khong co quyen tiep tuc thanh toan don nay.");
         }
         if (!"PENDING".equalsIgnoreCase(payment.getStatus())) {
             throw new IllegalArgumentException("Giao dich QR nay khong con o trang thai cho thanh toan.");

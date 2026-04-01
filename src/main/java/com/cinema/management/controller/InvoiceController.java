@@ -84,8 +84,8 @@ public class InvoiceController {
         return invoiceService.confirmQrPayment(paymentId, transactionCode);
     }
 
-    public InvoiceDto findPendingInvoiceByPaymentId(String paymentId) {
-        return invoiceService.findPendingInvoiceByPaymentId(paymentId);
+    public InvoiceDto findPendingInvoiceByPaymentId(String paymentId, String staffUserId) {
+        return invoiceService.findPendingInvoiceByPaymentId(paymentId, staffUserId);
     }
 }
 

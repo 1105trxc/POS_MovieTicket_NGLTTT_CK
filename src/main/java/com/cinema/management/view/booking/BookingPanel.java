@@ -363,6 +363,8 @@ public class BookingPanel extends JPanel {
     // ── Logic Data Matrix & Vẽ Nút Custom ─────────────────────────────────────
 
     private void loadMatrixData() {
+        resetSeatMapToEmptyState();
+
         LocalDateTime now = LocalDateTime.now();
         allShowTimes = bookingController.getAllShowTimes().stream()
                 .filter(st -> {
@@ -376,6 +378,28 @@ public class BookingPanel extends JPanel {
         selectedMovieId = null;
         currentShowTimeId = null;
         renderDateRow();
+    }
+
+    private void resetSeatMapToEmptyState() {
+        if (seatMapPanel != null) {
+            seatMapPanel.dispose();
+            seatMapPanel = null;
+        }
+
+        seatMapContainer.removeAll();
+        JLabel hint = new JLabel("← Chọn suất chiếu ở trên để hiển thị sơ đồ ghế", SwingConstants.CENTER);
+        hint.setForeground(new Color(148, 163, 184));
+        hint.setFont(new Font("Segoe UI", Font.ITALIC, 16));
+        seatMapContainer.add(hint, BorderLayout.CENTER);
+        seatMapContainer.revalidate();
+        seatMapContainer.repaint();
+
+        pendingInvoiceToResume = null;
+        seatListModel.clear();
+        fbqMap.clear();
+        refreshFbList();
+        lblSeatTotal.setText("0 VNĐ");
+        lblGrandTotal.setText("0 VNĐ");
     }
 
     private void renderDateRow() {
@@ -571,7 +595,7 @@ public class BookingPanel extends JPanel {
             return;
         }
         try {
-            InvoiceDto pendingInvoice = invoiceController.findPendingInvoiceByPaymentId(paymentId);
+            InvoiceDto pendingInvoice = invoiceController.findPendingInvoiceByPaymentId(paymentId, currentUserId);
             pendingInvoiceToResume = pendingInvoice;
             if (onProceedToCheckout != null) {
                 onProceedToCheckout.run();

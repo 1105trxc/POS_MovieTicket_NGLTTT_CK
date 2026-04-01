@@ -74,8 +74,18 @@ public class BookingServiceImpl implements IBookingService {
                 .orElseThrow(() -> new IllegalArgumentException("Suat chieu khong ton tai: " + showTimeId));
         List<Seat> seats = seatRepository.findByRoomId(showTime.getRoom().getRoomId());
 
-        Map<String, String> processingPaymentMap = bookingSeatRepository.findProcessingSeatPaymentMap(
+        List<Object[]> processingRows = bookingSeatRepository.findProcessingSeatRows(
                 showTimeId, LocalDateTime.now().minusMinutes(QR_EXPIRE_MINUTES));
+        Map<String, String> processingPaymentMap = processingRows.stream()
+                .collect(Collectors.toMap(
+                        row -> String.valueOf(row[0]),
+                        row -> String.valueOf(row[1]),
+                        (first, second) -> first));
+        Map<String, String> processingOwnerMap = processingRows.stream()
+                .collect(Collectors.toMap(
+                        row -> String.valueOf(row[0]),
+                        row -> String.valueOf(row[2]),
+                        (first, second) -> first));
 
         Map<String, SeatLock> lockMap = seatLockRepository.findActiveLocksForShowTime(showTimeId)
                 .stream()
@@ -94,7 +104,9 @@ public class BookingServiceImpl implements IBookingService {
 
             if (processingPaymentMap.containsKey(seatId)) {
                 status = Status.PROCESSING;
-                pendingPaymentId = processingPaymentMap.get(seatId);
+                String ownerUserId = processingOwnerMap.get(seatId);
+                boolean isOwner = Objects.equals(currentUserId, ownerUserId);
+                pendingPaymentId = isOwner ? processingPaymentMap.get(seatId) : null;
             } else if (bookedSeatIds.contains(seatId)) {
                 status = Status.BOOKED;
             } else if (lockMap.containsKey(seatId)) {

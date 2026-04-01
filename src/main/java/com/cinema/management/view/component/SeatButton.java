@@ -60,8 +60,14 @@ public class SeatButton extends JButton {
                 setBackground(COLOR_LOCKED);
                 setForeground(Color.WHITE);
                 setBorder(BorderFactory.createLineBorder(COLOR_LOCKED.darker(), 2));
-                setEnabled(true);
-                setToolTipText("Ghe dang cho thanh toan QR. Bam de tiep tuc thanh toan.");
+                boolean canResumePayment = seatStatus.getPendingPaymentId() != null
+                        && !seatStatus.getPendingPaymentId().isBlank();
+                setEnabled(canResumePayment);
+                if (canResumePayment) {
+                    setToolTipText("Ghe dang cho thanh toan QR. Bam de tiep tuc thanh toan.");
+                } else {
+                    setToolTipText("Ghe dang duoc nhan vien khac xu ly thanh toan QR.");
+                }
                 break;
             case BOOKED:
                 setBackground(COLOR_BOOKED);

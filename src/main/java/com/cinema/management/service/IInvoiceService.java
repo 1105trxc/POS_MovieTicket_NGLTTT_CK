@@ -58,6 +58,6 @@ public interface IInvoiceService {
     /**
      * Lay thong tin hoa don dang cho thanh toan QR theo paymentId.
      */
-    InvoiceDto findPendingInvoiceByPaymentId(String paymentId);
+    InvoiceDto findPendingInvoiceByPaymentId(String paymentId, String staffUserId);
 }
 
