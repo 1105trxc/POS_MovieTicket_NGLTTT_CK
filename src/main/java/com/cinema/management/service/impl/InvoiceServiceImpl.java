@@ -29,6 +29,9 @@ import com.cinema.management.service.IPointService;
 import com.cinema.management.service.IPromotionService;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -41,6 +44,7 @@ import java.util.UUID;
  */
 public class InvoiceServiceImpl implements IInvoiceService {
     private static final int SELLABLE_AFTER_START_MINUTES = 30;
+    private static final int QR_EXPIRE_MINUTES = 15;
 
     private final InvoiceRepository invoiceRepository;
     private final BookingSeatRepository bookingSeatRepository;
@@ -154,7 +158,9 @@ public class InvoiceServiceImpl implements IInvoiceService {
                 .totalAmount(grandTotal)
                 .usedPoints(usedPoints)
                 .discountFromPoints(pointDiscount)
+                .discountFromPromotion(promoDiscount)
                 .earnedPoints(earnedPoints)
+                .finalAmount(grandTotal)
                 .createdAt(LocalDateTime.now())
                 .build();
         invoiceRepository.save(invoice);
@@ -200,19 +206,27 @@ public class InvoiceServiceImpl implements IInvoiceService {
             orderDetailRepository.saveAll(orderDetails);
         }
 
+        boolean isQrPayment = "QR".equalsIgnoreCase(paymentMethod) || "TRANSFER".equalsIgnoreCase(paymentMethod);
+        String normalizedPaymentMethod = isQrPayment ? "QR" : paymentMethod;
+        String paymentStatus = isQrPayment ? "PENDING" : "SUCCESS";
+        String paymentReference = "TXN-" + System.currentTimeMillis();
+        String qrPayload = isQrPayment ? buildQrPayload(invoiceId, grandTotal, paymentReference) : null;
+        LocalDateTime qrExpiredAt = isQrPayment ? LocalDateTime.now().plusMinutes(QR_EXPIRE_MINUTES) : null;
+
         Payment payment = Payment.builder()
                 .paymentId(UUID.randomUUID().toString())
                 .invoice(invoice)
                 .amount(grandTotal)
-                .paymentMethod(paymentMethod)
-                .status("SUCCESS")
+                .paymentMethod(normalizedPaymentMethod)
+                .transactionCode(paymentReference)
+                .status(paymentStatus)
                 .createdAt(LocalDateTime.now())
                 .build();
         paymentRepository.save(payment);
 
         seatLockRepository.deleteUserLocksForShowTime(showTimeId, staffUserId);
 
-        if (customer != null) {
+        if (!isQrPayment && customer != null) {
             if (usedPoints > 0) {
                 pointService.redeemPoints(customer, invoice, usedPoints);
             }
@@ -240,14 +254,154 @@ public class InvoiceServiceImpl implements IInvoiceService {
                 .grandTotal(grandTotal)
                 .promoCode(usedPromoCode)
                 .earnedPoints(earnedPoints)
-                .paymentMethod(paymentMethod)
+                .paymentMethod(normalizedPaymentMethod)
+                .paymentId(payment.getPaymentId())
+                .paymentStatus(paymentStatus)
+                .paymentReference(paymentReference)
+                .qrPayload(qrPayload)
+                .qrExpiredAt(qrExpiredAt)
                 .build();
+    }
+
+    @Override
+    public String getPaymentStatus(String paymentId) {
+        Payment payment = paymentRepository.findByIdWithInvoice(paymentId)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay giao dich thanh toan."));
+        if ("PENDING".equalsIgnoreCase(payment.getStatus())) {
+            LocalDateTime expiredAt = payment.getCreatedAt().plusMinutes(QR_EXPIRE_MINUTES);
+            if (LocalDateTime.now().isAfter(expiredAt)) {
+                invoiceRepository.deleteById(payment.getInvoice().getInvoiceId());
+                return "FAILED";
+            }
+        }
+        return payment.getStatus();
+    }
+
+    @Override
+    public boolean confirmQrPayment(String paymentId, String transactionCode) {
+        Payment payment = paymentRepository.findByIdWithInvoice(paymentId)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay giao dich thanh toan."));
+
+        if ("SUCCESS".equalsIgnoreCase(payment.getStatus())) {
+            return true;
+        }
+        if ("PENDING".equalsIgnoreCase(payment.getStatus())) {
+            LocalDateTime expiredAt = payment.getCreatedAt().plusMinutes(QR_EXPIRE_MINUTES);
+            if (LocalDateTime.now().isAfter(expiredAt)) {
+                invoiceRepository.deleteById(payment.getInvoice().getInvoiceId());
+                throw new IllegalArgumentException("Ma QR da het han. Vui long tao don moi.");
+            }
+        }
+
+        String finalTransactionCode = (transactionCode != null && !transactionCode.isBlank())
+                ? transactionCode : payment.getTransactionCode();
+        boolean updated = paymentRepository.updateStatus(paymentId, "SUCCESS", finalTransactionCode);
+        if (!updated) {
+            return false;
+        }
+
+        Invoice invoice = payment.getInvoice();
+        if (invoice != null && invoice.getCustomer() != null) {
+            if (invoice.getUsedPoints() > 0) {
+                pointService.redeemPoints(invoice.getCustomer(), invoice, invoice.getUsedPoints());
+            }
+            if (invoice.getEarnedPoints() > 0) {
+                pointService.addPoints(invoice.getCustomer(), invoice, invoice.getEarnedPoints());
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public InvoiceDto findPendingInvoiceByPaymentId(String paymentId) {
+        Payment payment = paymentRepository.findByIdWithInvoice(paymentId)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay giao dich thanh toan."));
+
+        if (!"QR".equalsIgnoreCase(payment.getPaymentMethod())) {
+            throw new IllegalArgumentException("Giao dich khong phai thanh toan QR.");
+        }
+        if (!"PENDING".equalsIgnoreCase(payment.getStatus())) {
+            throw new IllegalArgumentException("Giao dich QR nay khong con o trang thai cho thanh toan.");
+        }
+
+        LocalDateTime qrExpiredAt = payment.getCreatedAt().plusMinutes(QR_EXPIRE_MINUTES);
+        if (LocalDateTime.now().isAfter(qrExpiredAt)) {
+            invoiceRepository.deleteById(payment.getInvoice().getInvoiceId());
+            throw new IllegalArgumentException("Ma QR da het han. Vui long tao don moi.");
+        }
+
+        return buildInvoiceDtoFromPersistedData(payment, qrExpiredAt);
     }
 
     private Seat buildSeatRef(String seatId) {
         Seat s = new Seat();
         s.setSeatId(seatId);
         return s;
+    }
+
+    private InvoiceDto buildInvoiceDtoFromPersistedData(Payment payment, LocalDateTime qrExpiredAt) {
+        Invoice invoice = invoiceRepository.findByIdWithDetails(payment.getInvoice().getInvoiceId())
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay hoa don."));
+
+        List<BookingSeat> bookingSeats = bookingSeatRepository.findByInvoiceIdWithDetails(invoice.getInvoiceId());
+        List<OrderDetail> orderDetails = orderDetailRepository.findByInvoiceIdWithProduct(invoice.getInvoiceId());
+
+        List<TicketDto> tickets = new ArrayList<>();
+        BigDecimal seatTotal = BigDecimal.ZERO;
+        for (BookingSeat bs : bookingSeats) {
+            seatTotal = seatTotal.add(bs.getPrice() != null ? bs.getPrice() : BigDecimal.ZERO);
+            ShowTime showTime = bs.getShowTime();
+            tickets.add(TicketDto.builder()
+                    .invoiceId(invoice.getInvoiceId())
+                    .movieTitle(showTime != null && showTime.getMovie() != null ? showTime.getMovie().getTitle() : "")
+                    .roomName(showTime != null && showTime.getRoom() != null ? showTime.getRoom().getRoomName() : "")
+                    .showTime(showTime != null ? showTime.getStartTime() : null)
+                    .seatLabel(bs.getSeat() != null ? bs.getSeat().getRowChar() + bs.getSeat().getSeatNumber() : "")
+                    .seatTypeName(bs.getSeat() != null && bs.getSeat().getSeatType() != null ? bs.getSeat().getSeatType().getTypeName() : "")
+                    .price(bs.getPrice() != null ? bs.getPrice() : BigDecimal.ZERO)
+                    .customerName(invoice.getCustomer() != null ? invoice.getCustomer().getFullName() : "Khach le")
+                    .build());
+        }
+
+        List<String> fbLines = new ArrayList<>();
+        BigDecimal fbTotal = BigDecimal.ZERO;
+        for (OrderDetail od : orderDetails) {
+            BigDecimal line = (od.getPrice() != null ? od.getPrice() : BigDecimal.ZERO)
+                    .multiply(BigDecimal.valueOf(od.getQuantity()));
+            fbTotal = fbTotal.add(line);
+            String productName = od.getProduct() != null ? od.getProduct().getProductName() : od.getId().getProductId();
+            fbLines.add(productName + " x" + od.getQuantity() + " = " + String.format("%,.0f", line) + " VND");
+        }
+
+        BigDecimal pointDiscount = invoice.getDiscountFromPoints() != null ? invoice.getDiscountFromPoints() : BigDecimal.ZERO;
+        BigDecimal promoDiscount = invoice.getDiscountFromPromotion() != null ? invoice.getDiscountFromPromotion() : BigDecimal.ZERO;
+        String customerName = invoice.getCustomer() != null ? invoice.getCustomer().getFullName() : "Khach le";
+        String customerPhone = invoice.getCustomer() != null ? invoice.getCustomer().getPhone() : "";
+
+        return InvoiceDto.builder()
+                .invoiceId(invoice.getInvoiceId())
+                .createdAt(invoice.getCreatedAt())
+                .staffName(invoice.getUser() != null ? invoice.getUser().getUsername() : "")
+                .customerName(customerName)
+                .customerPhone(customerPhone)
+                .tickets(tickets)
+                .fbLines(fbLines)
+                .seatTotal(seatTotal)
+                .fbTotal(fbTotal)
+                .promotionDiscount(promoDiscount)
+                .pointDiscount(pointDiscount)
+                .grandTotal(payment.getAmount() != null ? payment.getAmount() : BigDecimal.ZERO)
+                .promoCode(invoice.getPromotion() != null ? invoice.getPromotion().getCode() : null)
+                .earnedPoints(invoice.getEarnedPoints() != null ? invoice.getEarnedPoints() : 0)
+                .paymentMethod(payment.getPaymentMethod())
+                .paymentId(payment.getPaymentId())
+                .paymentStatus(payment.getStatus())
+                .paymentReference(payment.getTransactionCode())
+                .qrPayload(buildQrPayload(invoice.getInvoiceId(),
+                        payment.getAmount() != null ? payment.getAmount() : BigDecimal.ZERO,
+                        payment.getTransactionCode()))
+                .qrExpiredAt(qrExpiredAt)
+                .build();
     }
 
     private void validateShowTimeIsSellable(ShowTime showTime) {
@@ -259,5 +413,15 @@ public class InvoiceServiceImpl implements IInvoiceService {
         if (now.isAfter(sellableUntil)) {
             throw new IllegalArgumentException("Da qua 30 phut ke tu gio bat dau suat chieu. Khong the dat ve.");
         }
+    }
+
+    private String buildQrPayload(String invoiceId, BigDecimal amount, String paymentReference) {
+        String amountText = amount.setScale(0, RoundingMode.HALF_UP).toPlainString();
+        String addInfo = URLEncoder.encode("THANH TOAN " + invoiceId + " " + paymentReference, StandardCharsets.UTF_8);
+        String accountName = URLEncoder.encode("Cinema Nexus", StandardCharsets.UTF_8);
+        return "https://img.vietqr.io/image/TPB-69903042005-print.png"
+                + "?amount=" + amountText
+                + "&addInfo=" + addInfo
+                + "&accountName=" + accountName;
     }
 }

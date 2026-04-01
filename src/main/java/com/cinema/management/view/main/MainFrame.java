@@ -1,6 +1,7 @@
 package com.cinema.management.view.main;
 
 import com.cinema.management.model.dto.SeatStatusDto;
+import com.cinema.management.model.dto.InvoiceDto;
 import com.cinema.management.view.booking.BookingPanel;
 import com.cinema.management.view.booking.CheckoutPanel;
 import com.cinema.management.view.management.RoomManagementPanel;
@@ -253,6 +254,24 @@ public class MainFrame extends JFrame {
     }
 
     private void switchToCheckout() {
+        InvoiceDto pendingInvoice = bookingPanel.consumePendingInvoiceToResume();
+        if (pendingInvoice != null) {
+            CheckoutPanel checkoutPanel = new CheckoutPanel(
+                    bookingPanel.getCurrentShowTimeId(),
+                    bookingPanel.getCurrentUserId(),
+                    java.util.Collections.emptyList(),
+                    java.util.Collections.emptyMap(),
+                    pendingInvoice.getSeatTotal(),
+                    pendingInvoice.getFbTotal(),
+                    pendingInvoice);
+            checkoutPanel.setOnBack(this::switchToBooking);
+
+            posCardContainer.add(checkoutPanel, CARD_CHECKOUT);
+            posCardLayout.show(posCardContainer, CARD_CHECKOUT);
+            checkoutPanel.openPendingQrPayment();
+            return;
+        }
+
         String showTimeId = bookingPanel.getCurrentShowTimeId();
         String staffUserId = bookingPanel.getCurrentUserId();
         List<SeatStatusDto> seats = bookingPanel.getCurrentSelectedSeats();

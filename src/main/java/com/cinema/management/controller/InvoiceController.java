@@ -75,5 +75,17 @@ public class InvoiceController {
                 showTimeId, staffUserId, customerId,
                 selectedSeats, fbItems, promoCode, usedPoints, paymentMethod);
     }
+
+    public String getPaymentStatus(String paymentId) {
+        return invoiceService.getPaymentStatus(paymentId);
+    }
+
+    public boolean confirmQrPayment(String paymentId, String transactionCode) {
+        return invoiceService.confirmQrPayment(paymentId, transactionCode);
+    }
+
+    public InvoiceDto findPendingInvoiceByPaymentId(String paymentId) {
+        return invoiceService.findPendingInvoiceByPaymentId(paymentId);
+    }
 }
 

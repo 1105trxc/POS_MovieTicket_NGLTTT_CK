@@ -36,5 +36,10 @@ public class InvoiceDto {
     private final String  promoCode;
     private final int     earnedPoints;
     private final String  paymentMethod;
+    private final String  paymentId;
+    private final String  paymentStatus;
+    private final String  paymentReference;
+    private final String  qrPayload;
+    private final LocalDateTime qrExpiredAt;
 }
 

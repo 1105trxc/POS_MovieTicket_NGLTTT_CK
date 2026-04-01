@@ -9,6 +9,7 @@ import com.cinema.management.model.entity.SeatLockId;
 import com.cinema.management.model.entity.ShowTime;
 import com.cinema.management.model.entity.User;
 import com.cinema.management.repository.BookingSeatRepository;
+import com.cinema.management.repository.InvoiceRepository;
 import com.cinema.management.repository.SeatLockRepository;
 import com.cinema.management.repository.SeatRepository;
 import com.cinema.management.repository.ShowTimeRepository;
@@ -33,10 +34,12 @@ public class BookingServiceImpl implements IBookingService {
 
     private static final int MAX_LOCK_MINUTES = 15;
     private static final int SELLABLE_AFTER_START_MINUTES = 30;
+    private static final int QR_EXPIRE_MINUTES = 15;
 
     private final SeatRepository seatRepository;
     private final SeatLockRepository seatLockRepository;
     private final BookingSeatRepository bookingSeatRepository;
+    private final InvoiceRepository invoiceRepository;
     private final ShowTimeRepository showTimeRepository;
     private final UserRepository userRepository;
 
@@ -44,6 +47,7 @@ public class BookingServiceImpl implements IBookingService {
         this.seatRepository = new SeatRepository();
         this.seatLockRepository = new SeatLockRepository();
         this.bookingSeatRepository = new BookingSeatRepository();
+        this.invoiceRepository = new InvoiceRepository();
         this.showTimeRepository = new ShowTimeRepository();
         this.userRepository = new UserRepository();
     }
@@ -51,20 +55,27 @@ public class BookingServiceImpl implements IBookingService {
     public BookingServiceImpl(SeatRepository seatRepository,
                               SeatLockRepository seatLockRepository,
                               BookingSeatRepository bookingSeatRepository,
+                              InvoiceRepository invoiceRepository,
                               ShowTimeRepository showTimeRepository,
                               UserRepository userRepository) {
         this.seatRepository = seatRepository;
         this.seatLockRepository = seatLockRepository;
         this.bookingSeatRepository = bookingSeatRepository;
+        this.invoiceRepository = invoiceRepository;
         this.showTimeRepository = showTimeRepository;
         this.userRepository = userRepository;
     }
 
     @Override
     public List<SeatStatusDto> getSeatStatuses(String showTimeId, String currentUserId) {
+        cleanupExpiredPendingQrInvoices(showTimeId);
+
         ShowTime showTime = showTimeRepository.findById(showTimeId)
                 .orElseThrow(() -> new IllegalArgumentException("Suat chieu khong ton tai: " + showTimeId));
         List<Seat> seats = seatRepository.findByRoomId(showTime.getRoom().getRoomId());
+
+        Map<String, String> processingPaymentMap = bookingSeatRepository.findProcessingSeatPaymentMap(
+                showTimeId, LocalDateTime.now().minusMinutes(QR_EXPIRE_MINUTES));
 
         Map<String, SeatLock> lockMap = seatLockRepository.findActiveLocksForShowTime(showTimeId)
                 .stream()
@@ -79,8 +90,12 @@ public class BookingServiceImpl implements IBookingService {
         for (Seat seat : seats) {
             String seatId = seat.getSeatId();
             Status status;
+            String pendingPaymentId = null;
 
-            if (bookedSeatIds.contains(seatId)) {
+            if (processingPaymentMap.containsKey(seatId)) {
+                status = Status.PROCESSING;
+                pendingPaymentId = processingPaymentMap.get(seatId);
+            } else if (bookedSeatIds.contains(seatId)) {
                 status = Status.BOOKED;
             } else if (lockMap.containsKey(seatId)) {
                 SeatLock lock = lockMap.get(seatId);
@@ -98,6 +113,7 @@ public class BookingServiceImpl implements IBookingService {
                     .seatTypeName(seat.getSeatType() != null ? seat.getSeatType().getTypeName() : "")
                     .basePrice(seat.getSeatType() != null ? seat.getSeatType().getBasePrice() : java.math.BigDecimal.ZERO)
                     .status(status)
+                    .pendingPaymentId(pendingPaymentId)
                     .build());
         }
 
@@ -108,6 +124,8 @@ public class BookingServiceImpl implements IBookingService {
 
     @Override
     public void lockSeat(String showTimeId, String seatId, String userId) {
+        cleanupExpiredPendingQrInvoices(showTimeId);
+
         User user = resolveUserForLock(userId);
         ShowTime showTimeEntity = showTimeRepository.findById(showTimeId)
                 .orElseThrow(() -> new IllegalArgumentException("Suat chieu khong ton tai: " + showTimeId));
@@ -194,5 +212,13 @@ public class BookingServiceImpl implements IBookingService {
                 .filter(s -> s > 0)
                 .min()
                 .orElse(-1L);
+    }
+
+    private void cleanupExpiredPendingQrInvoices(String showTimeId) {
+        LocalDateTime expiredBefore = LocalDateTime.now().minusMinutes(QR_EXPIRE_MINUTES);
+        List<String> expiredInvoiceIds = invoiceRepository.findExpiredPendingQrInvoiceIdsByShowTime(showTimeId, expiredBefore);
+        for (String invoiceId : expiredInvoiceIds) {
+            invoiceRepository.deleteById(invoiceId);
+        }
     }
 }

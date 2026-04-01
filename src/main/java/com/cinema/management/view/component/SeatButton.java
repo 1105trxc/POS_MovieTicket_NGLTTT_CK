@@ -9,31 +9,25 @@ import java.awt.*;
 
 public class SeatButton extends JButton {
     private SeatStatusDto seatStatus;
-    private final boolean isSofa;
 
-    // Bảng màu FlatLaf chuẩn rạp phim
-    private static final Color COLOR_AVAILABLE = new Color(255, 255, 255); // Trắng
-    private static final Color COLOR_SELECTED = new Color(14, 165, 233);  // Xanh dương
-    private static final Color COLOR_LOCKED = new Color(245, 158, 11);  // Cam
-    private static final Color COLOR_BOOKED = new Color(148, 163, 184); // Xám
-    private static final Color BORDER_AVAILABLE = new Color(203, 213, 225);
+    private static final Color COLOR_SELECTED = new Color(14, 165, 233);
+    private static final Color COLOR_LOCKED = new Color(245, 158, 11);
+    private static final Color COLOR_BOOKED = new Color(148, 163, 184);
 
     public SeatButton(SeatStatusDto seatStatus, boolean isSofa) {
         this.seatStatus = seatStatus;
-        this.isSofa = isSofa;
 
         if (isSofa) {
-            setText("❤ " + seatStatus.getSeatNumber()); // Thêm icon tim cho ghế đôi
-            setPreferredSize(new Dimension(98, 45)); // Chiều rộng = 45(ô1) + 8(gap) + 45(ô2)
+            setText("❤ " + seatStatus.getSeatNumber());
+            setPreferredSize(new Dimension(98, 45));
         } else {
             setText(String.valueOf(seatStatus.getSeatNumber()));
-            setPreferredSize(new Dimension(45, 45)); // Hình vuông tiêu chuẩn
+            setPreferredSize(new Dimension(45, 45));
         }
 
         setFont(new Font("Segoe UI", Font.BOLD, 12));
         setFocusPainted(false);
         setCursor(new Cursor(Cursor.HAND_CURSOR));
-
         updateStatus(seatStatus);
     }
 
@@ -43,36 +37,41 @@ public class SeatButton extends JButton {
 
         switch (status) {
             case AVAILABLE:
-                // Thay thế khối if-else bằng ĐÚNG 1 DÒNG GỌI FACTORY
                 SeatStyleFactory.applyAvailableStyle(seatStatus.getSeatTypeName(), this);
-
                 setEnabled(true);
-                setToolTipText(String.format("Ghế %s - %s - %,.0f VNĐ",
+                setToolTipText(String.format("Ghe %s - %s - %,.0f VND",
                         seatStatus.getLabel(), seatStatus.getSeatTypeName(), seatStatus.getBasePrice()));
                 break;
-
             case SELECTED:
                 setBackground(COLOR_SELECTED);
                 setForeground(Color.WHITE);
                 setBorder(BorderFactory.createLineBorder(COLOR_SELECTED.darker(), 2));
                 setEnabled(true);
-                setToolTipText("Ghế bạn đang chọn");
+                setToolTipText("Ghe ban dang chon");
                 break;
-
             case LOCKED:
                 setBackground(COLOR_LOCKED);
                 setForeground(Color.WHITE);
                 setBorder(BorderFactory.createLineBorder(COLOR_LOCKED.darker(), 2));
-                setEnabled(false); // Khóa không cho bấm
-                setToolTipText("Ghế " + seatStatus.getLabel() + " đang được nhân viên khác thao tác");
+                setEnabled(false);
+                setToolTipText("Ghe dang duoc nhan vien khac thao tac");
                 break;
-
+            case PROCESSING:
+                setBackground(COLOR_LOCKED);
+                setForeground(Color.WHITE);
+                setBorder(BorderFactory.createLineBorder(COLOR_LOCKED.darker(), 2));
+                setEnabled(true);
+                setToolTipText("Ghe dang cho thanh toan QR. Bam de tiep tuc thanh toan.");
+                break;
             case BOOKED:
                 setBackground(COLOR_BOOKED);
                 setForeground(Color.WHITE);
                 setBorder(BorderFactory.createLineBorder(COLOR_BOOKED.darker(), 2));
-                setEnabled(false); // Đã bán thì nghỉ bấm
-                setToolTipText("Ghế " + seatStatus.getLabel() + " đã thanh toán");
+                setEnabled(false);
+                setToolTipText("Ghe da thanh toan");
+                break;
+            default:
+                setEnabled(false);
                 break;
         }
     }

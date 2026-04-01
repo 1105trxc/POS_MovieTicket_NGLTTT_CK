@@ -7,8 +7,7 @@ import lombok.Getter;
 import java.math.BigDecimal;
 
 /**
- * DTO chứa trạng thái hiển thị của 1 ghế trên sơ đồ ghế.
- * Được tổng hợp từ Seat + SeatLock + BookingSeat.
+ * DTO for seat status on the seat map.
  */
 @Getter
 @Builder
@@ -16,19 +15,20 @@ import java.math.BigDecimal;
 public class SeatStatusDto {
 
     public enum Status {
-        AVAILABLE,   // Trống – có thể chọn
-        SELECTED,    // Đang được chính user này chọn (highlight)
-        LOCKED,      // Đang bị user khác khóa (15 phút)
-        BOOKED       // Đã bán
+        AVAILABLE,
+        SELECTED,
+        LOCKED,
+        PROCESSING,
+        BOOKED
     }
 
-    private final String     seatId;
-    private final String     rowChar;
-    private final int        seatNumber;
-    private final String     seatTypeName;
-    /** Giá hiện tại của loại ghế – dùng để tính tổng trước khi thanh toán. */
+    private final String seatId;
+    private final String rowChar;
+    private final int seatNumber;
+    private final String seatTypeName;
     private final BigDecimal basePrice;
-    private final Status     status;
+    private final Status status;
+    private final String pendingPaymentId;
 
     public String getLabel() {
         return rowChar + seatNumber;

@@ -28,5 +28,20 @@ public class OrderDetailRepository {
             em.close();
         }
     }
+
+    public List<OrderDetail> findByInvoiceIdWithProduct(String invoiceId) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            return em.createQuery(
+                            "SELECT od FROM OrderDetail od " +
+                                    "JOIN FETCH od.product p " +
+                                    "WHERE od.invoice.invoiceId = :invoiceId",
+                            OrderDetail.class)
+                    .setParameter("invoiceId", invoiceId)
+                    .getResultList();
+        } finally {
+            em.close();
+        }
+    }
 }
 

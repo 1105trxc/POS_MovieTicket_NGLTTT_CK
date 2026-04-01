@@ -43,5 +43,21 @@ public interface IInvoiceService {
                         String promoCode,
                         int usedPoints,
                         String paymentMethod);
+
+    /**
+     * Lay trang thai thanh toan theo paymentId.
+     * @return PENDING | SUCCESS | FAILED
+     */
+    String getPaymentStatus(String paymentId);
+
+    /**
+     * Xac nhan thanh toan QR thanh cong (co the duoc goi boi webhook/callback).
+     */
+    boolean confirmQrPayment(String paymentId, String transactionCode);
+
+    /**
+     * Lay thong tin hoa don dang cho thanh toan QR theo paymentId.
+     */
+    InvoiceDto findPendingInvoiceByPaymentId(String paymentId);
 }
 

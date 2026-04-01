@@ -30,6 +30,7 @@ public class SeatMapPanel extends JPanel {
     private final JButton btnCancelAll = new JButton("✖ Hủy tất cả");
 
     private Consumer<List<SeatStatusDto>> onSelectionChanged;
+    private Consumer<SeatStatusDto> onProcessingSeatClicked;
     private javax.swing.Timer countdownTimer;
 
     // Bảng màu giống với SeatButton
@@ -55,6 +56,10 @@ public class SeatMapPanel extends JPanel {
 
     public void setOnSelectionChanged(Consumer<List<SeatStatusDto>> callback) {
         this.onSelectionChanged = callback;
+    }
+
+    public void setOnProcessingSeatClicked(Consumer<SeatStatusDto> callback) {
+        this.onProcessingSeatClicked = callback;
     }
 
     public void loadShowTime(String showTimeId) {
@@ -278,6 +283,11 @@ public class SeatMapPanel extends JPanel {
                 bookingController.lockSeat(showTimeId, seatId, currentUserId);
             } else if (currentStatus == Status.SELECTED) {
                 bookingController.unlockSeat(showTimeId, seatId, currentUserId);
+            } else if (currentStatus == Status.PROCESSING) {
+                if (onProcessingSeatClicked != null) {
+                    onProcessingSeatClicked.accept(btn.getSeatStatus());
+                }
+                return;
             }
         } catch (IllegalStateException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(),

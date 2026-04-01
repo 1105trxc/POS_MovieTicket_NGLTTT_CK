@@ -12,6 +12,9 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.math.BigDecimal;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
@@ -21,6 +24,7 @@ import java.util.Optional;
 public class CheckoutPanel extends JPanel {
 
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final int QR_EXPIRE_MINUTES = 15;
 
     // ── Colors ────────────────────────────────────────────────────────────────
     private static final Color BG = new Color(245, 247, 250);
@@ -59,7 +63,7 @@ public class CheckoutPanel extends JPanel {
     // ── Payment method ────────────────────────────────────────────────────────
     private final JRadioButton rdoCash = new JRadioButton("Tiền mặt", true);
     private final JRadioButton rdoCard = new JRadioButton("Thẻ ngân hàng");
-    private final JRadioButton rdoTransfer = new JRadioButton("Chuyển khoản");
+    private final JRadioButton rdoTransfer = new JRadioButton("Quét QR");
 
     // ── Summary labels ────────────────────────────────────────────────────────
     private final JLabel lblSeatTotal = new JLabel("0 VNĐ");
@@ -76,17 +80,27 @@ public class CheckoutPanel extends JPanel {
 
     private final BigDecimal seatTotal;
     private final BigDecimal fbTotal;
+    private final InvoiceDto pendingInvoice;
 
     public CheckoutPanel(String showTimeId, String staffUserId,
                          List<SeatStatusDto> selectedSeats,
                          Map<String, Integer> fbItems,
                          BigDecimal seatTotal, BigDecimal fbTotal) {
+        this(showTimeId, staffUserId, selectedSeats, fbItems, seatTotal, fbTotal, null);
+    }
+
+    public CheckoutPanel(String showTimeId, String staffUserId,
+                         List<SeatStatusDto> selectedSeats,
+                         Map<String, Integer> fbItems,
+                         BigDecimal seatTotal, BigDecimal fbTotal,
+                         InvoiceDto pendingInvoice) {
         this.showTimeId = showTimeId;
         this.staffUserId = staffUserId;
         this.selectedSeats = selectedSeats != null ? selectedSeats : Collections.emptyList();
         this.fbItems = fbItems != null ? fbItems : Collections.emptyMap();
         this.seatTotal = seatTotal != null ? seatTotal : BigDecimal.ZERO;
         this.fbTotal = fbTotal != null ? fbTotal : BigDecimal.ZERO;
+        this.pendingInvoice = pendingInvoice;
 
         setLayout(new BorderLayout(0, 0));
         setBackground(BG);
@@ -100,6 +114,17 @@ public class CheckoutPanel extends JPanel {
 
         refreshSummary(BigDecimal.ZERO, BigDecimal.ZERO);
         bindHotkeys();
+    }
+
+    public void openPendingQrPayment() {
+        if (pendingInvoice == null) {
+            return;
+        }
+        SwingUtilities.invokeLater(() -> {
+            btnConfirm.setEnabled(false);
+            btnConfirm.setText("Dang xu ly...");
+            showQrPaymentDialog(pendingInvoice);
+        });
     }
 
     public void setOnBack(Runnable callback) {
@@ -470,14 +495,20 @@ public class CheckoutPanel extends JPanel {
     }
 
     private void confirmCheckout() {
+        if (pendingInvoice != null) {
+            btnConfirm.setEnabled(false);
+            btnConfirm.setText("Đang xử lý...");
+            showQrPaymentDialog(pendingInvoice);
+            return;
+        }
         if (selectedSeats.isEmpty()) {
             showError("Không có ghế nào được chọn.");
             return;
         }
 
-        String paymentMethod = rdoCard.isSelected() ? "CARD" : rdoTransfer.isSelected() ? "TRANSFER" : "CASH";
+        String paymentMethod = rdoCard.isSelected() ? "CARD" : rdoTransfer.isSelected() ? "QR" : "CASH";
         String paymentMethodDisplay = rdoCard.isSelected() ? "Thẻ ngân hàng"
-                : rdoTransfer.isSelected() ? "Chuyển khoản" : "Tiền mặt";
+                : rdoTransfer.isSelected() ? "Quét QR" : "Tiền mặt";
         String customerId = (foundCustomer != null) ? foundCustomer.getCustomerId() : null;
         String promoCode = txtPromoCode.getText().trim().isEmpty() ? null : txtPromoCode.getText().trim().toUpperCase();
         int usedPoints = (int) spinPoints.getValue();
@@ -497,7 +528,12 @@ public class CheckoutPanel extends JPanel {
                     showTimeId, staffUserId, customerId,
                     selectedSeats, fbItems, promoCode, usedPoints, paymentMethod);
 
-            showInvoiceResult(invoice);
+            if ("QR".equalsIgnoreCase(invoice.getPaymentMethod())
+                    && "PENDING".equalsIgnoreCase(invoice.getPaymentStatus())) {
+                showQrPaymentDialog(invoice);
+            } else {
+                showInvoiceResult(invoice);
+            }
 
         } catch (Exception ex) {
             showError("Thanh toán thất bại:\n" + ex.getMessage());
@@ -627,8 +663,165 @@ public class CheckoutPanel extends JPanel {
 
     private String toPaymentMethodLabel(String paymentMethod) {
         if ("CARD".equalsIgnoreCase(paymentMethod)) return "Thẻ ngân hàng";
-        if ("TRANSFER".equalsIgnoreCase(paymentMethod)) return "Chuyển khoản";
+        if ("QR".equalsIgnoreCase(paymentMethod) || "TRANSFER".equalsIgnoreCase(paymentMethod)) return "Quét QR";
         return "Tiền mặt";
+    }
+
+    private void showQrPaymentDialog(InvoiceDto invoice) {
+        JDialog dlg = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Thanh toán QR", true);
+        dlg.setLayout(new BorderLayout(10, 10));
+        dlg.setSize(760, 1040);
+        dlg.setLocationRelativeTo(this);
+
+        JPanel body = new JPanel();
+        body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
+        body.setBorder(new EmptyBorder(16, 16, 16, 16));
+        body.setBackground(Color.WHITE);
+
+        JLabel lblTitle = new JLabel("Vui lòng quét QR để thanh toán");
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        body.add(lblTitle);
+        body.add(Box.createVerticalStrut(8));
+
+        JLabel lblAmount = new JLabel("Số tiền: " + fmt(invoice.getGrandTotal()));
+        lblAmount.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblAmount.setAlignmentX(Component.CENTER_ALIGNMENT);
+        body.add(lblAmount);
+        JLabel lblExpire = new JLabel("QR hieu luc trong " + QR_EXPIRE_MINUTES + " phut ke tu luc tao don");
+        lblExpire.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblExpire.setForeground(new Color(71, 85, 105));
+        lblExpire.setAlignmentX(Component.CENTER_ALIGNMENT);
+        body.add(Box.createVerticalStrut(4));
+        body.add(lblExpire);
+        body.add(Box.createVerticalStrut(10));
+
+        JLabel qrLabel = new JLabel();
+        qrLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        qrLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        qrLabel.setBorder(BorderFactory.createLineBorder(BORDER_COLOR));
+        qrLabel.setPreferredSize(new Dimension(600, 776));
+        qrLabel.setMaximumSize(new Dimension(600, 776));
+        qrLabel.setMinimumSize(new Dimension(600, 776));
+        loadQrImage(qrLabel, invoice);
+        body.add(qrLabel);
+        body.add(Box.createVerticalStrut(10));
+
+        JLabel lblRef = new JLabel("Mã giao dịch: " + safeText(invoice.getPaymentReference()));
+        lblRef.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblRef.setAlignmentX(Component.CENTER_ALIGNMENT);
+        body.add(lblRef);
+
+        JLabel lblStatus = new JLabel("Trạng thái: Đang chờ thanh toán...");
+        lblStatus.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblStatus.setForeground(WARNING);
+        lblStatus.setAlignmentX(Component.CENTER_ALIGNMENT);
+        body.add(Box.createVerticalStrut(6));
+        body.add(lblStatus);
+
+        JButton btnCopy = new JButton("Sao chép nội dung QR");
+        styleBtn(btnCopy, new Color(59, 130, 246), Color.WHITE);
+        btnCopy.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnCopy.addActionListener(e -> {
+            String payload = safeText(invoice.getQrPayload());
+            java.awt.datatransfer.StringSelection ss = new java.awt.datatransfer.StringSelection(payload);
+            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(ss, null);
+        });
+
+        JButton btnSimulate = new JButton("Mô phỏng đã thanh toán");
+        styleBtn(btnSimulate, SUCCESS, Color.WHITE);
+        btnSimulate.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnSimulate.addActionListener(e -> {
+            String txCode = "SIM-" + System.currentTimeMillis();
+            invoiceController.confirmQrPayment(invoice.getPaymentId(), txCode);
+            String status = invoiceController.getPaymentStatus(invoice.getPaymentId());
+            updateQrStatusUI(status, lblStatus);
+        });
+
+        JButton btnCancel = new JButton("Hủy");
+        styleBtn(btnCancel, new Color(100, 116, 139), Color.WHITE);
+        btnCancel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnCancel.addActionListener(e -> dlg.dispose());
+
+        body.add(Box.createVerticalStrut(12));
+        body.add(btnCopy);
+        body.add(Box.createVerticalStrut(8));
+        body.add(btnSimulate);
+        body.add(Box.createVerticalStrut(8));
+        body.add(btnCancel);
+
+        JScrollPane scrollPane = new JScrollPane(body);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        dlg.add(scrollPane, BorderLayout.CENTER);
+
+        final boolean[] completed = {false};
+        Timer pollTimer = new Timer(2000, e -> {
+            try {
+                String status = invoiceController.getPaymentStatus(invoice.getPaymentId());
+                updateQrStatusUI(status, lblStatus);
+                if ("SUCCESS".equalsIgnoreCase(status)) {
+                    completed[0] = true;
+                    ((Timer) e.getSource()).stop();
+                    dlg.dispose();
+                    showInvoiceResult(invoice);
+                }
+            } catch (Exception ex) {
+                lblStatus.setText("Trạng thái: Lỗi kiểm tra thanh toán");
+                lblStatus.setForeground(DANGER);
+            }
+        });
+        pollTimer.start();
+
+        dlg.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosed(java.awt.event.WindowEvent e) {
+                pollTimer.stop();
+                if (!completed[0]) {
+                    btnConfirm.setEnabled(true);
+                    btnConfirm.setText(" Xác nhận thanh toán (F5)");
+                }
+            }
+        });
+
+        dlg.setVisible(true);
+    }
+
+    private void loadQrImage(JLabel target, InvoiceDto invoice) {
+        try {
+            String payload = safeText(invoice.getQrPayload());
+            URL url;
+            if (payload.startsWith("http://") || payload.startsWith("https://")) {
+                url = new URL(payload);
+            } else {
+                String encoded = URLEncoder.encode(payload, StandardCharsets.UTF_8);
+                url = new URL("https://quickchart.io/qr?size=600&text=" + encoded);
+            }
+            target.setIcon(new ImageIcon(url));
+            target.setText("");
+        } catch (Exception ex) {
+            target.setHorizontalAlignment(SwingConstants.CENTER);
+            target.setText("<html><center>Không tải được ảnh QR.<br/>Hãy sao chép nội dung thanh toán.</center></html>");
+        }
+    }
+
+    private void updateQrStatusUI(String status, JLabel lblStatus) {
+        if ("SUCCESS".equalsIgnoreCase(status)) {
+            lblStatus.setText("Trạng thái: Đã thanh toán");
+            lblStatus.setForeground(SUCCESS);
+            return;
+        }
+        if ("FAILED".equalsIgnoreCase(status)) {
+            lblStatus.setText("Trạng thái: Thanh toán thất bại");
+            lblStatus.setForeground(DANGER);
+            return;
+        }
+        lblStatus.setText("Trạng thái: Đang chờ thanh toán...");
+        lblStatus.setForeground(WARNING);
+    }
+
+    private String safeText(String value) {
+        return value == null ? "" : value;
     }
 
     private void printInvoice(InvoiceDto invoice, String text) {

@@ -1,6 +1,8 @@
 package com.cinema.management.view.booking;
 
 import com.cinema.management.controller.BookingController;
+import com.cinema.management.controller.InvoiceController;
+import com.cinema.management.model.dto.InvoiceDto;
 import com.cinema.management.model.dto.SeatStatusDto;
 import com.cinema.management.model.entity.Movie;
 import com.cinema.management.model.entity.Product;
@@ -35,6 +37,7 @@ public class BookingPanel extends JPanel {
 
     // ── Controller & Session ──────────────────────────────────────────────────
     private final BookingController bookingController;
+    private final InvoiceController invoiceController;
     private final String currentUserId;
 
     // ── Components: Sơ đồ ghế ─────────────────────────────────────────────────
@@ -66,10 +69,12 @@ public class BookingPanel extends JPanel {
     private final JButton btnReset = new JButton(" Hủy đơn");
 
     private Runnable onProceedToCheckout;
+    private InvoiceDto pendingInvoiceToResume;
 
     public BookingPanel(String currentUserId) {
         this.currentUserId = currentUserId;
         this.bookingController = new BookingController();
+        this.invoiceController = new InvoiceController();
 
         setLayout(new BorderLayout(0, 0));
         setBackground(BG);
@@ -95,6 +100,12 @@ public class BookingPanel extends JPanel {
 
     public String getCurrentUserId() {
         return currentUserId;
+    }
+
+    public InvoiceDto consumePendingInvoiceToResume() {
+        InvoiceDto invoice = pendingInvoiceToResume;
+        pendingInvoiceToResume = null;
+        return invoice;
     }
 
     public List<SeatStatusDto> getCurrentSelectedSeats() {
@@ -538,6 +549,7 @@ public class BookingPanel extends JPanel {
 
         seatMapPanel = new SeatMapPanel(bookingController, currentUserId);
         seatMapPanel.setOnSelectionChanged(this::onSeatSelectionChanged);
+        seatMapPanel.setOnProcessingSeatClicked(this::onProcessingSeatClicked);
         seatMapPanel.loadShowTime(currentShowTimeId);
 
         seatMapContainer.removeAll();
@@ -548,6 +560,30 @@ public class BookingPanel extends JPanel {
         fbqMap.clear();
         refreshFbList();
         refreshTotals(Collections.emptyList());
+    }
+
+    private void onProcessingSeatClicked(SeatStatusDto seatStatus) {
+        String paymentId = seatStatus.getPendingPaymentId();
+        if (paymentId == null || paymentId.isBlank()) {
+            JOptionPane.showMessageDialog(this,
+                    "KhÃ´ng tÃ¬m tháº¥y giao dá»‹ch thanh toÃ¡n cho gháº¿ nÃ y.",
+                    "ThÃ´ng bÃ¡o", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        try {
+            InvoiceDto pendingInvoice = invoiceController.findPendingInvoiceByPaymentId(paymentId);
+            pendingInvoiceToResume = pendingInvoice;
+            if (onProceedToCheckout != null) {
+                onProceedToCheckout.run();
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "KhÃ´ng thá»ƒ má»Ÿ láº¡i thanh toÃ¡n QR:\n" + ex.getMessage(),
+                    "Lá»—i", JOptionPane.ERROR_MESSAGE);
+            if (seatMapPanel != null) {
+                seatMapPanel.refreshSeatMap();
+            }
+        }
     }
 
     private void onSeatSelectionChanged(List<SeatStatusDto> selected) {
@@ -677,6 +713,7 @@ public class BookingPanel extends JPanel {
                     "Chú ý", JOptionPane.WARNING_MESSAGE);
             return;
         }
+        pendingInvoiceToResume = null;
         if (onProceedToCheckout != null) {
             onProceedToCheckout.run();
         }
