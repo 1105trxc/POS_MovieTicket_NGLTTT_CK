@@ -1,13 +1,14 @@
 package com.cinema.management.model.entity;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /**
  * Enum đại diện các hạng thành viên của khách hàng.
  * <ul>
- *   <li>GOLD   — Giảm 10%, yêu cầu tổng chi tiêu ≥ 5,000,000đ</li>
- *   <li>SILVER — Giảm 5%,  yêu cầu tổng chi tiêu ≥ 2,000,000đ</li>
- *   <li>REGULAR — Không giảm, mặc định</li>
+ * <li>GOLD — Giảm 10%, yêu cầu tổng chi tiêu ≥ 5,000,000đ</li>
+ * <li>SILVER — Giảm 5%, yêu cầu tổng chi tiêu ≥ 2,000,000đ</li>
+ * <li>REGULAR — Không giảm, mặc định</li>
  * </ul>
  * Điểm tích lũy = 5% tổng hóa đơn (sau giảm giá).
  */
@@ -53,7 +54,7 @@ public enum MemberTier {
             return BigDecimal.ZERO;
         }
         return totalAmount.multiply(discountPercent)
-                .divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
+                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
     }
 
     /**
@@ -61,9 +62,12 @@ public enum MemberTier {
      * Ưu tiên từ cao → thấp: GOLD → SILVER → REGULAR.
      */
     public static MemberTier determineTier(BigDecimal totalSpent) {
-        if (totalSpent == null) return REGULAR;
-        if (totalSpent.compareTo(GOLD.requiredSpent) >= 0) return GOLD;
-        if (totalSpent.compareTo(SILVER.requiredSpent) >= 0) return SILVER;
+        if (totalSpent == null)
+            return REGULAR;
+        if (totalSpent.compareTo(GOLD.requiredSpent) >= 0)
+            return GOLD;
+        if (totalSpent.compareTo(SILVER.requiredSpent) >= 0)
+            return SILVER;
         return REGULAR;
     }
 
@@ -72,7 +76,8 @@ public enum MemberTier {
      * Hỗ trợ cả tên tiếng Việt ("Vàng", "Bạc") và tên enum ("GOLD", "SILVER").
      */
     public static MemberTier fromString(String value) {
-        if (value == null || value.isBlank()) return REGULAR;
+        if (value == null || value.isBlank())
+            return REGULAR;
         for (MemberTier tier : values()) {
             if (tier.name().equalsIgnoreCase(value.trim())
                     || tier.displayName.equalsIgnoreCase(value.trim())) {
@@ -88,9 +93,10 @@ public enum MemberTier {
      * Điểm = finalAmount * 5% (làm tròn xuống thành int).
      */
     public static int calculateEarnedPoints(BigDecimal finalAmount) {
-        if (finalAmount == null || finalAmount.compareTo(BigDecimal.ZERO) <= 0) return 0;
+        if (finalAmount == null || finalAmount.compareTo(BigDecimal.ZERO) <= 0)
+            return 0;
         return finalAmount.multiply(POINT_EARN_RATE)
-                .setScale(0, java.math.RoundingMode.FLOOR)
+                .setScale(0, RoundingMode.FLOOR)
                 .intValue();
     }
 }

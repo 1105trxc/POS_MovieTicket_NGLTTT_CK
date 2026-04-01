@@ -22,7 +22,7 @@ public class ProductServiceImpl implements IProductService {
 
     @Override
     public Product getProductById(String id) {
-        return productRepo.findById(id).orElseThrow(null);
+        return productRepo.findById(id).orElse(null);
     }
 
     @Override

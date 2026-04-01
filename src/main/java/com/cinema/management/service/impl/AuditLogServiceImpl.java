@@ -8,8 +8,6 @@ import com.cinema.management.repository.AuditLogRepository;
 import com.cinema.management.service.IAuditLogService;
 import com.cinema.management.util.UserSessionContext;
 
-// TODO: implement service
-
 public class AuditLogServiceImpl implements IAuditLogService {
     private final AuditLogRepository auditLogRepo;
 
@@ -36,5 +34,25 @@ public class AuditLogServiceImpl implements IAuditLogService {
                 .build();
 
         auditLogRepo.save(log);
+    }
+
+    @Override
+    public java.util.List<AuditLog> getAllLogs() {
+        return auditLogRepo.findAll();
+    }
+
+    @Override
+    public java.util.List<AuditLog> searchLogs(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return getAllLogs();
+        }
+        return auditLogRepo.searchLogs(keyword.trim());
+    }
+
+    @Override
+    public java.util.List<AuditLog> getLogsByDate(java.time.LocalDate date) {
+        if (date == null)
+            return getAllLogs();
+        return auditLogRepo.findByDate(date);
     }
 }

@@ -11,6 +11,8 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.util.List;
 
@@ -26,10 +28,12 @@ public class UserManagementPanel extends JPanel {
     private static final Color SUCCESS = new Color(34, 197, 94);
     private static final Color DANGER = new Color(239, 68, 68);
 
-    private final String[] COLUMNS = {"Mã NV", "Họ Tên", "Tên Đăng Nhập", "Quyền", "Trạng thái"};
+    private final String[] COLUMNS = { "Mã NV", "Họ Tên", "Tên Đăng Nhập", "Quyền", "Trạng thái" };
     private final DefaultTableModel tableModel = new DefaultTableModel(COLUMNS, 0) {
         @Override
-        public boolean isCellEditable(int row, int col) { return false; }
+        public boolean isCellEditable(int row, int col) {
+            return false;
+        }
     };
     private final JTable table = new JTable(tableModel);
     private TableRowSorter<DefaultTableModel> rowSorter;
@@ -117,14 +121,25 @@ public class UserManagementPanel extends JPanel {
         rowSorter = new TableRowSorter<>(tableModel);
         table.setRowSorter(rowSorter);
 
-        txtLiveSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void insertUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
-            public void removeUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
-            public void changedUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
+        txtLiveSearch.getDocument().addDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) {
+                applyFilter();
+            }
+
+            public void removeUpdate(DocumentEvent e) {
+                applyFilter();
+            }
+
+            public void changedUpdate(DocumentEvent e) {
+                applyFilter();
+            }
+
             private void applyFilter() {
                 String text = txtLiveSearch.getText().trim();
-                if (text.isEmpty()) rowSorter.setRowFilter(null);
-                else rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+                if (text.isEmpty())
+                    rowSorter.setRowFilter(null);
+                else
+                    rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
             }
         });
 
@@ -175,27 +190,47 @@ public class UserManagementPanel extends JPanel {
         pnlStaffId.add(btnSearchStaff, BorderLayout.EAST);
 
         int row = 0;
-        gc.gridx = 0; gc.gridy = row; fields.add(new JLabel("Chọn NV:"), gc);
-        gc.gridx = 1; fields.add(pnlStaffId, gc); row++;
+        gc.gridx = 0;
+        gc.gridy = row;
+        fields.add(new JLabel("Chọn NV:"), gc);
+        gc.gridx = 1;
+        fields.add(pnlStaffId, gc);
+        row++;
 
-        gc.gridx = 0; gc.gridy = row; fields.add(new JLabel("Họ tên:"), gc);
-        gc.gridx = 1; fields.add(txtFullName, gc); row++;
+        gc.gridx = 0;
+        gc.gridy = row;
+        fields.add(new JLabel("Họ tên:"), gc);
+        gc.gridx = 1;
+        fields.add(txtFullName, gc);
+        row++;
 
-        gc.gridx = 0; gc.gridy = row; fields.add(new JLabel("Username:"), gc);
-        gc.gridx = 1; fields.add(txtUsername, gc); row++;
+        gc.gridx = 0;
+        gc.gridy = row;
+        fields.add(new JLabel("Username:"), gc);
+        gc.gridx = 1;
+        fields.add(txtUsername, gc);
+        row++;
 
-        gc.gridx = 0; gc.gridy = row; fields.add(new JLabel("Mật khẩu:"), gc);
-        gc.gridx = 1; fields.add(txtPassword, gc); row++;
+        gc.gridx = 0;
+        gc.gridy = row;
+        fields.add(new JLabel("Mật khẩu:"), gc);
+        gc.gridx = 1;
+        fields.add(txtPassword, gc);
+        row++;
 
-        gc.gridx = 0; gc.gridy = row; fields.add(new JLabel("Vai trò:"), gc);
-        gc.gridx = 1; fields.add(cbRole, gc);
+        gc.gridx = 0;
+        gc.gridy = row;
+        fields.add(new JLabel("Vai trò:"), gc);
+        gc.gridx = 1;
+        fields.add(cbRole, gc);
 
         panel.add(fields, BorderLayout.NORTH);
 
         JPanel pnlActionContent = new JPanel(new BorderLayout(0, 10));
         pnlActionContent.setOpaque(false);
 
-        JLabel lblConfirmDetail = new JLabel("<html><i>*Xác nhận dùng để lưu thay đổi<br>Quyền hoặc Mật khẩu</i></html>");
+        JLabel lblConfirmDetail = new JLabel(
+                "<html><i>*Xác nhận dùng để lưu thay đổi<br>Quyền hoặc Mật khẩu</i></html>");
         lblConfirmDetail.setForeground(Color.GRAY);
         pnlActionContent.add(lblConfirmDetail, BorderLayout.NORTH);
 
@@ -213,7 +248,7 @@ public class UserManagementPanel extends JPanel {
             // Refresh MainFrame if role changed
             Window win = SwingUtilities.getWindowAncestor(this);
             if (win instanceof com.cinema.management.view.main.MainFrame) {
-                 // Try to trigger a global refresh if possible, but keep it subtle.
+                // Try to trigger a global refresh if possible, but keep it subtle.
             }
             showSuccess("Đã cập nhật danh sách tài khoản và quyền.");
         });
@@ -239,9 +274,15 @@ public class UserManagementPanel extends JPanel {
     }
 
     private void styleActionButtons() {
-        btnCreateAccount.setBackground(SUCCESS); btnCreateAccount.setForeground(Color.WHITE); btnCreateAccount.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btnConfirm.setBackground(PRIMARY); btnConfirm.setForeground(Color.WHITE); btnConfirm.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btnUpdateStatus.setBackground(DANGER); btnUpdateStatus.setForeground(Color.WHITE); btnUpdateStatus.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnCreateAccount.setBackground(SUCCESS);
+        btnCreateAccount.setForeground(Color.WHITE);
+        btnCreateAccount.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnConfirm.setBackground(PRIMARY);
+        btnConfirm.setForeground(Color.WHITE);
+        btnConfirm.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnUpdateStatus.setBackground(DANGER);
+        btnUpdateStatus.setForeground(Color.WHITE);
+        btnUpdateStatus.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btnClear.setFont(new Font("Segoe UI", Font.BOLD, 13));
     }
 
@@ -268,7 +309,7 @@ public class UserManagementPanel extends JPanel {
         txtFullName.setText(user.getFullName());
         txtUsername.setText(user.getUsername() != null ? user.getUsername() : "");
         txtPassword.setText("");
-        
+
         if (user.getRole() != null) {
             for (int i = 0; i < cbRole.getItemCount(); i++) {
                 if (cbRole.getItemAt(i).roleId.equals(user.getRole().getRoleId())) {
@@ -277,7 +318,7 @@ public class UserManagementPanel extends JPanel {
                 }
             }
         }
-        
+
         boolean hasAccount = user.getUsername() != null && !user.getUsername().isEmpty();
         btnCreateAccount.setEnabled(!hasAccount);
         btnConfirm.setEnabled(hasAccount);
@@ -288,18 +329,19 @@ public class UserManagementPanel extends JPanel {
         tableModel.setRowCount(0);
         List<User> users = userController.getAllUsers();
         for (User u : users) {
-             // Chỉ show nhan vien co account (username != null) + Role khac null
-             if (u.getUsername() != null && !u.getUsername().isEmpty()) {
-                 String roleName = (u.getRole() != null) ? u.getRole().getRoleName() : "Không gán";
-                 String status = (u.getIsActive() != null && u.getIsActive()) ? "Hoạt động" : "Bị khóa";
-                 tableModel.addRow(new Object[]{ u.getUserId(), u.getFullName(), u.getUsername(), roleName, status });
-             }
+            // Chỉ show nhan vien co account (username != null) + Role khac null
+            if (u.getUsername() != null && !u.getUsername().isEmpty()) {
+                String roleName = (u.getRole() != null) ? u.getRole().getRoleName() : "Không gán";
+                String status = (u.getIsActive() != null && u.getIsActive()) ? "Hoạt động" : "Bị khóa";
+                tableModel.addRow(new Object[] { u.getUserId(), u.getFullName(), u.getUsername(), roleName, status });
+            }
         }
     }
 
     private void configureTableSelection() {
         table.getSelectionModel().addListSelectionListener(e -> {
-            if (e.getValueIsAdjusting()) return;
+            if (e.getValueIsAdjusting())
+                return;
             int viewRow = table.getSelectedRow();
             if (viewRow < 0) {
                 clearForm();
@@ -307,8 +349,9 @@ public class UserManagementPanel extends JPanel {
             }
             int modelRow = table.convertRowIndexToModel(viewRow);
             String userId = (String) tableModel.getValueAt(modelRow, 0);
-            
-            User u = userController.getAllUsers().stream().filter(x -> x.getUserId().equals(userId)).findFirst().orElse(null);
+
+            User u = userController.getAllUsers().stream().filter(x -> x.getUserId().equals(userId)).findFirst()
+                    .orElse(null);
             if (u != null) {
                 fillStaffInfo(u);
             }
@@ -317,22 +360,24 @@ public class UserManagementPanel extends JPanel {
 
     private void onCreateAccount() {
         if (selectedUser == null) {
-            showError("Vui lòng chọn nhân viên!"); return;
+            showError("Vui lòng chọn nhân viên!");
+            return;
         }
         if (txtUsername.getText().trim().isEmpty() || new String(txtPassword.getPassword()).trim().isEmpty()) {
-            showError("Tên đăng nhập và mât khẩu không được rỗng!"); return;
+            showError("Tên đăng nhập và mât khẩu không được rỗng!");
+            return;
         }
-        
+
         selectedUser.setUsername(txtUsername.getText().trim());
         selectedUser.setPassword(new String(txtPassword.getPassword()).trim());
-        
+
         RoleItem selectedRole = (RoleItem) cbRole.getSelectedItem();
         if (selectedRole != null) {
             Role role = new Role();
             role.setRoleId(selectedRole.roleId);
             selectedUser.setRole(role);
         }
-        
+
         try {
             userController.updateUser(selectedUser);
             showSuccess("Tạo Account thành công.");
@@ -344,10 +389,11 @@ public class UserManagementPanel extends JPanel {
     }
 
     private void onToggleStatus() {
-        if (selectedUser == null) return;
+        if (selectedUser == null)
+            return;
         boolean current = selectedUser.getIsActive() != null && selectedUser.getIsActive();
         selectedUser.setIsActive(!current);
-        
+
         try {
             userController.updateUser(selectedUser);
             showSuccess(current ? "Đã khóa cấu hình tài khoản" : "Đã mở khóa tài khoản");
@@ -358,8 +404,14 @@ public class UserManagementPanel extends JPanel {
     }
 
     private void onConfirmUpdate() {
-        if (selectedUser == null) return;
-        
+        if (selectedUser == null)
+            return;
+
+        String newUsername = txtUsername.getText().trim();
+        if (!newUsername.isEmpty()) {
+            selectedUser.setUsername(newUsername);
+        }
+
         String newPass = new String(txtPassword.getPassword()).trim();
         if (!newPass.isEmpty()) {
             selectedUser.setPassword(newPass);
@@ -371,7 +423,7 @@ public class UserManagementPanel extends JPanel {
             role.setRoleId(selectedRole.roleId);
             selectedUser.setRole(role);
         }
-        
+
         try {
             userController.updateUser(selectedUser);
             showSuccess("Cập nhật thông tin Account thành công.");
@@ -387,21 +439,36 @@ public class UserManagementPanel extends JPanel {
         txtFullName.setText("");
         txtUsername.setText("");
         txtPassword.setText("");
-        if (cbRole.getItemCount() > 0) cbRole.setSelectedIndex(0);
-        
+        if (cbRole.getItemCount() > 0)
+            cbRole.setSelectedIndex(0);
+
         btnCreateAccount.setEnabled(true);
         btnConfirm.setEnabled(false);
         btnUpdateStatus.setEnabled(false);
         table.clearSelection();
     }
 
-    private void showSuccess(String msg) { JOptionPane.showMessageDialog(this, msg, "Thành công", JOptionPane.INFORMATION_MESSAGE); }
-    private void showError(String msg) { JOptionPane.showMessageDialog(this, msg, "Lỗi", JOptionPane.ERROR_MESSAGE); }
+    private void showSuccess(String msg) {
+        JOptionPane.showMessageDialog(this, msg, "Thành công", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void showError(String msg) {
+        JOptionPane.showMessageDialog(this, msg, "Lỗi", JOptionPane.ERROR_MESSAGE);
+    }
 
     // DTO for Combobox Role
     private static class RoleItem {
-        String roleId; String name;
-        public RoleItem(String r, String n) { this.roleId = r; this.name = n;}
-        @Override public String toString() { return name; }
+        String roleId;
+        String name;
+
+        public RoleItem(String r, String n) {
+            this.roleId = r;
+            this.name = n;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
     }
 }

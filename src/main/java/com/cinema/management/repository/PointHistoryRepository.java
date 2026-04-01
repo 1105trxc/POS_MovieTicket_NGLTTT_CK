@@ -36,13 +36,31 @@ public class PointHistoryRepository {
         EntityManager em = JpaUtil.getEntityManager();
         try {
             return em.createQuery(
-                            "SELECT ph FROM PointHistory ph WHERE ph.customer.customerId = :custId ORDER BY ph.createdAt DESC",
+                            "SELECT ph FROM PointHistory ph JOIN FETCH ph.customer WHERE ph.customer.customerId = :custId ORDER BY ph.createdAt DESC",
                             PointHistory.class)
                     .setParameter("custId", customerId)
                     .getResultList();
         } catch (Exception e) {
             e.printStackTrace();
             return Collections.emptyList();
+        } finally {
+            em.close();
+        }
+    }
+
+    /**
+     * Lấy tất cả lịch sử điểm của hệ thống, mới nhất lên đầu.
+     */
+    public List<PointHistory> findAll() {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            return em.createQuery("SELECT ph FROM PointHistory ph JOIN FETCH ph.customer ORDER BY ph.createdAt DESC", PointHistory.class)
+                    .getResultList();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Collections.emptyList();
+        } finally {
+            em.close();
         }
     }
 }

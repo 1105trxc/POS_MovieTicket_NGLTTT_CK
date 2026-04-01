@@ -6,7 +6,7 @@ import com.cinema.management.util.UserSessionContext;
 import com.cinema.management.view.auth.LoginFrame;
 import com.cinema.management.view.booking.BookingPanel;
 import com.cinema.management.view.booking.CheckoutPanel;
-import com.cinema.management.view.management.MovieManagementPanel;
+import com.cinema.management.view.management.MovieGenreManagementPanel;
 import com.cinema.management.view.management.PaymentManagementPanel;
 import com.cinema.management.view.management.ProductManagementPanel;
 import com.cinema.management.view.management.PromotionManagementPanel;
@@ -17,6 +17,9 @@ import com.cinema.management.view.management.ShiftReportManagementPanel;
 import com.cinema.management.view.management.ShowTimeManagementPanel;
 import com.cinema.management.view.management.StaffManagementPanel;
 import com.cinema.management.view.management.UserManagementPanel;
+import com.cinema.management.util.UserSessionContext;
+import com.cinema.management.view.management.AuditLogPanel;
+import com.cinema.management.view.management.CustomerCRMPanel;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 
 import javax.swing.*;
@@ -25,6 +28,7 @@ import java.awt.*;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 public class MainFrame extends JFrame {
 
@@ -48,6 +52,7 @@ public class MainFrame extends JFrame {
     private String loggedInUserId = "U003";
     private BookingPanel bookingPanel;
     private JPanel posTabPanel;
+
 
     public MainFrame(String userId, String userRole) {
         this.loggedInUserId = userId;
@@ -135,7 +140,12 @@ public class MainFrame extends JFrame {
         roleBadge.setFont(new Font("Segoe UI", Font.BOLD, 12));
         roleBadge.setForeground(ACCENT_COLOR);
 
-        JLabel userLabel = new JLabel("Xin chào, " + (loggedInUserId != null ? loggedInUserId : ""));
+        String displayName = loggedInUserId != null ? loggedInUserId : "";
+        if (UserSessionContext.getCurrentUser() != null &&
+                UserSessionContext.getCurrentUser().getFullName() != null) {
+            displayName = UserSessionContext.getCurrentUser().getFullName();
+        }
+        JLabel userLabel = new JLabel("Xin chào, " + displayName);
         userLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
         JButton btnLogout = new JButton("Đăng xuất");
@@ -214,18 +224,21 @@ public class MainFrame extends JFrame {
     private void buildTabs() {
         posTabPanel = buildPosTab();
         addTab("Bán vé (POS)", "icons/ticket.svg", posTabPanel);
+        addTab("Khách hàng (CRM)", "icons/users.svg", new CustomerCRMPanel());
 
         if (UserSessionContext.isAdmin()) {
             addTab("Quản lý Doanh thu", "icons/wallet.svg", new PaymentManagementPanel());
-            addTab("Quản lý Phòng", "icons/monitor.svg", new RoomManagementPanel());
-            addTab("Quản lý Ghế", "icons/grid.svg", new SeatManagementPanel());
-            addTab("Quản lý Suất chiếu", "icons/clock.svg", new ShowTimeManagementPanel());
-            addTab("Quản lý Phim", "icons/movie.svg", new MovieManagementPanel());
+            addTab("Quản lý phòng", "icons/monitor.svg", new RoomManagementPanel());
+            addTab("Quản lý ghế", "icons/grid.svg", new SeatManagementPanel());
+            addTab("Quản lý suất chiếu", "icons/clock.svg", new ShowTimeManagementPanel());
+            // Merged Movie & Genre Panel
+            addTab("Phim & Thể loại", "icons/film.svg", new MovieGenreManagementPanel());
             addTab("Quản lý F&B", "icons/popcorn.svg", new ProductManagementPanel());
             addTab("Quản lý Báo cáo ca", "icons/report.svg", new ShiftReportManagementPanel());
-            addTab("Khuyến mãi", "icons/promo.svg", new PromotionManagementPanel());
-            addTab("Quản lý Nhân sự", "icons/users.svg", new StaffManagementPanel());
-            addTab("Quản lý Tài khoản", "icons/settings.svg", new UserManagementPanel());
+            addTab("Khuyến mãi SK", "icons/popcorn.svg", new PromotionManagementPanel());
+            addTab("Quản lý nhân sự", "icons/users.svg", new StaffManagementPanel());
+            addTab("Quản lý tài khoản", "icons/settings.svg", new UserManagementPanel());
+            addTab("Nhật ký hoạt động", "icons/log.svg", new AuditLogPanel());
         } else {
             addTab("Chốt ca & Báo cáo", "icons/settings.svg", new ShiftReportPanel(loggedInUserId));
         }

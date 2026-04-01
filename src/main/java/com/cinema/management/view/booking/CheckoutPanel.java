@@ -1,10 +1,12 @@
 package com.cinema.management.view.booking;
 
+import com.cinema.management.controller.CustomerController;
 import com.cinema.management.controller.InvoiceController;
 import com.cinema.management.model.dto.InvoiceDto;
 import com.cinema.management.model.dto.SeatStatusDto;
 import com.cinema.management.model.dto.TicketDto;
 import com.cinema.management.model.entity.Customer;
+import com.cinema.management.model.entity.Promotion;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 
 import javax.swing.*;
@@ -19,7 +21,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.ArrayList;
 
 public class CheckoutPanel extends JPanel {
 
@@ -51,9 +53,10 @@ public class CheckoutPanel extends JPanel {
     private Customer foundCustomer = null;
 
     // ── Promo section ─────────────────────────────────────────────────────────
-    private final JTextField txtPromoCode = new JTextField(12);
-    private final JButton btnValidate = new JButton("Kiểm tra");
+    private final JComboBox<String> cboPromotion = new JComboBox<>();
     private final JLabel lblPromoResult = new JLabel(" ");
+    private java.util.List<Promotion> activePromotions = new ArrayList<>();
+    private Promotion selectedPromotion = null;
 
     // ── Points section ────────────────────────────────────────────────────────
     private final JSpinner spinPoints = new JSpinner(new SpinnerNumberModel(0, 0, 0, 100));
@@ -106,7 +109,7 @@ public class CheckoutPanel extends JPanel {
         setBackground(BG);
 
         txtPhone.putClientProperty("JTextField.placeholderText", "Nhập SĐT khách hàng...");
-        txtPromoCode.putClientProperty("JTextField.placeholderText", "Nhập mã KM...");
+        loadActivePromotions();
 
         add(buildHeader(), BorderLayout.NORTH);
         add(buildCenter(), BorderLayout.CENTER);
@@ -114,6 +117,7 @@ public class CheckoutPanel extends JPanel {
 
         refreshSummary(BigDecimal.ZERO, BigDecimal.ZERO);
         bindHotkeys();
+        btnLookup.addActionListener(e -> lookupCustomer());
     }
 
     public void openPendingQrPayment() {
@@ -134,7 +138,8 @@ public class CheckoutPanel extends JPanel {
     private Icon createIcon(String path, int size, Color color) {
         try {
             FlatSVGIcon icon = new FlatSVGIcon(path, size, size);
-            if (color != null) icon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> color));
+            if (color != null)
+                icon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> color));
             return icon;
         } catch (Exception e) {
             return null;
@@ -154,7 +159,8 @@ public class CheckoutPanel extends JPanel {
 
         styleBtn(btnBack, new Color(71, 85, 105), Color.WHITE);
         btnBack.addActionListener(e -> {
-            if (onBack != null) onBack.run();
+            if (onBack != null)
+                onBack.run();
         });
         h.add(btnBack, BorderLayout.EAST);
         return h;
@@ -180,8 +186,8 @@ public class CheckoutPanel extends JPanel {
         seatSection.setBackground(CARD);
         seatSection.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER_COLOR),
-                BorderFactory.createTitledBorder(null, "  Ghế đã chọn  ", TitledBorder.LEFT, TitledBorder.TOP, new Font("Segoe UI", Font.BOLD, 14), PRIMARY)
-        ));
+                BorderFactory.createTitledBorder(null, "  Ghế đã chọn  ", TitledBorder.LEFT, TitledBorder.TOP,
+                        new Font("Segoe UI", Font.BOLD, 14), PRIMARY)));
 
         DefaultListModel<String> seatModel = new DefaultListModel<>();
         for (SeatStatusDto s : selectedSeats) {
@@ -201,8 +207,8 @@ public class CheckoutPanel extends JPanel {
         fbSection.setBackground(CARD);
         fbSection.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER_COLOR),
-                BorderFactory.createTitledBorder(null, "  F&B  ", TitledBorder.LEFT, TitledBorder.TOP, new Font("Segoe UI", Font.BOLD, 14), WARNING)
-        ));
+                BorderFactory.createTitledBorder(null, "  F&B  ", TitledBorder.LEFT, TitledBorder.TOP,
+                        new Font("Segoe UI", Font.BOLD, 14), WARNING)));
 
         DefaultListModel<String> fbModel = new DefaultListModel<>();
         if (fbItems.isEmpty()) {
@@ -257,7 +263,7 @@ public class CheckoutPanel extends JPanel {
     }
 
     private void addBreakdownRow(JPanel p, GridBagConstraints gl, GridBagConstraints gr,
-                                 int row, String labelText, JLabel valueLabel, Color valueColor) {
+            int row, String labelText, JLabel valueLabel, Color valueColor) {
         gl.gridx = 0;
         gl.gridy = row;
         JLabel lbl = new JLabel(labelText);
@@ -317,23 +323,20 @@ public class CheckoutPanel extends JPanel {
         row++;
         gc.gridwidth = 1;
 
-        addSectionTitle(form, gc, row++, "Mã khuyến mãi");
+        addSectionTitle(form, gc, row++, "Khuyến mãi");
         gc.gridx = 0;
         gc.gridy = row;
         gc.fill = GridBagConstraints.NONE;
         gc.weightx = 0;
-        form.add(new JLabel("Mã:"), gc);
+        form.add(new JLabel("Chọn KM:"), gc);
         gc.gridx = 1;
         gc.fill = GridBagConstraints.HORIZONTAL;
         gc.weightx = 1;
 
-        JPanel promoRow = new JPanel(new BorderLayout(5, 0));
-        promoRow.setOpaque(false);
-        txtPromoCode.setPreferredSize(new Dimension(0, 36));
-        styleBtn(btnValidate, WARNING, Color.WHITE);
-        promoRow.add(txtPromoCode, BorderLayout.CENTER);
-        promoRow.add(btnValidate, BorderLayout.EAST);
-        form.add(promoRow, gc);
+        cboPromotion.setPreferredSize(new Dimension(0, 36));
+        cboPromotion.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        cboPromotion.addActionListener(e -> onPromoSelected());
+        form.add(cboPromotion, gc);
         row++;
 
         gc.gridx = 0;
@@ -458,34 +461,58 @@ public class CheckoutPanel extends JPanel {
         }
     }
 
-    private void validatePromo() {
-        String code = txtPromoCode.getText().trim();
-        if (code.isEmpty()) {
-            lblPromoResult.setText("  ");
+
+
+    /** Load danh sách KM đang hoạt động vào ComboBox. */
+    private void loadActivePromotions() {
+        try {
+            activePromotions = invoiceController.getActivePromotions();
+        } catch (Exception e) {
+            activePromotions = new java.util.ArrayList<>();
+        }
+        cboPromotion.removeAllItems();
+        cboPromotion.addItem("-- Không áp dụng KM --");
+        for (Promotion p : activePromotions) {
+            String label = p.getCode() + " - " + (p.getDescription() != null ? p.getDescription() : "")
+                    + " (Giảm " + p.getDiscountPercent() + "%)";
+            cboPromotion.addItem(label);
+        }
+    }
+
+    /** Khi chọn 1 khuyến mãi trong ComboBox. */
+    private void onPromoSelected() {
+        int idx = cboPromotion.getSelectedIndex();
+        if (idx <= 0) {
+            // Không chọn KM
+            lblPromoResult.setText(" ");
+            selectedPromotion = null;
             refreshSummary(BigDecimal.ZERO, calculatePointDiscount());
             return;
         }
-        try {
-            com.cinema.management.model.entity.ShowTime st = new com.cinema.management.model.entity.ShowTime();
-            st.setShowTimeId(showTimeId);
-            com.cinema.management.model.entity.Promotion promo = invoiceController.validatePromoCode(code.toUpperCase(), st);
-
-            String discount = promo.getDiscountPercent() != null
-                    ? promo.getDiscountPercent().toPlainString() + "%" : "?";
-            lblPromoResult.setText("✅ Hợp lệ – giảm " + discount + (promo.getIsExclusive() ? "  ⚠ Độc quyền" : ""));
-            lblPromoResult.setForeground(SUCCESS);
-            refreshSummary(BigDecimal.ZERO, calculatePointDiscount());
-        } catch (IllegalArgumentException ex) {
-            lblPromoResult.setText("❌ " + ex.getMessage());
-            lblPromoResult.setForeground(DANGER);
-            refreshSummary(BigDecimal.ZERO, calculatePointDiscount());
+        Promotion promo = activePromotions.get(idx - 1); // trừ 1 vì item đầu là placeholder
+        selectedPromotion = promo;
+        String discount = promo.getDiscountPercent() != null
+                ? promo.getDiscountPercent().toPlainString() + "%"
+                : "?";
+        String maxDisc = "";
+        if (promo.getMaxDiscountAmount() != null && promo.getMaxDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
+            maxDisc = "  (Tối đa: " + String.format("%,.0f", promo.getMaxDiscountAmount()) + " VNĐ)";
         }
+        String exclusive = Boolean.TRUE.equals(promo.getIsExclusive()) ? "  ⚠ Độc quyền" : "";
+        lblPromoResult.setText("✅ Giảm " + discount + maxDisc + exclusive);
+        lblPromoResult.setForeground(SUCCESS);
+
+        // Tính giảm giá promo thực tế
+        BigDecimal subTotal = seatTotal.add(fbTotal);
+        BigDecimal promoDiscount = invoiceController.calculatePromoDiscount(promo, subTotal);
+        refreshSummary(promoDiscount, calculatePointDiscount());
     }
 
     private void onPointsChanged() {
         BigDecimal pd = calculatePointDiscount();
         lblPointDisc.setText("Giảm: " + String.format("%,.0f", pd) + " VNĐ");
-        refreshSummary(BigDecimal.ZERO, pd);
+        BigDecimal promoDisc = calculateCurrentPromoDiscount();
+        refreshSummary(promoDisc, pd);
     }
 
     private void confirmCheckout() {
@@ -504,7 +531,7 @@ public class CheckoutPanel extends JPanel {
         String paymentMethodDisplay = rdoCard.isSelected() ? "Thẻ ngân hàng"
                 : rdoTransfer.isSelected() ? "Quét QR" : "Tiền mặt";
         String customerId = (foundCustomer != null) ? foundCustomer.getCustomerId() : null;
-        String promoCode = txtPromoCode.getText().trim().isEmpty() ? null : txtPromoCode.getText().trim().toUpperCase();
+        String promoCode = (selectedPromotion != null) ? selectedPromotion.getCode() : null;
         int usedPoints = (int) spinPoints.getValue();
 
         BigDecimal grand = computeGrandTotal(promoCode, usedPoints);
@@ -512,7 +539,8 @@ public class CheckoutPanel extends JPanel {
                 "<html>Xác nhận thanh toán <b>" + String.format("%,.0f", grand)
                         + " VNĐ</b><br>Phương thức: <b>" + paymentMethodDisplay + "</b>?</html>",
                 "Xác nhận", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-        if (confirm != JOptionPane.YES_OPTION) return;
+        if (confirm != JOptionPane.YES_OPTION)
+            return;
 
         btnConfirm.setEnabled(false);
         btnConfirm.setText("Đang xử lý...");
@@ -539,7 +567,8 @@ public class CheckoutPanel extends JPanel {
     // ── XỬ LÝ IN ẤN (HÓA ĐƠN + VÉ RỜI) ──────────────────────────────────────────
 
     private void showInvoiceResult(InvoiceDto invoice) {
-        JDialog dlg = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Hoá đơn – " + invoice.getInvoiceId(), true);
+        JDialog dlg = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Hoá đơn – " + invoice.getInvoiceId(),
+                true);
         dlg.setLayout(new BorderLayout(10, 10));
         dlg.setSize(560, 680);
         dlg.setLocationRelativeTo(this);
@@ -569,7 +598,8 @@ public class CheckoutPanel extends JPanel {
         btnPrint.addActionListener(e -> printInvoice(invoice, ta.getText()));
         btnClose.addActionListener(e -> {
             dlg.dispose();
-            if (onBack != null) onBack.run();
+            if (onBack != null)
+                onBack.run();
         });
         btns.add(btnPrint);
         btns.add(btnClose);
@@ -823,8 +853,10 @@ public class CheckoutPanel extends JPanel {
         job.setJobName("Hoá đơn " + invoice.getInvoiceId());
         job.setPrintable((graphics, pageFormat, pageIndex) -> {
             // Máy in cuộn (Thermal Printer) sẽ cuộn giấy ra liên tục theo trục Y
-            // Vì text đã tự động Format xuống dòng \n và đường Cắt, ta in ra 1 trang siêu dài là đủ.
-            if (pageIndex > 0) return java.awt.print.Printable.NO_SUCH_PAGE;
+            // Vì text đã tự động Format xuống dòng \n và đường Cắt, ta in ra 1 trang siêu
+            // dài là đủ.
+            if (pageIndex > 0)
+                return java.awt.print.Printable.NO_SUCH_PAGE;
             graphics.setFont(new Font("Monospaced", Font.PLAIN, 10));
             FontMetrics fm = graphics.getFontMetrics();
             int lineH = fm.getHeight();
@@ -848,9 +880,11 @@ public class CheckoutPanel extends JPanel {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private BigDecimal calculatePointDiscount() {
-        if (foundCustomer == null) return BigDecimal.ZERO;
+        if (foundCustomer == null)
+            return BigDecimal.ZERO;
         int pts = (int) spinPoints.getValue();
-        if (pts <= 0) return BigDecimal.ZERO;
+        if (pts <= 0)
+            return BigDecimal.ZERO;
         BigDecimal sub = seatTotal.add(fbTotal);
         BigDecimal maxAllowed = sub.multiply(new BigDecimal("0.50"));
         return BigDecimal.valueOf(pts).min(maxAllowed);
@@ -858,17 +892,28 @@ public class CheckoutPanel extends JPanel {
 
     private BigDecimal computeGrandTotal(String promoCode, int usedPoints) {
         BigDecimal sub = seatTotal.add(fbTotal);
+        BigDecimal promoDisc = calculateCurrentPromoDiscount();
         BigDecimal pd = calculatePointDiscount();
-        return sub.subtract(pd).max(BigDecimal.ZERO);
+        return sub.subtract(promoDisc).subtract(pd).max(BigDecimal.ZERO);
+    }
+
+    /** Tính giảm giá từ promotion đang được chọn. */
+    private BigDecimal calculateCurrentPromoDiscount() {
+        if (selectedPromotion == null)
+            return BigDecimal.ZERO;
+        BigDecimal subTotal = seatTotal.add(fbTotal);
+        return invoiceController.calculatePromoDiscount(selectedPromotion, subTotal);
     }
 
     private void refreshSummary(BigDecimal promoDiscount, BigDecimal pointDiscount) {
         lblSeatTotal.setText(fmt(seatTotal));
         lblFbTotal.setText(fmt(fbTotal));
         lblPromoDisc.setText("- " + fmt(promoDiscount));
-        lblPointDiscSum.setText("- " + fmt(pointDiscount));
+        lblPointDiscSum.setText("- " +
+            fmt(pointDiscount));
         BigDecimal grand = seatTotal.add(fbTotal).subtract(promoDiscount).subtract(pointDiscount);
-        if (grand.compareTo(BigDecimal.ZERO) < 0) grand = BigDecimal.ZERO;
+        if (grand.compareTo(BigDecimal.ZERO) < 0)
+            grand = BigDecimal.ZERO;
         lblGrandTotal.setText(fmt(grand));
     }
 

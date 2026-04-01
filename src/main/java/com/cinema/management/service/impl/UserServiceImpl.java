@@ -50,10 +50,26 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public void createUser(User user) {
-        if (userRepository.findById(user.getUserId()) != null) {
+        if (userRepository.findById(user.getUserId()).isPresent()) {
             throw new RuntimeException("Mã Nhân Viên (UserID) '" + user.getUserId() + "' đã tồn tại!");
         }
-        User existUser = userRepository.findByUsername(user.getUsername()).orElseThrow(null);
+
+        // Kiểm tra CCCD trùng (MỚI)
+        if (user.getCccd() != null && !user.getCccd().trim().isEmpty()) {
+            User existCccd = userRepository.findByCccd(user.getCccd().trim()).orElse(null);
+            if (existCccd != null) {
+                throw new RuntimeException("Số CCCD này đã tồn tại trên hệ thống! Vui lòng kiểm tra lại.");
+            }
+        }
+
+        if (user.getUsername() == null) {
+            user.setUsername("[NV:" + user.getUserId() + "]");
+        }
+        if (user.getPassword() == null) {
+            user.setPassword("123456");
+        }
+
+        User existUser = userRepository.findByUsername(user.getUsername()).orElse(null);
         if (existUser != null && !existUser.getUsername().startsWith("[NV:")) {
             throw new RuntimeException("Tên đăng nhập này đã tồn tại trong phần mềm!");
         }
@@ -62,11 +78,34 @@ public class UserServiceImpl implements IUserService {
             user.setPassword(hashPassword(user.getPassword()));
         }
 
+        // Cập nhật RoleID thành ROLE_STAFF nếu chưa có (vì DataSchema NOT NULL RoleID)
+        if (user.getRole() == null) {
+            com.cinema.management.model.entity.Role defaultRole = new com.cinema.management.model.entity.Role();
+            defaultRole.setRoleId("ROLE_STAFF");
+            user.setRole(defaultRole);
+        }
+
         userRepository.save(user);
     }
 
     @Override
     public void updateUser(User user) {
+        // Kiểm tra trùng Tên đăng nhập
+        if (user.getUsername() != null && !user.getUsername().trim().isEmpty()) {
+            User existUser = userRepository.findByUsername(user.getUsername().trim()).orElse(null);
+            if (existUser != null && !existUser.getUserId().equals(user.getUserId())) {
+                throw new RuntimeException("Tên đăng nhập này đã tồn tại trong phần mềm! Vui lòng chọn tên khác.");
+            }
+        }
+
+        // Kiểm tra trùng CCCD (MỚI)
+        if (user.getCccd() != null && !user.getCccd().trim().isEmpty()) {
+            User existCccd = userRepository.findByCccd(user.getCccd().trim()).orElse(null);
+            if (existCccd != null && !existCccd.getUserId().equals(user.getUserId())) {
+                throw new RuntimeException("Số CCCD này đã tồn tại trên hệ thống của nhân viên khác!");
+            }
+        }
+
         if (user.getPassword() != null && user.getPassword().length() != 64) {
             user.setPassword(hashPassword(user.getPassword()));
         }

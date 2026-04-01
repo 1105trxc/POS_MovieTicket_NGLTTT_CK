@@ -7,9 +7,6 @@ import jakarta.persistence.EntityTransaction;
 
 import java.util.Collections;
 import java.util.List;
-
-
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -30,7 +27,7 @@ public class CustomerRepository {
         EntityManager em = JpaUtil.getEntityManager();
         try {
             List<Customer> result = em.createQuery(
-                            "SELECT c FROM Customer c WHERE c.phone = :phone", Customer.class)
+                    "SELECT c FROM Customer c WHERE c.phone = :phone", Customer.class)
                     .setParameter("phone", phone)
                     .getResultList();
             return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
@@ -48,7 +45,8 @@ public class CustomerRepository {
             tx.commit();
             return saved;
         } catch (Exception e) {
-            if (tx.isActive()) tx.rollback();
+            if (tx.isActive())
+                tx.rollback();
             throw e;
         } finally {
             em.close();
@@ -77,6 +75,4 @@ public class CustomerRepository {
         }
     }
 
-
 }
-

@@ -7,8 +7,6 @@ import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
-
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -20,7 +18,7 @@ public class PromotionRepository {
         EntityManager em = JpaUtil.getEntityManager();
         try {
             List<Promotion> result = em.createQuery(
-                            "SELECT p FROM Promotion p WHERE p.code = :code", Promotion.class)
+                    "SELECT p FROM Promotion p WHERE p.code = :code", Promotion.class)
                     .setParameter("code", code)
                     .getResultList();
             return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
@@ -53,7 +51,6 @@ public class PromotionRepository {
         }
     }
 
-
     /**
      * Lấy danh sách khuyến mãi đang hoạt động tại thời điểm hiện tại.
      * Điều kiện: startDate <= today <= expiryDate
@@ -61,8 +58,8 @@ public class PromotionRepository {
     public List<Promotion> findActivePromotions(LocalDate today) {
         try {
             return em.createQuery(
-                            "SELECT p FROM Promotion p WHERE p.startDate <= :today AND p.expiryDate >= :today",
-                            Promotion.class)
+                    "SELECT p FROM Promotion p WHERE p.startDate <= :today AND p.expiryDate >= :today",
+                    Promotion.class)
                     .setParameter("today", today)
                     .getResultList();
         } catch (Exception e) {
@@ -72,14 +69,15 @@ public class PromotionRepository {
     }
 
     /**
-     * Lấy danh sách KM đang hoạt động và áp dụng cho 1 phim cụ thể (hoặc cho mọi phim nếu applyToMovie == null).
+     * Lấy danh sách KM đang hoạt động và áp dụng cho 1 phim cụ thể (hoặc cho mọi
+     * phim nếu applyToMovie == null).
      */
     public List<Promotion> findActiveForMovie(String movieId, LocalDate today) {
         try {
             return em.createQuery(
-                            "SELECT p FROM Promotion p WHERE p.startDate <= :today AND p.expiryDate >= :today " +
-                                    "AND (p.applyToMovie IS NULL OR p.applyToMovie.movieId = :movieId)",
-                            Promotion.class)
+                    "SELECT p FROM Promotion p WHERE p.startDate <= :today AND p.expiryDate >= :today " +
+                            "AND (p.applyToMovie IS NULL OR p.applyToMovie.movieId = :movieId)",
+                    Promotion.class)
                     .setParameter("today", today)
                     .setParameter("movieId", movieId)
                     .getResultList();
@@ -124,4 +122,3 @@ public class PromotionRepository {
         }
     }
 }
-

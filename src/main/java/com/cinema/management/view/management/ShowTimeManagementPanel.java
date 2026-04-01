@@ -16,6 +16,8 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -36,8 +38,10 @@ public class ShowTimeManagementPanel extends JPanel {
     private static final Color SUCCESS = new Color(34, 197, 94);
     private static final Color DANGER = new Color(239, 68, 68);
 
-    // Thêm Movie ID và Room ID để lưu trữ ngầm, phục vụ việc click vào Table nạp lại dữ liệu
-    private final String[] COLUMNS = {"Mã suất chiếu", "Mã phim", "Mã phòng", "Phim", "Phòng", "Giờ bắt đầu", "Giờ kết thúc"};
+    // Thêm Movie ID và Room ID để lưu trữ ngầm, phục vụ việc click vào Table nạp
+    // lại dữ liệu
+    private final String[] COLUMNS = { "Mã suất chiếu", "Mã phim", "Mã phòng", "Phim", "Phòng", "Giờ bắt đầu",
+            "Giờ kết thúc" };
     private final DefaultTableModel tableModel = new DefaultTableModel(COLUMNS, 0) {
         @Override
         public boolean isCellEditable(int r, int c) {
@@ -162,16 +166,16 @@ public class ShowTimeManagementPanel extends JPanel {
         table.setRowSorter(rowSorter);
 
         // Lắng nghe sự kiện gõ phím để lọc tức thì
-        txtLiveSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+        txtLiveSearch.getDocument().addDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) {
                 applyFilter();
             }
 
-            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+            public void removeUpdate(DocumentEvent e) {
                 applyFilter();
             }
 
-            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+            public void changedUpdate(DocumentEvent e) {
                 applyFilter();
             }
 
@@ -363,8 +367,10 @@ public class ShowTimeManagementPanel extends JPanel {
 
         LocalDateTime start = parseDateTime(txtStartTime.getText());
         LocalDateTime end = parseDateTime(txtEndTime.getText());
-        if (start == null || end == null) return;
-        if (!validateEndTimeByMovieDuration(start, end)) return;
+        if (start == null || end == null)
+            return;
+        if (!validateEndTimeByMovieDuration(start, end))
+            return;
 
         try {
             showTimeController.addShowTime(currentFormMovieId, currentFormRoomId, start, end);
@@ -388,8 +394,10 @@ public class ShowTimeManagementPanel extends JPanel {
 
         LocalDateTime start = parseDateTime(txtStartTime.getText());
         LocalDateTime end = parseDateTime(txtEndTime.getText());
-        if (start == null || end == null) return;
-        if (!validateEndTimeByMovieDuration(start, end)) return;
+        if (start == null || end == null)
+            return;
+        if (!validateEndTimeByMovieDuration(start, end))
+            return;
 
         try {
             showTimeController.updateShowTime(selectedShowTimeId, currentFormMovieId, currentFormRoomId, start, end);
@@ -409,7 +417,8 @@ public class ShowTimeManagementPanel extends JPanel {
         int c = JOptionPane.showConfirmDialog(this,
                 "Bạn có chắc chắn muốn xóa suất chiếu này?", "Xác nhận xóa",
                 JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-        if (c != JOptionPane.YES_OPTION) return;
+        if (c != JOptionPane.YES_OPTION)
+            return;
 
         try {
             showTimeController.deleteShowTime(selectedShowTimeId);
@@ -432,7 +441,7 @@ public class ShowTimeManagementPanel extends JPanel {
             String mTitle = st.getMovie() != null ? st.getMovie().getTitle() : "-";
             String rName = st.getRoom() != null ? st.getRoom().getRoomName() : "-";
 
-            tableModel.addRow(new Object[]{
+            tableModel.addRow(new Object[] {
                     st.getShowTimeId(),
                     mId,
                     rId,
@@ -446,7 +455,8 @@ public class ShowTimeManagementPanel extends JPanel {
 
     private void configureTableSelection() {
         table.getSelectionModel().addListSelectionListener(e -> {
-            if (e.getValueIsAdjusting()) return;
+            if (e.getValueIsAdjusting())
+                return;
             int viewRow = table.getSelectedRow();
             if (viewRow < 0) {
                 clearForm();
@@ -489,30 +499,33 @@ public class ShowTimeManagementPanel extends JPanel {
     }
 
     private void registerAutoSuggestListeners() {
-        txtStartTime.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+        txtStartTime.getDocument().addDocumentListener(new DocumentListener() {
             @Override
-            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+            public void insertUpdate(DocumentEvent e) {
                 suggestEndTimeFromMovieDuration();
             }
 
             @Override
-            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+            public void removeUpdate(DocumentEvent e) {
                 suggestEndTimeFromMovieDuration();
             }
 
             @Override
-            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+            public void changedUpdate(DocumentEvent e) {
                 suggestEndTimeFromMovieDuration();
             }
         });
     }
 
     private void suggestEndTimeFromMovieDuration() {
-        if (!autoSuggestEndTimeEnabled) return;
-        if (currentFormMovieDuration == null || currentFormMovieDuration <= 0) return;
+        if (!autoSuggestEndTimeEnabled)
+            return;
+        if (currentFormMovieDuration == null || currentFormMovieDuration <= 0)
+            return;
 
         LocalDateTime start = parseDateTimeSilently(txtStartTime.getText());
-        if (start == null) return;
+        if (start == null)
+            return;
 
         LocalDateTime suggestedEnd = start.plusMinutes(currentFormMovieDuration);
         txtEndTime.setText(suggestedEnd.format(DT_FMT));
@@ -530,7 +543,8 @@ public class ShowTimeManagementPanel extends JPanel {
     }
 
     private Integer findMovieDurationById(String movieId) {
-        if (movieId == null || movieId.isBlank()) return null;
+        if (movieId == null || movieId.isBlank())
+            return null;
         List<Movie> allMovies = showTimeController.getAllMovies();
         for (Movie movie : allMovies) {
             if (movieId.equals(movie.getMovieId())) {

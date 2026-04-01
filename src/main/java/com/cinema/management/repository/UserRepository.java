@@ -41,6 +41,19 @@ public class UserRepository {
         }
     }
 
+    public Optional<User> findByCccd(String cccd) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            List<User> result = em.createQuery(
+                    "SELECT u FROM User u WHERE u.cccd = :cccd", User.class)
+                    .setParameter("cccd", cccd)
+                    .getResultList();
+            return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
+        } finally {
+            em.close();
+        }
+    }
+
     public List<User> findAll() {
         try {
             // Nhớ Join với Role để lấy được RoleName hiển thị lên bảng
@@ -55,6 +68,10 @@ public class UserRepository {
     public void save(User user) {
         try {
             em.getTransaction().begin();
+            if (user.getRole() != null && user.getRole().getRoleId() != null) {
+                com.cinema.management.model.entity.Role attachedRole = em.find(com.cinema.management.model.entity.Role.class, user.getRole().getRoleId());
+                user.setRole(attachedRole);
+            }
             em.persist(user);
             em.getTransaction().commit();
         } catch (Exception e) {
