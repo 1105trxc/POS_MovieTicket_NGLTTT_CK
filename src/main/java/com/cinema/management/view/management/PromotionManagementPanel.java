@@ -121,7 +121,7 @@ public class PromotionManagementPanel extends JPanel {
 
         JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         filterBar.setOpaque(false);
-        JLabel lblSearch = new JLabel("🔍 Tìm kiếm:");
+        JLabel lblSearch = new JLabel("Tìm kiếm:");
         lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 13));
         filterBar.add(lblSearch);
 
@@ -258,9 +258,6 @@ public class PromotionManagementPanel extends JPanel {
         fields.add(cbApplyToMovie, gc);
 
         panel.add(fields, BorderLayout.NORTH);
-
-
-
 
         JPanel buttons = new JPanel(new GridLayout(2, 2, 10, 10));
         buttons.setOpaque(false);

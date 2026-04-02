@@ -1,10 +1,13 @@
 package com.cinema.management.controller;
 
 import com.cinema.management.model.entity.Movie;
-import com.cinema.management.model.entity.Room;
 import com.cinema.management.model.entity.ShowTime;
+import com.cinema.management.repository.AuditLogRepository;
 import com.cinema.management.repository.MovieRepository;
+import com.cinema.management.repository.RoomRepository;
+import com.cinema.management.repository.ShowTimeRepository;
 import com.cinema.management.service.IShowTimeService;
+import com.cinema.management.service.impl.AuditLogServiceImpl;
 import com.cinema.management.service.impl.ShowTimeServiceImpl;
 
 import java.time.LocalDateTime;
@@ -19,7 +22,10 @@ public class ShowTimeController {
     private final MovieRepository movieRepository;
 
     public ShowTimeController() {
-        this.showTimeService = new ShowTimeServiceImpl();
+        this.showTimeService = new ShowTimeServiceImpl(
+                new ShowTimeRepository(), new RoomRepository(),
+                new MovieRepository(),
+                new AuditLogServiceImpl(new AuditLogRepository()));
         this.movieRepository = new MovieRepository();
     }
 

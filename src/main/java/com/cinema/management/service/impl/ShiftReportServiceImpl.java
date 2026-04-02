@@ -7,6 +7,7 @@ import com.cinema.management.model.entity.User;
 import com.cinema.management.repository.PaymentRepository;
 import com.cinema.management.repository.ShiftReportRepository;
 import com.cinema.management.repository.UserRepository;
+import com.cinema.management.service.IAuditLogService;
 import com.cinema.management.service.IShiftReportService;
 
 import java.math.BigDecimal;
@@ -19,11 +20,13 @@ public class ShiftReportServiceImpl implements IShiftReportService {
     private final PaymentRepository paymentRepository;
     private final ShiftReportRepository shiftReportRepository;
     private final UserRepository userRepository;
+    private final IAuditLogService auditLogService;
 
-    public ShiftReportServiceImpl() {
+    public ShiftReportServiceImpl(IAuditLogService auditLogService) {
         this.paymentRepository = new PaymentRepository();
         this.shiftReportRepository = new ShiftReportRepository();
         this.userRepository = new UserRepository();
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -106,7 +109,13 @@ public class ShiftReportServiceImpl implements IShiftReportService {
                 .status("PENDING")
                 .build();
 
-        return shiftReportRepository.save(report);
+        ShiftReport saved = shiftReportRepository.save(report);
+
+        // Ghi AuditLog khi chốt ca
+        auditLogService.logAction("CLOSE_SHIFT", "ShiftReport", "Status",
+                "N/A", "PENDING");
+
+        return saved;
     }
 
     @Override
@@ -131,6 +140,8 @@ public class ShiftReportServiceImpl implements IShiftReportService {
         User manager = userRepository.findById(managerId)
                 .orElseThrow(() -> new IllegalArgumentException("Nguoi quan ly khong ton tai."));
 
+        String oldStatus = report.getStatus();
+
         report.setStatus("APPROVED");
         report.setApprovedBy(manager);
         report.setApprovedAt(LocalDateTime.now());
@@ -138,7 +149,13 @@ public class ShiftReportServiceImpl implements IShiftReportService {
             report.setNotes(notes);
         }
 
-        return shiftReportRepository.save(report);
+        ShiftReport saved = shiftReportRepository.save(report);
+
+        // Ghi AuditLog khi duyệt báo cáo ca
+        auditLogService.logAction("APPROVE", "ShiftReport", "Status",
+                oldStatus, "APPROVED");
+
+        return saved;
     }
 
     @Override
@@ -153,7 +170,15 @@ public class ShiftReportServiceImpl implements IShiftReportService {
         User manager = userRepository.findById(managerId)
                 .orElseThrow(() -> new IllegalArgumentException("Nguoi quan ly khong ton tai."));
 
+        String oldStatus = report.getStatus();
+
         report.setStatus("LOCKED");
-        return shiftReportRepository.save(report);
+        ShiftReport saved = shiftReportRepository.save(report);
+
+        // Ghi AuditLog khi khóa báo cáo ca
+        auditLogService.logAction("LOCK", "ShiftReport", "Status",
+                oldStatus, "LOCKED");
+
+        return saved;
     }
 }

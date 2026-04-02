@@ -31,12 +31,12 @@ public class PaymentManagementPanel extends JPanel {
     // Modern color palette (Tailwind CSS inspired)
     private static final Color BG_COLOR = new Color(248, 250, 252); // slate-50
     private static final Color CARD_BG = Color.WHITE;
-    private static final Color TEXT_MAIN = new Color(15, 23, 42);   // slate-900
+    private static final Color TEXT_MAIN = new Color(15, 23, 42); // slate-900
     private static final Color TEXT_MUTED = new Color(100, 116, 139); // slate-500
     private static final Color BORDER_COLOR = new Color(226, 232, 240); // slate-200
-    
+
     private static final Color PRIMARY_COLOR = new Color(14, 165, 233); // sky-500
-    private static final Color SUCCESS_COLOR = new Color(34, 197, 94);  // green-500
+    private static final Color SUCCESS_COLOR = new Color(34, 197, 94); // green-500
     private static final Color WARNING_COLOR = new Color(245, 158, 11); // amber-500
 
     private static final Font FONT_TITLE = new Font("Segoe UI", Font.BOLD, 26);
@@ -54,7 +54,7 @@ public class PaymentManagementPanel extends JPanel {
     private final JSpinner spToDate = createDateSpinner();
     private final JComboBox<ShiftItem> cbShift = new JComboBox<>();
     private final JComboBox<StaffItem> cbStaff = new JComboBox<>();
-    private final JComboBox<String> cbMethod = new JComboBox<>(new String[]{"ALL", "CASH", "QR", "CARD"});
+    private final JComboBox<String> cbMethod = new JComboBox<>(new String[] { "ALL", "CASH", "QR", "CARD" });
 
     // Dashboard Cards UI References
     private final JLabel lblTotalAmount = new JLabel("0 ₫");
@@ -69,7 +69,9 @@ public class PaymentManagementPanel extends JPanel {
     private final PieChartPanel pieChartPanel = new PieChartPanel();
 
     private final DefaultTableModel tableModel = new DefaultTableModel(
-            new String[]{"ID", "Mã Hóa Đơn", "Thời gian", "Khách hàng", "Số tiền", "Phương thức", "Thu ngân", "Mã GD", "Trạng thái"}, 0) {
+            new String[] { "ID", "Mã Hóa Đơn", "Thời gian", "Khách hàng", "Số tiền", "Phương thức", "Thu ngân", "Mã GD",
+                    "Trạng thái" },
+            0) {
         @Override
         public boolean isCellEditable(int row, int column) {
             return false;
@@ -90,7 +92,7 @@ public class PaymentManagementPanel extends JPanel {
         UIManager.put("Button.arc", 12);
         UIManager.put("Component.arc", 12);
         UIManager.put("TextComponent.arc", 12);
-        
+
         loadFilterData();
         refreshData();
     }
@@ -120,14 +122,14 @@ public class PaymentManagementPanel extends JPanel {
         // Action Buttons Top Right
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
         actionPanel.setOpaque(false);
-        
+
         JButton btnExport = new JButton("  Xuất Báo Cáo  ");
         styleButton(btnExport, SUCCESS_COLOR, Color.WHITE);
         btnExport.addActionListener(e -> exportExcel());
         actionPanel.add(btnExport);
 
         headerPanel.add(actionPanel, BorderLayout.EAST);
-        
+
         return headerPanel;
     }
 
@@ -136,27 +138,28 @@ public class PaymentManagementPanel extends JPanel {
         mainContent.setOpaque(false);
 
         mainContent.add(buildTopDashboardArea(), BorderLayout.NORTH);
-        
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, buildTablePanel(), buildRightAnalyticsPanel());
+
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, buildTablePanel(),
+                buildRightAnalyticsPanel());
         splitPane.setResizeWeight(0.75);
         splitPane.setDividerSize(15);
         splitPane.setOpaque(false);
         splitPane.setBorder(null);
         // FlatLaf splitpane transparency
         splitPane.setBackground(BG_COLOR);
-        
+
         mainContent.add(splitPane, BorderLayout.CENTER);
-        
+
         return mainContent;
     }
 
     private JPanel buildTopDashboardArea() {
         JPanel area = new JPanel(new BorderLayout(0, 20));
         area.setOpaque(false);
-        
+
         area.add(buildFilterPanel(), BorderLayout.NORTH);
         area.add(buildSummaryCards(), BorderLayout.CENTER);
-        
+
         return area;
     }
 
@@ -165,8 +168,7 @@ public class PaymentManagementPanel extends JPanel {
         filterPanel.setBackground(CARD_BG);
         filterPanel.setBorder(BorderFactory.createCompoundBorder(
                 new LineBorder(BORDER_COLOR, 1, true),
-                new EmptyBorder(10, 15, 10, 15)
-        ));
+                new EmptyBorder(10, 15, 10, 15)));
 
         filterPanel.add(createFilterGroup("Từ ngày:", spFromDate));
         filterPanel.add(createFilterGroup("Đến ngày:", spToDate));
@@ -177,7 +179,7 @@ public class PaymentManagementPanel extends JPanel {
         JButton btnApply = new JButton("  Lọc Dữ Liệu  ");
         styleButton(btnApply, PRIMARY_COLOR, Color.WHITE);
         btnApply.addActionListener(e -> refreshData());
-        
+
         JPanel btnWrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         btnWrapper.setOpaque(false);
         btnWrapper.setBorder(new EmptyBorder(22, 10, 0, 0));
@@ -186,18 +188,18 @@ public class PaymentManagementPanel extends JPanel {
 
         return filterPanel;
     }
-    
+
     private JPanel createFilterGroup(String labelText, JComponent inputComp) {
         JPanel group = new JPanel(new BorderLayout(0, 5));
         group.setOpaque(false);
-        
+
         JLabel lbl = new JLabel(labelText);
         lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lbl.setForeground(TEXT_MUTED);
-        
+
         inputComp.setPreferredSize(new Dimension(inputComp instanceof JComboBox ? 140 : 120, 36));
         inputComp.setFont(FONT_REGULAR);
-        
+
         group.add(lbl, BorderLayout.NORTH);
         group.add(inputComp, BorderLayout.CENTER);
         return group;
@@ -215,14 +217,14 @@ public class PaymentManagementPanel extends JPanel {
         return cardsContainer;
     }
 
-    private JPanel createMetricCard(String title, JLabel lblVal, JLabel lblCount, Color accentColor, String iconSymbol) {
+    private JPanel createMetricCard(String title, JLabel lblVal, JLabel lblCount, Color accentColor,
+            String iconSymbol) {
         JPanel card = new JPanel(new BorderLayout(10, 10));
         card.setBackground(CARD_BG);
         card.setBorder(BorderFactory.createCompoundBorder(
                 new LineBorder(BORDER_COLOR, 1, true),
-                new EmptyBorder(20, 20, 20, 20)
-        ));
-        
+                new EmptyBorder(20, 20, 20, 20)));
+
         // Add a subtle accent top border visually
         JPanel topBorder = new JPanel();
         topBorder.setBackground(accentColor);
@@ -235,10 +237,10 @@ public class PaymentManagementPanel extends JPanel {
         JLabel lblTitle = new JLabel(title);
         lblTitle.setFont(FONT_BOLD);
         lblTitle.setForeground(TEXT_MUTED);
-        
+
         lblVal.setFont(new Font("Segoe UI", Font.BOLD, 22));
         lblVal.setForeground(accentColor);
-        
+
         lblCount.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lblCount.setForeground(TEXT_MUTED);
 
@@ -249,14 +251,14 @@ public class PaymentManagementPanel extends JPanel {
 
         content.add(lblTitle, BorderLayout.NORTH);
         content.add(centerInfo, BorderLayout.CENTER);
-        
+
         JLabel lblIcon = new JLabel(iconSymbol);
         lblIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 36));
         lblIcon.setForeground(accentColor);
 
         card.add(content, BorderLayout.CENTER);
         card.add(lblIcon, BorderLayout.EAST);
-        
+
         return card;
     }
 
@@ -265,8 +267,7 @@ public class PaymentManagementPanel extends JPanel {
         panel.setBackground(CARD_BG);
         panel.setBorder(BorderFactory.createCompoundBorder(
                 new LineBorder(BORDER_COLOR, 1, true),
-                new EmptyBorder(0, 0, 0, 0)
-        ));
+                new EmptyBorder(0, 0, 0, 0)));
 
         // Styling the table
         table.setRowHeight(44);
@@ -295,7 +296,7 @@ public class PaymentManagementPanel extends JPanel {
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(CARD_BG);
-        
+
         // FlatLaf smooth scrolling
         scrollPane.putClientProperty("JScrollPane.smoothScrolling", true);
 
@@ -318,8 +319,7 @@ public class PaymentManagementPanel extends JPanel {
         panel.setBackground(CARD_BG);
         panel.setBorder(BorderFactory.createCompoundBorder(
                 new LineBorder(BORDER_COLOR, 1, true),
-                new EmptyBorder(25, 25, 25, 25)
-        ));
+                new EmptyBorder(25, 25, 25, 25)));
 
         JLabel title = new JLabel("Cơ Cấu Phương Thức");
         title.setFont(new Font("Segoe UI", Font.BOLD, 16));
@@ -335,7 +335,7 @@ public class PaymentManagementPanel extends JPanel {
         legend.add(createLegendItem("Tiền Mặt (CASH)", TEXT_MAIN));
         legend.add(createLegendItem("Chuyển Khoản (QR)", SUCCESS_COLOR));
         legend.add(createLegendItem("Thẻ (CARD)", WARNING_COLOR));
-        
+
         panel.add(legend, BorderLayout.SOUTH);
 
         return panel;
@@ -349,11 +349,11 @@ public class PaymentManagementPanel extends JPanel {
         dot.setPreferredSize(new Dimension(14, 14));
         // simple rounding approximation with flatlaf
         dot.putClientProperty("FlatLaf.style", "arc: 999");
-        
+
         JLabel l = new JLabel(text);
         l.setFont(FONT_REGULAR);
         l.setForeground(TEXT_MAIN);
-        
+
         p.add(dot);
         p.add(l);
         return p;
@@ -365,7 +365,8 @@ public class PaymentManagementPanel extends JPanel {
         for (ShiftReport s : paymentController.getAllShifts()) {
             String name = String.format("%s | %s - %s",
                     s.getUser() != null ? s.getUser().getUserId() : "",
-                    s.getShiftStart() != null ? s.getShiftStart().format(DateTimeFormatter.ofPattern("dd/MM HH:mm")) : "",
+                    s.getShiftStart() != null ? s.getShiftStart().format(DateTimeFormatter.ofPattern("dd/MM HH:mm"))
+                            : "",
                     s.getShiftEnd() != null ? s.getShiftEnd().format(DateTimeFormatter.ofPattern("dd/MM HH:mm")) : "");
             cbShift.addItem(new ShiftItem(s.getShiftReportId(), name));
         }
@@ -401,7 +402,7 @@ public class PaymentManagementPanel extends JPanel {
             List<PaymentManagementRowDto> rows = paymentController.searchPayments(from, to, shiftId, staffId, method);
             currentRows.clear();
             currentRows.addAll(rows);
-            
+
             renderTable(rows);
             renderDashboard(paymentController.summarize(rows));
         } catch (Exception ex) {
@@ -416,7 +417,7 @@ public class PaymentManagementPanel extends JPanel {
         for (PaymentManagementRowDto r : rows) {
             // Null check handler
             String status = r.getStatus() != null ? r.getStatus().toString() : "PAID";
-            tableModel.addRow(new Object[]{
+            tableModel.addRow(new Object[] {
                     r.getPaymentId(),
                     r.getInvoiceId(),
                     r.getPaidAt() != null ? r.getPaidAt().format(DT_FMT) : "",
@@ -433,7 +434,7 @@ public class PaymentManagementPanel extends JPanel {
     private void renderDashboard(PaymentDashboardDto d) {
         lblTotalAmount.setText(fmt(d.getTotalAmount()));
         lblTotalCount.setText(d.getTotalCount() + " giao dịch");
-        
+
         lblCashAmount.setText(fmt(d.getCashAmount()));
         lblCashCount.setText(d.getCashCount() + " giao dịch");
 
@@ -448,7 +449,8 @@ public class PaymentManagementPanel extends JPanel {
 
     private void exportExcel() {
         if (currentRows.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Không có dữ liệu để xuất.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Không có dữ liệu để xuất.", "Thông báo",
+                    JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         JFileChooser chooser = new JFileChooser();
@@ -464,10 +466,10 @@ public class PaymentManagementPanel extends JPanel {
         }
 
         try (XSSFWorkbook workbook = new XSSFWorkbook();
-             FileOutputStream fos = new FileOutputStream(file)) {
-             
+                FileOutputStream fos = new FileOutputStream(file)) {
+
             Sheet sheet = workbook.createSheet("Chi Tiết Giao Dịch");
-            
+
             CellStyle headerStyle = workbook.createCellStyle();
             headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
             headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
@@ -475,7 +477,8 @@ public class PaymentManagementPanel extends JPanel {
             f.setBold(true);
             headerStyle.setFont(f);
 
-            String[] headers = {"Mã Giao Dịch", "Mã Hóa Đơn", "Thời gian", "Khách hàng", "Số tiền (VND)", "Phương thức", "Thu ngân ID", "Tên Thu Ngân", "Mã Tham Chiếu", "Trạng thái"};
+            String[] headers = { "Mã Giao Dịch", "Mã Hóa Đơn", "Thời gian", "Khách hàng", "Số tiền (VND)",
+                    "Phương thức", "Thu ngân ID", "Tên Thu Ngân", "Mã Tham Chiếu", "Trạng thái" };
 
             Row head = sheet.createRow(0);
             for (int i = 0; i < headers.length; i++) {
@@ -496,7 +499,9 @@ public class PaymentManagementPanel extends JPanel {
                 row.createCell(6).setCellValue(nonNull(r.getCashierId()));
                 row.createCell(7).setCellValue(nonNull(r.getCashierName()));
                 row.createCell(8).setCellValue(nonNull(r.getTransactionCode()));
-                row.createCell(9).setCellValue(nonNull(String.valueOf(r.getStatus()))); // use String.valueOf to avoid null string representation exception in nonNull
+                row.createCell(9).setCellValue(nonNull(String.valueOf(r.getStatus()))); // use String.valueOf to avoid
+                                                                                        // null string representation
+                                                                                        // exception in nonNull
             }
 
             for (int i = 0; i < headers.length; i++) {
@@ -516,7 +521,8 @@ public class PaymentManagementPanel extends JPanel {
     }
 
     private String nonNull(String s) {
-        if(s == null || "null".equals(s)) return "";
+        if (s == null || "null".equals(s))
+            return "";
         return s;
     }
 
@@ -545,14 +551,17 @@ public class PaymentManagementPanel extends JPanel {
 
     private static class StatusCellRenderer extends DefaultTableCellRenderer {
         @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-            JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
+                int row, int column) {
+            JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row,
+                    column);
             label.setHorizontalAlignment(SwingConstants.CENTER);
             label.setOpaque(true);
-            
+
             String status = value == null ? "" : value.toString();
-            if(!isSelected) {
-                if ("PAID".equalsIgnoreCase(status) || "COMPLETED".equalsIgnoreCase(status) || "SUCCESS".equalsIgnoreCase(status)) {
+            if (!isSelected) {
+                if ("PAID".equalsIgnoreCase(status) || "COMPLETED".equalsIgnoreCase(status)
+                        || "SUCCESS".equalsIgnoreCase(status)) {
                     label.setForeground(new Color(21, 128, 61)); // green-700
                     label.setBackground(new Color(220, 252, 231)); // green-100
                 } else if ("FAILED".equalsIgnoreCase(status) || "CANCELLED".equalsIgnoreCase(status)) {
@@ -583,6 +592,7 @@ public class PaymentManagementPanel extends JPanel {
             this.id = id;
             this.label = label;
         }
+
         @Override
         public String toString() {
             return label;
@@ -597,6 +607,7 @@ public class PaymentManagementPanel extends JPanel {
             this.id = id;
             this.label = label;
         }
+
         @Override
         public String toString() {
             return label;
@@ -610,7 +621,6 @@ public class PaymentManagementPanel extends JPanel {
 
         private PieChartPanel() {
             setPreferredSize(new Dimension(280, 280));
-            setMinimumSize(new Dimension(180, 180));
             setOpaque(false);
         }
 
@@ -625,14 +635,11 @@ public class PaymentManagementPanel extends JPanel {
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
             Graphics2D g2 = (Graphics2D) g.create();
+            // High quality rendering
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
 
-            // Responsive sizing: use available space with minimal padding
-            int padding = 10;
-            int w = Math.min(getWidth(), getHeight()) - padding * 2;
-            if (w < 60) { g2.dispose(); return; }
+            int w = Math.min(getWidth(), getHeight()) - 40;
             int x = (getWidth() - w) / 2;
             int y = (getHeight() - w) / 2;
 
@@ -640,9 +647,8 @@ public class PaymentManagementPanel extends JPanel {
             if (total.compareTo(BigDecimal.ZERO) <= 0) {
                 g2.setColor(BORDER_COLOR);
                 g2.fillOval(x, y, w, w);
-                int emptyFontSize = Math.max(10, w / 16);
                 g2.setColor(TEXT_MUTED);
-                g2.setFont(new Font("Segoe UI", Font.BOLD, emptyFontSize));
+                g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
                 String text = "Chưa có dữ liệu";
                 FontMetrics fm = g2.getFontMetrics();
                 g2.drawString(text, x + (w - fm.stringWidth(text)) / 2, y + w / 2 + fm.getAscent() / 2);
@@ -655,13 +661,13 @@ public class PaymentManagementPanel extends JPanel {
             int qrArc = (int) Math.round((qr.doubleValue() / totalVal) * 360);
             int cardArc = 360 - cashArc - qrArc;
 
+            int start = 90;
+
             double cashPct = (cash.doubleValue() / totalVal) * 100;
             double qrPct = (qr.doubleValue() / totalVal) * 100;
             double cardPct = 100 - cashPct - qrPct;
 
             // Draw Pie Segments
-            int start = 90;
-
             g2.setColor(TEXT_MAIN);
             g2.fillArc(x, y, w, w, start, -cashArc);
             start -= cashArc;
@@ -673,22 +679,17 @@ public class PaymentManagementPanel extends JPanel {
             g2.setColor(WARNING_COLOR);
             g2.fillArc(x, y, w, w, start, -cardArc);
 
-            // Donut hole (60% of diameter)
+            // Create Donut Hole (make it a donut chart for modern look)
             g2.setColor(CARD_BG);
-            int inner = (int) (w * 0.60);
+            int inner = (int) (w * 0.65); // 65% hole
             g2.fillOval(x + (w - inner) / 2, y + (w - inner) / 2, inner, inner);
 
-            // Responsive font sizes based on donut diameter
-            int pctFontSize = Math.max(9, w / 18);
-            int centerAmountFontSize = Math.max(12, w / 12);
-            int centerLabelFontSize = Math.max(9, w / 22);
-
-            // Draw percentage labels on slices
+            // Draw percentages on slices
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
             int cx = x + w / 2;
             int cy = y + w / 2;
             int textRadius = (int) (w / 2 * 0.82);
 
-            g2.setFont(new Font("Segoe UI", Font.BOLD, pctFontSize));
             start = 90;
             drawPercentage(g2, cashPct, start, cashArc, cx, cy, textRadius);
             start -= cashArc;
@@ -696,32 +697,26 @@ public class PaymentManagementPanel extends JPanel {
             start -= qrArc;
             drawPercentage(g2, cardPct, start, cardArc, cx, cy, textRadius);
 
-            // Center text: total amount
+            // Draw center text
             g2.setColor(TEXT_MAIN);
-            g2.setFont(new Font("Segoe UI", Font.BOLD, centerAmountFontSize));
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 18));
             String center1 = String.format("%,.0f đ", totalVal);
             FontMetrics fm = g2.getFontMetrics();
-            // Ensure center text fits inside the hole
-            if (fm.stringWidth(center1) > inner - 10) {
-                // Shrink font if text is wider than hole
-                int shrunk = Math.max(10, centerAmountFontSize - 4);
-                g2.setFont(new Font("Segoe UI", Font.BOLD, shrunk));
-                fm = g2.getFontMetrics();
-            }
-            g2.drawString(center1, cx - fm.stringWidth(center1) / 2, cy - fm.getDescent());
+            g2.drawString(center1, x + (w - fm.stringWidth(center1)) / 2, y + w / 2 - 5);
 
-            // Center text: label
-            g2.setColor(PRIMARY_COLOR);
-            g2.setFont(new Font("Segoe UI", Font.BOLD, centerLabelFontSize));
+            g2.setColor(TEXT_MUTED);
+            g2.setFont(new Font("Segoe UI", Font.PLAIN, 12));
             String center2 = "TỔNG TIỀN";
             FontMetrics fm2 = g2.getFontMetrics();
-            g2.drawString(center2, cx - fm2.stringWidth(center2) / 2, cy + fm2.getAscent() + 2);
+            g2.drawString(center2, x + (w - fm2.stringWidth(center2)) / 2, y + w / 2 + 15);
 
             g2.dispose();
         }
 
-        private void drawPercentage(Graphics2D g2, double pct, int startAngle, int arcAngle, int cx, int cy, int radius) {
-            if (pct < 5.0) return;
+        private void drawPercentage(Graphics2D g2, double pct, int startAngle, int arcAngle, int cx, int cy,
+                int radius) {
+            if (pct < 5.0)
+                return; // Hide very small slices text
             double angle = Math.toRadians(startAngle - arcAngle / 2.0);
             int tx = cx + (int) (radius * Math.cos(angle));
             int ty = cy - (int) (radius * Math.sin(angle));

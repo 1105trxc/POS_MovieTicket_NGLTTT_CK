@@ -2,14 +2,22 @@ package com.cinema.management.service.impl;
 
 import com.cinema.management.model.entity.User;
 import com.cinema.management.repository.UserRepository;
+import com.cinema.management.service.IAuditLogService;
 import com.cinema.management.service.IUserService;
 import java.util.List;
 
 public class UserServiceImpl implements IUserService {
     private final UserRepository userRepository;
+    private final IAuditLogService auditLogService;
 
     public UserServiceImpl(UserRepository userRepository) {
         this.userRepository = userRepository;
+        this.auditLogService = null;
+    }
+
+    public UserServiceImpl(UserRepository userRepository, IAuditLogService auditLogService) {
+        this.userRepository = userRepository;
+        this.auditLogService = auditLogService;
     }
 
     private String hashPassword(String password) {
@@ -33,7 +41,6 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public User login(String username, String password) {
-        // User user = userRepository.findByUsername(username).orElseThrow(null);
         User user = userRepository.findByUsername(username).orElse(null);
         if (user != null) {
             if (!user.getIsActive()) {
@@ -54,7 +61,7 @@ public class UserServiceImpl implements IUserService {
             throw new RuntimeException("Mã Nhân Viên (UserID) '" + user.getUserId() + "' đã tồn tại!");
         }
 
-        // Kiểm tra CCCD trùng (MỚI)
+        // Kiểm tra CCCD trùng
         if (user.getCccd() != null && !user.getCccd().trim().isEmpty()) {
             User existCccd = userRepository.findByCccd(user.getCccd().trim()).orElse(null);
             if (existCccd != null) {
@@ -78,7 +85,7 @@ public class UserServiceImpl implements IUserService {
             user.setPassword(hashPassword(user.getPassword()));
         }
 
-        // Cập nhật RoleID thành ROLE_STAFF nếu chưa có (vì DataSchema NOT NULL RoleID)
+        // Cập nhật RoleID thành ROLE_STAFF nếu chưa có
         if (user.getRole() == null) {
             com.cinema.management.model.entity.Role defaultRole = new com.cinema.management.model.entity.Role();
             defaultRole.setRoleId("ROLE_STAFF");
@@ -86,6 +93,11 @@ public class UserServiceImpl implements IUserService {
         }
 
         userRepository.save(user);
+
+        if (auditLogService != null) {
+            auditLogService.logAction("CREATE", "User", "UserID",
+                    "N/A", user.getUserId() + " - " + user.getFullName());
+        }
     }
 
     @Override
@@ -98,7 +110,7 @@ public class UserServiceImpl implements IUserService {
             }
         }
 
-        // Kiểm tra trùng CCCD (MỚI)
+        // Kiểm tra trùng CCCD
         if (user.getCccd() != null && !user.getCccd().trim().isEmpty()) {
             User existCccd = userRepository.findByCccd(user.getCccd().trim()).orElse(null);
             if (existCccd != null && !existCccd.getUserId().equals(user.getUserId())) {
@@ -106,10 +118,29 @@ public class UserServiceImpl implements IUserService {
             }
         }
 
+        // Lấy dữ liệu cũ để ghi log
+        User old = userRepository.findById(user.getUserId()).orElse(null);
+
         if (user.getPassword() != null && user.getPassword().length() != 64) {
             user.setPassword(hashPassword(user.getPassword()));
         }
         userRepository.update(user);
+
+        // Ghi log các thay đổi
+        if (auditLogService != null && old != null) {
+            if (old.getFullName() != null && !old.getFullName().equals(user.getFullName())) {
+                auditLogService.logAction("UPDATE", "User", "FullName",
+                        old.getFullName(), user.getFullName());
+            }
+            if (old.getPhone() != null && !old.getPhone().equals(user.getPhone())) {
+                auditLogService.logAction("UPDATE", "User", "Phone",
+                        old.getPhone(), user.getPhone());
+            }
+            if (old.getIsActive() != null && !old.getIsActive().equals(user.getIsActive())) {
+                auditLogService.logAction("UPDATE", "User", "IsActive",
+                        String.valueOf(old.getIsActive()), String.valueOf(user.getIsActive()));
+            }
+        }
     }
 
     @Override

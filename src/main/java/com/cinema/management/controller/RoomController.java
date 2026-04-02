@@ -1,7 +1,10 @@
 package com.cinema.management.controller;
 
 import com.cinema.management.model.entity.Room;
+import com.cinema.management.repository.AuditLogRepository;
+import com.cinema.management.repository.RoomRepository;
 import com.cinema.management.service.IRoomService;
+import com.cinema.management.service.impl.AuditLogServiceImpl;
 import com.cinema.management.service.impl.RoomServiceImpl;
 
 import java.util.List;
@@ -17,7 +20,9 @@ public class RoomController {
     private final IRoomService roomService;
 
     public RoomController() {
-        this.roomService = new RoomServiceImpl();
+        this.roomService = new RoomServiceImpl(
+                new RoomRepository(),
+                new AuditLogServiceImpl(new AuditLogRepository()));
     }
 
     public RoomController(IRoomService roomService) {

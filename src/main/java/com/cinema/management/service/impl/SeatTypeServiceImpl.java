@@ -1,14 +1,11 @@
 package com.cinema.management.service.impl;
 
-import com.cinema.management.model.entity.AuditLog;
 import com.cinema.management.model.entity.SeatType;
-import com.cinema.management.model.entity.User;
-import com.cinema.management.repository.AuditLogRepository;
 import com.cinema.management.repository.SeatTypeRepository;
+import com.cinema.management.service.IAuditLogService;
 import com.cinema.management.service.ISeatTypeService;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,17 +17,17 @@ import java.util.UUID;
 public class SeatTypeServiceImpl implements ISeatTypeService {
 
     private final SeatTypeRepository seatTypeRepository;
-    private final AuditLogRepository auditLogRepository;
+    private final IAuditLogService auditLogService;
 
     public SeatTypeServiceImpl() {
         this.seatTypeRepository = new SeatTypeRepository();
-        this.auditLogRepository = new AuditLogRepository();
+        this.auditLogService = null;
     }
 
     public SeatTypeServiceImpl(SeatTypeRepository seatTypeRepository,
-                                AuditLogRepository auditLogRepository) {
+                                IAuditLogService auditLogService) {
         this.seatTypeRepository = seatTypeRepository;
-        this.auditLogRepository = auditLogRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -55,7 +52,13 @@ public class SeatTypeServiceImpl implements ISeatTypeService {
                 .typeName(typeName.trim())
                 .basePrice(basePrice)
                 .build();
-        return seatTypeRepository.save(seatType);
+        SeatType saved = seatTypeRepository.save(seatType);
+
+        if (auditLogService != null) {
+            auditLogService.logAction("CREATE", "SeatType", "TypeName",
+                    "N/A", typeName.trim() + " (" + basePrice.toPlainString() + "đ)");
+        }
+        return saved;
     }
 
     @Override
@@ -71,15 +74,27 @@ public class SeatTypeServiceImpl implements ISeatTypeService {
             throw new IllegalArgumentException("Tên loại ghế '" + typeName + "' đã tồn tại.");
         }
 
-        // Ghi AuditLog nếu giá thay đổi (Business Rule – Skill_agent)
-        if (existing.getBasePrice().compareTo(basePrice) != 0) {
-            writeAuditLog(changedByUserId, "SeatType", seatTypeId, "BasePrice",
-                    existing.getBasePrice().toPlainString(), basePrice.toPlainString());
-        }
+        // Lưu dữ liệu cũ
+        String oldName = existing.getTypeName();
+        BigDecimal oldPrice = existing.getBasePrice();
 
         existing.setTypeName(typeName.trim());
         existing.setBasePrice(basePrice);
-        return seatTypeRepository.save(existing);
+        SeatType saved = seatTypeRepository.save(existing);
+
+        // Ghi AuditLog khi tên thay đổi
+        if (auditLogService != null && !oldName.equals(typeName.trim())) {
+            auditLogService.logAction("UPDATE", "SeatType", "TypeName",
+                    oldName, typeName.trim());
+        }
+
+        // Ghi AuditLog khi giá thay đổi
+        if (auditLogService != null && oldPrice.compareTo(basePrice) != 0) {
+            auditLogService.logAction("UPDATE", "SeatType", "BasePrice",
+                    oldPrice.toPlainString(), basePrice.toPlainString());
+        }
+
+        return saved;
     }
 
     @Override
@@ -90,28 +105,17 @@ public class SeatTypeServiceImpl implements ISeatTypeService {
             throw new IllegalStateException(
                     "Không thể xóa loại ghế đang được sử dụng bởi " + st.getSeats().size() + " ghế.");
         }
+
+        String typeName = st.getTypeName();
         seatTypeRepository.deleteById(seatTypeId);
+
+        if (auditLogService != null) {
+            auditLogService.logAction("DELETE", "SeatType", "TypeName",
+                    typeName, "Đã xóa");
+        }
     }
 
     // ── Private helpers ─────────────────────────────────────────────────────
-
-    private void writeAuditLog(String userId, String tableName, String recordId,
-                                String fieldName, String oldValue, String newValue) {
-        AuditLog log = AuditLog.builder()
-                .tableName(tableName)
-                .fieldName(fieldName)
-                // Lưu recordId vào oldValue prefix để truy vết
-                .oldValue("[ID:" + recordId + "] " + oldValue)
-                .newValue(newValue)
-                .changedAt(LocalDateTime.now())
-                .build();
-        if (userId != null && !userId.isEmpty()) {
-            User u = new User();
-            u.setUserId(userId);
-            log.setChangedBy(u);
-        }
-        auditLogRepository.save(log);
-    }
 
     private void validateTypeName(String typeName) {
         if (typeName == null || typeName.trim().isEmpty()) {

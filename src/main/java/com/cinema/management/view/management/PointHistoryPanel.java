@@ -51,7 +51,7 @@ public class PointHistoryPanel extends JPanel {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         panel.setOpaque(false);
 
-        JLabel lblSearch = new JLabel("🔍 Tìm kiếm giao dịch:  ");
+        JLabel lblSearch = new JLabel("Tìm kiếm giao dịch:  ");
         lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 13));
         panel.add(lblSearch);
 

@@ -2,8 +2,14 @@ package com.cinema.management.controller;
 
 import com.cinema.management.model.entity.Seat;
 import com.cinema.management.model.entity.SeatType;
+import com.cinema.management.repository.AuditLogRepository;
+import com.cinema.management.repository.RoomRepository;
+import com.cinema.management.repository.SeatRepository;
+import com.cinema.management.repository.SeatTypeRepository;
+import com.cinema.management.service.IAuditLogService;
 import com.cinema.management.service.ISeatService;
 import com.cinema.management.service.ISeatTypeService;
+import com.cinema.management.service.impl.AuditLogServiceImpl;
 import com.cinema.management.service.impl.SeatServiceImpl;
 import com.cinema.management.service.impl.SeatTypeServiceImpl;
 
@@ -20,8 +26,12 @@ public class SeatController {
     private final ISeatTypeService seatTypeService;
 
     public SeatController() {
-        this.seatService = new SeatServiceImpl();
-        this.seatTypeService = new SeatTypeServiceImpl();
+        IAuditLogService auditLogService = new AuditLogServiceImpl(new AuditLogRepository());
+        this.seatService = new SeatServiceImpl(
+                new SeatRepository(), new RoomRepository(),
+                new SeatTypeRepository(), auditLogService);
+        this.seatTypeService = new SeatTypeServiceImpl(
+                new SeatTypeRepository(), auditLogService);
     }
 
     public SeatController(ISeatService seatService, ISeatTypeService seatTypeService) {

@@ -6,6 +6,7 @@ import com.cinema.management.model.entity.SeatType;
 import com.cinema.management.repository.RoomRepository;
 import com.cinema.management.repository.SeatRepository;
 import com.cinema.management.repository.SeatTypeRepository;
+import com.cinema.management.service.IAuditLogService;
 import com.cinema.management.service.ISeatService;
 
 import java.util.List;
@@ -20,18 +21,21 @@ public class SeatServiceImpl implements ISeatService {
     private final SeatRepository seatRepository;
     private final RoomRepository roomRepository;
     private final SeatTypeRepository seatTypeRepository;
+    private final IAuditLogService auditLogService;
 
     public SeatServiceImpl() {
         this.seatRepository = new SeatRepository();
         this.roomRepository = new RoomRepository();
         this.seatTypeRepository = new SeatTypeRepository();
+        this.auditLogService = null;
     }
 
     public SeatServiceImpl(SeatRepository seatRepository, RoomRepository roomRepository,
-                           SeatTypeRepository seatTypeRepository) {
+                           SeatTypeRepository seatTypeRepository, IAuditLogService auditLogService) {
         this.seatRepository = seatRepository;
         this.roomRepository = roomRepository;
         this.seatTypeRepository = seatTypeRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -73,22 +77,39 @@ public class SeatServiceImpl implements ISeatService {
                 .rowChar(rowChar.toUpperCase())
                 .seatNumber(seatNumber)
                 .build();
-        return seatRepository.save(seat);
+        Seat saved = seatRepository.save(seat);
+
+        if (auditLogService != null) {
+            auditLogService.logAction("CREATE", "Seat", "Position",
+                    "N/A", rowChar.toUpperCase() + seatNumber + " (" + seatType.getTypeName() + ")");
+        }
+
+        return saved;
     }
 
     @Override
     public Seat updateSeatType(String seatId, String seatTypeId) {
         Seat seat = seatRepository.findById(seatId)
                 .orElseThrow(() -> new IllegalArgumentException("Ghe khong ton tai: " + seatId));
+        SeatType oldType = seat.getSeatType();
+        String oldTypeName = oldType != null ? oldType.getTypeName() : "N/A";
+
         SeatType seatType = seatTypeRepository.findById(seatTypeId)
                 .orElseThrow(() -> new IllegalArgumentException("Loai ghe khong ton tai: " + seatTypeId));
         seat.setSeatType(seatType);
-        return seatRepository.save(seat);
+        Seat saved = seatRepository.save(seat);
+
+        if (auditLogService != null) {
+            auditLogService.logAction("UPDATE", "Seat", "SeatType",
+                    oldTypeName, seatType.getTypeName());
+        }
+
+        return saved;
     }
 
     @Override
     public void deleteSeat(String seatId) {
-        seatRepository.findById(seatId)
+        Seat seat = seatRepository.findById(seatId)
                 .orElseThrow(() -> new IllegalArgumentException("Ghe khong ton tai: " + seatId));
 
         if (seatRepository.hasAnyBookings(seatId)) {
@@ -98,7 +119,13 @@ public class SeatServiceImpl implements ISeatService {
             throw new IllegalStateException("Khong the xoa ghe dang bi khoa.");
         }
 
+        String seatInfo = seat.getRowChar() + seat.getSeatNumber();
         seatRepository.deleteById(seatId);
+
+        if (auditLogService != null) {
+            auditLogService.logAction("DELETE", "Seat", "Position",
+                    seatInfo, "Đã xóa");
+        }
     }
 
     @Override
@@ -153,6 +180,5 @@ public class SeatServiceImpl implements ISeatService {
             throw new IllegalArgumentException("So thu tu ghe phai lon hon 0.");
         }
     }
-
 
 }

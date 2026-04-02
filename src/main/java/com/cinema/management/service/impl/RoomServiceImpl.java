@@ -2,6 +2,7 @@ package com.cinema.management.service.impl;
 
 import com.cinema.management.model.entity.Room;
 import com.cinema.management.repository.RoomRepository;
+import com.cinema.management.service.IAuditLogService;
 import com.cinema.management.service.IRoomService;
 
 import java.util.List;
@@ -15,14 +16,16 @@ import java.util.UUID;
 public class RoomServiceImpl implements IRoomService {
 
     private final RoomRepository roomRepository;
+    private final IAuditLogService auditLogService;
 
     public RoomServiceImpl() {
         this.roomRepository = new RoomRepository();
+        this.auditLogService = null;
     }
 
-    // Constructor injection cho testability
-    public RoomServiceImpl(RoomRepository roomRepository) {
+    public RoomServiceImpl(RoomRepository roomRepository, IAuditLogService auditLogService) {
         this.roomRepository = roomRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -47,7 +50,13 @@ public class RoomServiceImpl implements IRoomService {
                 .roomName(roomName.trim())
                 .capacity(capacity)
                 .build();
-        return roomRepository.save(room);
+        Room saved = roomRepository.save(room);
+
+        if (auditLogService != null) {
+            auditLogService.logAction("CREATE", "Room", "RoomName",
+                    "N/A", roomName.trim());
+        }
+        return saved;
     }
 
     @Override
@@ -57,6 +66,10 @@ public class RoomServiceImpl implements IRoomService {
         Room existing = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Phong chieu khong ton tai: " + roomId));
 
+        // Lưu dữ liệu cũ trước khi cập nhật
+        String oldName = existing.getRoomName();
+        int oldCapacity = existing.getCapacity();
+
         // Chi kiem tra trung ten neu ten thay doi
         if (!existing.getRoomName().equalsIgnoreCase(roomName.trim())
                 && roomRepository.existsByRoomName(roomName.trim())) {
@@ -64,19 +77,38 @@ public class RoomServiceImpl implements IRoomService {
         }
         existing.setRoomName(roomName.trim());
         existing.setCapacity(capacity);
-        return roomRepository.save(existing);
+        Room saved = roomRepository.save(existing);
+
+        // Ghi log khi tên phòng thay đổi
+        if (auditLogService != null && !oldName.equals(roomName.trim())) {
+            auditLogService.logAction("UPDATE", "Room", "RoomName",
+                    oldName, roomName.trim());
+        }
+        // Ghi log khi sức chứa thay đổi
+        if (auditLogService != null && oldCapacity != capacity) {
+            auditLogService.logAction("UPDATE", "Room", "Capacity",
+                    String.valueOf(oldCapacity), String.valueOf(capacity));
+        }
+
+        return saved;
     }
 
     @Override
     public void deleteRoom(String roomId) {
-        roomRepository.findById(roomId)
+        Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Phong chieu khong ton tai: " + roomId));
 
         if (roomRepository.hasActiveShowTimes(roomId)) {
             throw new IllegalStateException("Khong the xoa phong dang hoat dong.");
         }
 
+        String roomName = room.getRoomName();
         roomRepository.deleteById(roomId);
+
+        if (auditLogService != null) {
+            auditLogService.logAction("DELETE", "Room", "RoomName",
+                    roomName, "Đã xóa");
+        }
     }
 
     // Validation helpers

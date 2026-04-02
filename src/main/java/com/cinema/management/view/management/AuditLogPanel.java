@@ -125,12 +125,12 @@ public class AuditLogPanel extends JPanel {
 
         JPanel searchBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         searchBox.setOpaque(false);
-        searchBox.add(new JLabel("🔍 Tìm kiếm:"));
+        searchBox.add(new JLabel("Tìm kiếm:"));
         searchBox.add(txtSearch);
 
         JPanel dateBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         dateBox.setOpaque(false);
-        dateBox.add(new JLabel("📅 Lọc theo ngày:"));
+        dateBox.add(new JLabel("Lọc theo ngày:"));
         dateBox.add(dateSpinner);
 
         top.add(searchBox);

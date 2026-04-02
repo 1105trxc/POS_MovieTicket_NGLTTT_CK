@@ -83,7 +83,7 @@ public class CustomerManagementPanel extends JPanel {
 
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         top.setOpaque(false);
-        top.add(new JLabel("🔍 Tìm kiếm:  "));
+        top.add(new JLabel(" Tìm kiếm:  "));
         top.add(txtSearch);
 
         btnRefresh.setBackground(new Color(100, 116, 139));

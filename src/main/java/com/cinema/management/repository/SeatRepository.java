@@ -34,7 +34,15 @@ public class SeatRepository {
     public Optional<Seat> findById(String seatId) {
         EntityManager em = JpaUtil.getEntityManager();
         try {
-            return Optional.ofNullable(em.find(Seat.class, seatId));
+            List<Seat> results = em.createQuery(
+                    "SELECT s FROM Seat s " +
+                            "JOIN FETCH s.seatType " +
+                            "JOIN FETCH s.room " +
+                            "WHERE s.seatId = :seatId",
+                    Seat.class)
+                    .setParameter("seatId", seatId)
+                    .getResultList();
+            return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
         } finally {
             em.close();
         }

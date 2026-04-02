@@ -34,8 +34,13 @@ public class ProductServiceImpl implements IProductService {
 
     @Override
     public void updateProduct(Product product) {
+        // Lấy dữ liệu cũ trước khi cập nhật
+        Product old = productRepo.findById(product.getProductId()).orElse(null);
+        String oldPrice = old != null && old.getCurrentPrice() != null ? old.getCurrentPrice().toPlainString() : "N/A";
+
         productRepo.update(product);
-        auditLogService.logAction("UPDATE", "Product", "Sửa giá trị", "Unknown", product.getCurrentPrice().toString());
+        auditLogService.logAction("UPDATE", "Product", "Sửa giá trị",
+                oldPrice, product.getCurrentPrice().toPlainString());
     }
 
     @Override

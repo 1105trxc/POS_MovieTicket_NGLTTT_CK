@@ -31,7 +31,7 @@ public class SeatManagementPanel extends JPanel {
 
     // --- SEAT TAB VARIABLES ---
     private final JComboBox<RoomItem> cmbRoom = new JComboBox<>();
-    private final String[] SEAT_COLS = {"Mã ghế", "Hàng", "Số", "Loại", "Giá cơ bản"};
+    private final String[] SEAT_COLS = { "Mã ghế", "Hàng", "Số", "Loại", "Giá cơ bản" };
     private final DefaultTableModel seatTableModel = new DefaultTableModel(SEAT_COLS, 0) {
         @Override
         public boolean isCellEditable(int r, int c) {
@@ -53,7 +53,7 @@ public class SeatManagementPanel extends JPanel {
     private String selectedSeatId;
 
     // --- SEAT TYPE TAB VARIABLES ---
-    private final String[] TYPE_COLS = {"Mã loại ghế", "Tên loại", "Giá cơ bản"};
+    private final String[] TYPE_COLS = { "Mã loại ghế", "Tên loại", "Giá cơ bản" };
     private final DefaultTableModel typeTableModel = new DefaultTableModel(TYPE_COLS, 0) {
         @Override
         public boolean isCellEditable(int r, int c) {
@@ -296,7 +296,7 @@ public class SeatManagementPanel extends JPanel {
 
         JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         filterBar.setOpaque(false);
-        filterBar.add(new JLabel("<html><b>🔍 Tìm nhanh:</b></html>"));
+        filterBar.add(new JLabel("<html><b>Tìm nhanh:</b></html>"));
 
         JTextField txtLiveSearchType = new JTextField();
         txtLiveSearchType.putClientProperty("JTextField.placeholderText", "Tìm theo tên loại ghế...");
@@ -457,7 +457,8 @@ public class SeatManagementPanel extends JPanel {
                 cmbSource
         };
 
-        int result = JOptionPane.showConfirmDialog(this, message, "Sao chép bố cục phòng", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+        int result = JOptionPane.showConfirmDialog(this, message, "Sao chép bố cục phòng", JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.QUESTION_MESSAGE);
 
         if (result == JOptionPane.OK_OPTION) {
             RoomItem sourceRoom = (RoomItem) cmbSource.getSelectedItem();
@@ -499,8 +500,10 @@ public class SeatManagementPanel extends JPanel {
             showError("Vui lòng chọn ghế cần xóa.");
             return;
         }
-        int c = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa ghế này?", "Xác nhận", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-        if (c != JOptionPane.YES_OPTION) return;
+        int c = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa ghế này?", "Xác nhận",
+                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (c != JOptionPane.YES_OPTION)
+            return;
         try {
             seatController.deleteSeat(selectedSeatId);
             showSuccess("Xóa ghế thành công.");
@@ -518,7 +521,8 @@ public class SeatManagementPanel extends JPanel {
             return;
         }
         BigDecimal price = parsePriceField();
-        if (price == null) return;
+        if (price == null)
+            return;
         try {
             seatController.addSeatType(name, price);
             showSuccess("Thêm loại ghế thành công.");
@@ -541,7 +545,8 @@ public class SeatManagementPanel extends JPanel {
             return;
         }
         BigDecimal price = parsePriceField();
-        if (price == null) return;
+        if (price == null)
+            return;
         try {
             seatController.updateSeatType(selectedSeatTypeId, name, price, "U001");
             showSuccess("Cập nhật loại ghế thành công.");
@@ -559,8 +564,10 @@ public class SeatManagementPanel extends JPanel {
             showError("Vui lòng chọn loại ghế cần xóa.");
             return;
         }
-        int c = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa loại ghế này?", "Xác nhận", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-        if (c != JOptionPane.YES_OPTION) return;
+        int c = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa loại ghế này?", "Xác nhận",
+                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (c != JOptionPane.YES_OPTION)
+            return;
         try {
             seatController.deleteSeatType(selectedSeatTypeId);
             showSuccess("Xóa loại ghế thành công.");
@@ -599,12 +606,13 @@ public class SeatManagementPanel extends JPanel {
     private void loadSeatTable() {
         seatTableModel.setRowCount(0);
         RoomItem ri = (RoomItem) cmbRoom.getSelectedItem();
-        if (ri == null) return;
+        if (ri == null)
+            return;
         List<Seat> seats = seatController.getSeatsByRoom(ri.id);
         for (Seat s : seats) {
             String typeName = s.getSeatType() != null ? s.getSeatType().getTypeName() : "-";
             String basePrice = s.getSeatType() != null ? String.format("%,.0f", s.getSeatType().getBasePrice()) : "-";
-            seatTableModel.addRow(new Object[]{
+            seatTableModel.addRow(new Object[] {
                     s.getSeatId(), s.getRowChar(), s.getSeatNumber(), typeName, basePrice
             });
         }
@@ -613,7 +621,7 @@ public class SeatManagementPanel extends JPanel {
     private void loadSeatTypeTable() {
         typeTableModel.setRowCount(0);
         for (SeatType st : seatController.getAllSeatTypes()) {
-            typeTableModel.addRow(new Object[]{
+            typeTableModel.addRow(new Object[] {
                     st.getSeatTypeId(), st.getTypeName(), String.format("%,.0f", st.getBasePrice())
             });
         }
@@ -621,7 +629,8 @@ public class SeatManagementPanel extends JPanel {
 
     private void configureSeatTableSelection() {
         seatTable.getSelectionModel().addListSelectionListener(e -> {
-            if (e.getValueIsAdjusting()) return;
+            if (e.getValueIsAdjusting())
+                return;
             int viewRow = seatTable.getSelectedRow();
             if (viewRow < 0) {
                 clearSeatForm();
@@ -642,7 +651,8 @@ public class SeatManagementPanel extends JPanel {
 
     private void configureSeatTypeTableSelection() {
         typeTable.getSelectionModel().addListSelectionListener(e -> {
-            if (e.getValueIsAdjusting()) return;
+            if (e.getValueIsAdjusting())
+                return;
             int viewRow = typeTable.getSelectedRow();
             if (viewRow < 0) {
                 clearSeatTypeForm();

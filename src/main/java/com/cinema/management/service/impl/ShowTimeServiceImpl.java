@@ -6,9 +6,11 @@ import com.cinema.management.model.entity.ShowTime;
 import com.cinema.management.repository.MovieRepository;
 import com.cinema.management.repository.RoomRepository;
 import com.cinema.management.repository.ShowTimeRepository;
+import com.cinema.management.service.IAuditLogService;
 import com.cinema.management.service.IShowTimeService;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,22 +21,28 @@ import java.util.UUID;
  */
 public class ShowTimeServiceImpl implements IShowTimeService {
 
+    private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("dd/MM HH:mm");
+
     private final ShowTimeRepository showTimeRepository;
     private final RoomRepository roomRepository;
     private final MovieRepository movieRepository;
+    private final IAuditLogService auditLogService;
 
     public ShowTimeServiceImpl() {
         this.showTimeRepository = new ShowTimeRepository();
         this.roomRepository = new RoomRepository();
         this.movieRepository = new MovieRepository();
+        this.auditLogService = null;
     }
 
     public ShowTimeServiceImpl(ShowTimeRepository showTimeRepository,
                                RoomRepository roomRepository,
-                               MovieRepository movieRepository) {
+                               MovieRepository movieRepository,
+                               IAuditLogService auditLogService) {
         this.showTimeRepository = showTimeRepository;
         this.roomRepository = roomRepository;
         this.movieRepository = movieRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -73,7 +81,15 @@ public class ShowTimeServiceImpl implements IShowTimeService {
                 .startTime(startTime)
                 .endTime(endTime)
                 .build();
-        return showTimeRepository.save(showTime);
+        ShowTime saved = showTimeRepository.save(showTime);
+
+        if (auditLogService != null) {
+            auditLogService.logAction("CREATE", "ShowTime", "Suất chiếu",
+                    "N/A", movie.getTitle() + " | " + room.getRoomName()
+                            + " | " + startTime.format(DT_FMT) + "-" + endTime.format(DT_FMT));
+        }
+
+        return saved;
     }
 
     @Override
@@ -81,6 +97,12 @@ public class ShowTimeServiceImpl implements IShowTimeService {
                                    LocalDateTime startTime, LocalDateTime endTime) {
         ShowTime existing = showTimeRepository.findById(showTimeId)
                 .orElseThrow(() -> new IllegalArgumentException("Suat chieu khong ton tai: " + showTimeId));
+
+        // Lưu dữ liệu cũ
+        String oldInfo = (existing.getMovie() != null ? existing.getMovie().getTitle() : "")
+                + " | " + (existing.getRoom() != null ? existing.getRoom().getRoomName() : "")
+                + " | " + (existing.getStartTime() != null ? existing.getStartTime().format(DT_FMT) : "");
+
         Movie movie = movieRepository.findById(movieId)
                 .orElseThrow(() -> new IllegalArgumentException("Phim khong ton tai: " + movieId));
         validateTimes(startTime, endTime, movie.getDuration());
@@ -97,12 +119,21 @@ public class ShowTimeServiceImpl implements IShowTimeService {
         existing.setRoom(room);
         existing.setStartTime(startTime);
         existing.setEndTime(endTime);
-        return showTimeRepository.save(existing);
+        ShowTime saved = showTimeRepository.save(existing);
+
+        if (auditLogService != null) {
+            String newInfo = movie.getTitle() + " | " + room.getRoomName()
+                    + " | " + startTime.format(DT_FMT) + "-" + endTime.format(DT_FMT);
+            auditLogService.logAction("UPDATE", "ShowTime", "Suất chiếu",
+                    oldInfo, newInfo);
+        }
+
+        return saved;
     }
 
     @Override
     public void deleteShowTime(String showTimeId) {
-        showTimeRepository.findById(showTimeId)
+        ShowTime st = showTimeRepository.findById(showTimeId)
                 .orElseThrow(() -> new IllegalArgumentException("Suat chieu khong ton tai: " + showTimeId));
 
         if (showTimeRepository.hasAnyBookings(showTimeId)) {
@@ -112,7 +143,16 @@ public class ShowTimeServiceImpl implements IShowTimeService {
             throw new IllegalStateException("Khong the xoa suat chieu dang co ghe bi khoa.");
         }
 
+        String info = (st.getMovie() != null ? st.getMovie().getTitle() : "")
+                + " | " + (st.getRoom() != null ? st.getRoom().getRoomName() : "")
+                + " | " + (st.getStartTime() != null ? st.getStartTime().format(DT_FMT) : "");
+
         showTimeRepository.deleteById(showTimeId);
+
+        if (auditLogService != null) {
+            auditLogService.logAction("DELETE", "ShowTime", "Suất chiếu",
+                    info, "Đã xóa");
+        }
     }
 
     // Validation helpers

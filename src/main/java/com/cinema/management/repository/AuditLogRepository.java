@@ -37,7 +37,7 @@ public class AuditLogRepository {
         try {
             return em.createQuery(
                     "SELECT a FROM AuditLog a JOIN FETCH a.changedBy ORDER BY a.changedAt DESC", AuditLog.class)
-                    .setMaxResults(200)
+                    .setMaxResults(999)
                     .getResultList();
         } finally {
             em.close();
@@ -56,7 +56,7 @@ public class AuditLogRepository {
                             "ORDER BY a.changedAt DESC",
                     AuditLog.class)
                     .setParameter("kw", lowerKw)
-                    .setMaxResults(200)
+                    .setMaxResults(999)
                     .getResultList();
         } finally {
             em.close();

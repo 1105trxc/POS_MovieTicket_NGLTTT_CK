@@ -110,7 +110,7 @@ public class ProductManagementPanel extends JPanel {
         JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         filterBar.setOpaque(false);
 
-        JLabel lblSearch = new JLabel("🔍 Tìm nhanh:");
+        JLabel lblSearch = new JLabel("Tìm nhanh:");
         lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 13));
         filterBar.add(lblSearch);
 
@@ -298,7 +298,8 @@ public class ProductManagementPanel extends JPanel {
     }
 
     private void onAdd() {
-        if (!validateForm()) return;
+        if (!validateForm())
+            return;
 
         Product p = new Product();
         p.setProductId(IdGenerator.generateId("FB", Product.class, "productId"));
@@ -320,7 +321,8 @@ public class ProductManagementPanel extends JPanel {
             showError("Vui lòng chọn sản phẩm cần cập nhật.");
             return;
         }
-        if (!validateForm()) return;
+        if (!validateForm())
+            return;
 
         selectedProduct.setProductName(txtName.getText().trim());
         selectedProduct.setCurrentPrice(parsePriceFromField());
@@ -344,7 +346,8 @@ public class ProductManagementPanel extends JPanel {
                 this, "Bạn có chắc chắn muốn xóa sản phẩm này?", "Xác nhận xóa",
                 JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 
-        if (confirm != JOptionPane.YES_OPTION) return;
+        if (confirm != JOptionPane.YES_OPTION)
+            return;
 
         try {
             productController.deleteProduct(selectedProduct.getProductId());
@@ -371,7 +374,8 @@ public class ProductManagementPanel extends JPanel {
 
     private void configureTableSelection() {
         table.getSelectionModel().addListSelectionListener(e -> {
-            if (e.getValueIsAdjusting()) return;
+            if (e.getValueIsAdjusting())
+                return;
             int viewRow = table.getSelectedRow();
             if (viewRow < 0) {
                 clearForm();

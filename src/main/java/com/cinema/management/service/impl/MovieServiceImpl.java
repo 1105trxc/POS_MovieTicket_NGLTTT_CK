@@ -35,8 +35,12 @@ public class MovieServiceImpl implements IMovieService {
 
     @Override
     public void updateMovie(Movie movie) {
+        // Lấy dữ liệu cũ trước khi cập nhật
+        Movie old = movieRepo.findById(movie.getMovieId()).orElse(null);
+        String oldTitle = old != null ? old.getTitle() : "N/A";
+
         movieRepo.update(movie);
-        auditLogService.logAction("UPDATE", "Movie", "Title", "Old", movie.getTitle());
+        auditLogService.logAction("UPDATE", "Movie", "Title", oldTitle, movie.getTitle());
     }
 
     @Override

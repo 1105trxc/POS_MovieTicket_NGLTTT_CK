@@ -4,14 +4,18 @@ import com.cinema.management.model.entity.User;
 import com.cinema.management.service.IUserService;
 import com.cinema.management.util.UserSessionContext;
 import com.cinema.management.service.impl.UserServiceImpl;
+import com.cinema.management.repository.AuditLogRepository;
 import com.cinema.management.repository.UserRepository;
+import com.cinema.management.service.impl.AuditLogServiceImpl;
 import java.util.List;
 
 public class UserController {
     private final IUserService userService;
 
     public UserController() {
-        this.userService = new UserServiceImpl(new UserRepository());
+        this.userService = new UserServiceImpl(
+                new UserRepository(),
+                new AuditLogServiceImpl(new AuditLogRepository()));
     }
 
     public UserController(IUserService userService) {

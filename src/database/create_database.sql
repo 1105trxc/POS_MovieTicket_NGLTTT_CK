@@ -1,10 +1,14 @@
+-- =====================================================
+-- CinemaDB - Full initialization script (with constraints)
+-- Base schema + schema updates + domain constraints
+-- =====================================================
+
 -- 1. Khởi tạo Database
-DROP DATABASE IF EXISTS `CinemaDB`;
-CREATE DATABASE `CinemaDB` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS `CinemaDB` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `CinemaDB`;
 
 -- ==========================================
--- I. NHÓM HỆ THỐNG, NGƯỜI DÙNG & AUDIT
+-- I. NHÓM HỆ THỐNG & NGƯỜI DÙNG
 -- ==========================================
 
 CREATE TABLE `Role` (
@@ -18,20 +22,7 @@ CREATE TABLE `User` (
     `Username` VARCHAR(100) UNIQUE NOT NULL,
     `Password` VARCHAR(255) NOT NULL,
     `FullName` VARCHAR(255),
-    `IsActive` BOOLEAN DEFAULT TRUE, -- Admin quản lý trạng thái Staff
     FOREIGN KEY (`RoleID`) REFERENCES `Role`(`RoleID`)
-) ENGINE=InnoDB;
-
--- Bảng lưu nhật ký thay đổi giá (FR-AD-04)
-CREATE TABLE `AuditLog` (
-    `LogID` INT AUTO_INCREMENT PRIMARY KEY,
-    `ChangedBy` VARCHAR(50) NOT NULL,
-    `TableName` VARCHAR(50) NOT NULL,
-    `FieldName` VARCHAR(50) NOT NULL,
-    `OldValue` TEXT,
-    `NewValue` TEXT,
-    `ChangedAt` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (`ChangedBy`) REFERENCES `User`(`UserID`)
 ) ENGINE=InnoDB;
 
 -- ==========================================
@@ -41,7 +32,7 @@ CREATE TABLE `AuditLog` (
 CREATE TABLE `Movie` (
     `MovieID` VARCHAR(50) PRIMARY KEY,
     `Title` VARCHAR(255) NOT NULL,
-    `Duration` INT NOT NULL, 
+    `Duration` INT NOT NULL,
     `ReleaseDate` DATE,
     `Description` TEXT
 ) ENGINE=InnoDB;
@@ -75,7 +66,7 @@ CREATE TABLE `Seat` (
     `SeatID` VARCHAR(50) PRIMARY KEY,
     `RoomID` VARCHAR(50) NOT NULL,
     `SeatTypeID` VARCHAR(50) NOT NULL,
-    `RowChar` VARCHAR(10) NOT NULL, 
+    `RowChar` VARCHAR(10) NOT NULL,
     `SeatNumber` INT NOT NULL,
     FOREIGN KEY (`RoomID`) REFERENCES `Room`(`RoomID`),
     FOREIGN KEY (`SeatTypeID`) REFERENCES `SeatType`(`SeatTypeID`)
@@ -98,7 +89,7 @@ CREATE TABLE `Product` (
 ) ENGINE=InnoDB;
 
 -- ==========================================
--- III. NHÓM KHÁCH HÀNG & KHUYẾN MÃI
+-- III. NHÓM KHÁCH HÀNG & TÍCH ĐIỂM
 -- ==========================================
 
 CREATE TABLE `Customer` (
@@ -111,21 +102,17 @@ CREATE TABLE `Customer` (
     `MemberTier` VARCHAR(50) DEFAULT 'Member'
 ) ENGINE=InnoDB;
 
+-- ==========================================
+-- IV. NHÓM GIAO DỊCH & THƯƠNG MẠI
+-- ==========================================
+
 CREATE TABLE `Promotion` (
     `PromotionID` VARCHAR(50) PRIMARY KEY,
     `Code` VARCHAR(50) UNIQUE NOT NULL,
     `DiscountPercent` DECIMAL(5, 2),
     `MaxDiscountAmount` DECIMAL(15, 2),
-    `ExpiryDate` DATE,
-    `ApplyToMovie` VARCHAR(50) NULL,      -- Điều kiện theo phim (FR-AD-05)
-    `ValidDays` VARCHAR(100) NULL,        -- Điều kiện theo thứ (FR-AD-05)
-    `IsExclusive` BOOLEAN DEFAULT FALSE,  -- Không cộng dồn (BR-01)
-    FOREIGN KEY (`ApplyToMovie`) REFERENCES `Movie`(`MovieID`)
+    `ExpiryDate` DATE
 ) ENGINE=InnoDB;
-
--- ==========================================
--- IV. NHÓM GIAO DỊCH & QUẢN LÝ GHẾ
--- ==========================================
 
 CREATE TABLE `Invoice` (
     `InvoiceID` VARCHAR(50) PRIMARY KEY,
@@ -137,45 +124,27 @@ CREATE TABLE `Invoice` (
     `DiscountFromPoints` DECIMAL(15, 2) DEFAULT 0,
     `EarnedPoints` INT DEFAULT 0,
     `CreatedAt` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    `Status` VARCHAR(20) DEFAULT 'COMPLETED',
-    `CancellationReason` TEXT,
-    `ApprovedBy` VARCHAR(50),
     FOREIGN KEY (`UserID`) REFERENCES `User`(`UserID`),
     FOREIGN KEY (`CustomerID`) REFERENCES `Customer`(`CustomerID`),
-    FOREIGN KEY (`PromotionID`) REFERENCES `Promotion`(`PromotionID`),
-    FOREIGN KEY (`ApprovedBy`) REFERENCES `User`(`UserID`)
+    FOREIGN KEY (`PromotionID`) REFERENCES `Promotion`(`PromotionID`)
 ) ENGINE=InnoDB;
 
--- Bảng vé chính thức (Sau khi thanh toán)
 CREATE TABLE `BookingSeat` (
     `ShowTimeID` VARCHAR(50) NOT NULL,
     `SeatID` VARCHAR(50) NOT NULL,
-    `InvoiceID` VARCHAR(50) NOT NULL,
-    `Price` DECIMAL(15, 2) NOT NULL, -- Giá snapshot (FR-NF-01)
+    `InvoiceID` VARCHAR(50) NULL,
+    `Price` DECIMAL(15, 2) NOT NULL,
     PRIMARY KEY (`ShowTimeID`, `SeatID`),
     FOREIGN KEY (`ShowTimeID`) REFERENCES `ShowTime`(`ShowTimeID`),
     FOREIGN KEY (`SeatID`) REFERENCES `Seat`(`SeatID`),
     FOREIGN KEY (`InvoiceID`) REFERENCES `Invoice`(`InvoiceID`)
 ) ENGINE=InnoDB;
 
--- Bảng quản lý khóa ghế 15 phút (FR-ST-02, BR-04)
-CREATE TABLE `SeatLock` (
-    `ShowTimeID` VARCHAR(50) NOT NULL,
-    `SeatID` VARCHAR(50) NOT NULL,
-    `LockedBy` VARCHAR(50) NOT NULL,
-    `LockedAt` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    `ExpiresAt` DATETIME NOT NULL, -- CreatedAt + 15 mins (BR-04)
-    PRIMARY KEY (`ShowTimeID`, `SeatID`),
-    FOREIGN KEY (`ShowTimeID`) REFERENCES `ShowTime`(`ShowTimeID`),
-    FOREIGN KEY (`SeatID`) REFERENCES `Seat`(`SeatID`),
-    FOREIGN KEY (`LockedBy`) REFERENCES `User`(`UserID`)
-) ENGINE=InnoDB;
-
 CREATE TABLE `OrderDetail` (
     `InvoiceID` VARCHAR(50) NOT NULL,
     `ProductID` VARCHAR(50) NOT NULL,
     `Quantity` INT NOT NULL,
-    `Price` DECIMAL(15, 2) NOT NULL, -- Giá snapshot
+    `Price` DECIMAL(15, 2) NOT NULL,
     PRIMARY KEY (`InvoiceID`, `ProductID`),
     FOREIGN KEY (`InvoiceID`) REFERENCES `Invoice`(`InvoiceID`),
     FOREIGN KEY (`ProductID`) REFERENCES `Product`(`ProductID`)
@@ -197,11 +166,36 @@ CREATE TABLE `PointHistory` (
     `CustomerID` VARCHAR(50) NOT NULL,
     `InvoiceID` VARCHAR(50),
     `PointAmount` INT NOT NULL,
-    `TransactionType` VARCHAR(50), 
+    `TransactionType` VARCHAR(50),
     `Description` TEXT,
     `CreatedAt` DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`CustomerID`) REFERENCES `Customer`(`CustomerID`),
     FOREIGN KEY (`InvoiceID`) REFERENCES `Invoice`(`InvoiceID`)
+) ENGINE=InnoDB;
+
+-- Bảng lưu nhật ký thay đổi
+CREATE TABLE `AuditLog` (
+    `LogID` INT AUTO_INCREMENT PRIMARY KEY,
+    `ChangedBy` VARCHAR(50) NOT NULL,
+    `TableName` VARCHAR(50) NOT NULL,
+    `FieldName` VARCHAR(50) NOT NULL,
+    `OldValue` TEXT,
+    `NewValue` TEXT,
+    `ChangedAt` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`ChangedBy`) REFERENCES `User`(`UserID`)
+) ENGINE=InnoDB;
+
+-- Bảng quản lý khóa ghế 15 phút
+CREATE TABLE `SeatLock` (
+    `ShowTimeID` VARCHAR(50) NOT NULL,
+    `SeatID` VARCHAR(50) NOT NULL,
+    `LockedBy` VARCHAR(50) NOT NULL,
+    `LockedAt` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `ExpiresAt` DATETIME NOT NULL,
+    PRIMARY KEY (`ShowTimeID`, `SeatID`),
+    FOREIGN KEY (`ShowTimeID`) REFERENCES `ShowTime`(`ShowTimeID`),
+    FOREIGN KEY (`SeatID`) REFERENCES `Seat`(`SeatID`),
+    FOREIGN KEY (`LockedBy`) REFERENCES `User`(`UserID`)
 ) ENGINE=InnoDB;
 
 -- ==========================================
@@ -231,3 +225,96 @@ CREATE TABLE `ShiftReport` (
     FOREIGN KEY (`UserID`) REFERENCES `User`(`UserID`),
     FOREIGN KEY (`ApprovedBy`) REFERENCES `User`(`UserID`)
 ) ENGINE=InnoDB;
+
+-- ==========================================
+-- VI. CẬP NHẬT SCHEMA PHIÊN BẢN MỚI
+-- ==========================================
+
+ALTER TABLE `User`
+ADD COLUMN `Phone` VARCHAR(20),
+ADD COLUMN `Email` VARCHAR(100),
+ADD COLUMN `BirthDate` DATE,
+ADD COLUMN `CCCD` VARCHAR(20) UNIQUE,
+ADD COLUMN `Gender` VARCHAR(10),
+ADD COLUMN `IsActive` BOOLEAN DEFAULT TRUE;
+
+ALTER TABLE `Invoice`
+ADD COLUMN `DiscountFromTier` DECIMAL(15, 2) DEFAULT 0,
+ADD COLUMN `DiscountFromPromotion` DECIMAL(15, 2) DEFAULT 0,
+ADD COLUMN `FinalAmount` DECIMAL(19, 2) NOT NULL DEFAULT 0;
+
+ALTER TABLE `Promotion`
+ADD COLUMN `Description` TEXT,
+ADD COLUMN `StartDate` DATE,
+ADD COLUMN `ApplyToMovie` VARCHAR(50),
+ADD COLUMN `ValidDays` VARCHAR(100),
+ADD COLUMN `IsExclusive` TINYINT(1) NOT NULL DEFAULT 0,
+ADD CONSTRAINT `FK_Promo_Movie` FOREIGN KEY (`ApplyToMovie`) REFERENCES `Movie`(`MovieID`);
+
+ALTER TABLE `Movie`
+ADD COLUMN `AgeRestriction` VARCHAR(10) DEFAULT 'P';
+
+ALTER TABLE `BookingSeat`
+MODIFY COLUMN `InvoiceID` VARCHAR(50) NOT NULL;
+
+-- ==========================================
+-- VII. RÀNG BUỘC MIỀN GIÁ TRỊ (SỐ LƯỢNG / TIỀN / THỜI GIAN)
+-- ==========================================
+
+-- Tiền
+ALTER TABLE `Product`
+ADD CONSTRAINT `CK_Product_CurrentPrice_NonNeg` CHECK (`CurrentPrice` >= 0);
+
+ALTER TABLE `SeatType`
+ADD CONSTRAINT `CK_SeatType_BasePrice_NonNeg` CHECK (`BasePrice` >= 0);
+
+ALTER TABLE `BookingSeat`
+ADD CONSTRAINT `CK_BookingSeat_Price_NonNeg` CHECK (`Price` >= 0);
+
+ALTER TABLE `OrderDetail`
+ADD CONSTRAINT `CK_OrderDetail_Price_NonNeg` CHECK (`Price` >= 0);
+
+ALTER TABLE `Payment`
+ADD CONSTRAINT `CK_Payment_Amount_Positive` CHECK (`Amount` > 0);
+
+ALTER TABLE `Invoice`
+ADD CONSTRAINT `CK_Invoice_TotalAmount_NonNeg` CHECK (`TotalAmount` >= 0),
+ADD CONSTRAINT `CK_Invoice_DiscountFromPoints_NonNeg` CHECK (`DiscountFromPoints` >= 0),
+ADD CONSTRAINT `CK_Invoice_DiscountFromTier_NonNeg` CHECK (`DiscountFromTier` >= 0),
+ADD CONSTRAINT `CK_Invoice_DiscountFromPromotion_NonNeg` CHECK (`DiscountFromPromotion` >= 0),
+ADD CONSTRAINT `CK_Invoice_FinalAmount_NonNeg` CHECK (`FinalAmount` >= 0);
+
+ALTER TABLE `Customer`
+ADD CONSTRAINT `CK_Customer_TotalSpent_NonNeg` CHECK (`TotalSpent` >= 0);
+
+ALTER TABLE `Promotion`
+ADD CONSTRAINT `CK_Promotion_MaxDiscountAmount_NonNeg`
+CHECK (`MaxDiscountAmount` IS NULL OR `MaxDiscountAmount` >= 0);
+
+-- Số lượng
+ALTER TABLE `OrderDetail`
+ADD CONSTRAINT `CK_OrderDetail_Quantity_Positive` CHECK (`Quantity` > 0);
+
+ALTER TABLE `Room`
+ADD CONSTRAINT `CK_Room_Capacity_Positive` CHECK (`Capacity` > 0);
+
+ALTER TABLE `Seat`
+ADD CONSTRAINT `CK_Seat_SeatNumber_Positive` CHECK (`SeatNumber` > 0);
+
+ALTER TABLE `Customer`
+ADD CONSTRAINT `CK_Customer_RewardPoints_NonNeg` CHECK (`RewardPoints` >= 0);
+
+ALTER TABLE `Invoice`
+ADD CONSTRAINT `CK_Invoice_UsedPoints_NonNeg` CHECK (`UsedPoints` >= 0),
+ADD CONSTRAINT `CK_Invoice_EarnedPoints_NonNeg` CHECK (`EarnedPoints` >= 0);
+
+-- Thời gian
+ALTER TABLE `ShowTime`
+ADD CONSTRAINT `CK_ShowTime_StartBeforeEnd` CHECK (`StartTime` < `EndTime`);
+
+ALTER TABLE `SeatLock`
+ADD CONSTRAINT `CK_SeatLock_LockedBeforeExpire` CHECK (`LockedAt` < `ExpiresAt`);
+
+ALTER TABLE `Promotion`
+ADD CONSTRAINT `CK_Promotion_StartBeforeExpiry`
+CHECK (`StartDate` IS NULL OR `ExpiryDate` IS NULL OR `StartDate` <= `ExpiryDate`);

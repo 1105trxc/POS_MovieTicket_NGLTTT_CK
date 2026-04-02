@@ -129,7 +129,7 @@ public class MovieManagementPanel extends JPanel {
 
         JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         filterBar.setOpaque(false);
-        JLabel lblSearch = new JLabel(" Tìm nhanh:");
+        JLabel lblSearch = new JLabel("Tìm nhanh:");
         lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 13));
         filterBar.add(lblSearch);
 
