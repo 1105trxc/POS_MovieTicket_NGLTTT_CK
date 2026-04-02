@@ -53,7 +53,6 @@ public class MainFrame extends JFrame {
     private BookingPanel bookingPanel;
     private JPanel posTabPanel;
 
-
     public MainFrame(String userId, String userRole) {
         this.loggedInUserId = userId;
         setupModernUI();
@@ -65,7 +64,7 @@ public class MainFrame extends JFrame {
 
     private Icon createIcon(String path, Color color) {
         try {
-            FlatSVGIcon icon = new FlatSVGIcon(path, 22, 22);
+            FlatSVGIcon icon = new FlatSVGIcon(path, 18, 18);
             if (color != null) {
                 icon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> color));
             }
@@ -80,8 +79,8 @@ public class MainFrame extends JFrame {
         UIManager.put("TabbedPane.tabsOverlapBorder", true);
         UIManager.put("TabbedPane.selected", BG_APP);
         UIManager.put("TabbedPane.focus", new Color(0, 0, 0, 0));
-        UIManager.put("TabbedPane.tabInsets", new Insets(18, 20, 18, 25));
-        UIManager.put("TabbedPane.tabAreaInsets", new Insets(15, 0, 0, 0));
+        UIManager.put("TabbedPane.tabInsets", new Insets(12, 8, 12, 10));
+        UIManager.put("TabbedPane.tabAreaInsets", new Insets(10, 0, 0, 0));
     }
 
     private void initFrame() {
@@ -202,16 +201,16 @@ public class MainFrame extends JFrame {
 
         JPanel customTabPanel = new JPanel(new BorderLayout());
         customTabPanel.setOpaque(false);
-        customTabPanel.setBorder(new EmptyBorder(0, 10, 0, 0));
-        customTabPanel.setPreferredSize(new Dimension(230, 30));
+        customTabPanel.setBorder(new EmptyBorder(0, 4, 0, 0));
+        customTabPanel.setPreferredSize(new Dimension(170, 26));
 
         JLabel lblIcon = new JLabel(createIcon(iconPath, TEXT_SIDEBAR));
         JLabel lblTitle = new JLabel(title);
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblTitle.setForeground(TEXT_SIDEBAR);
         lblTitle.setHorizontalAlignment(SwingConstants.LEFT);
 
-        JPanel content = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        JPanel content = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         content.setOpaque(false);
         content.add(lblIcon);
         content.add(lblTitle);
@@ -266,6 +265,16 @@ public class MainFrame extends JFrame {
 
             if (tabbedPane.getSelectedComponent() == posTabPanel && bookingPanel != null) {
                 bookingPanel.refreshShowTimeList();
+            }
+
+            // Auto-refresh data khi chuyển tab để đảm bảo đồng bộ
+            Component selected = tabbedPane.getSelectedComponent();
+            if (selected instanceof ShowTimeManagementPanel) {
+                ((ShowTimeManagementPanel) selected).refreshData();
+            } else if (selected instanceof RoomManagementPanel) {
+                ((RoomManagementPanel) selected).refreshData();
+            } else if (selected instanceof SeatManagementPanel) {
+                ((SeatManagementPanel) selected).refreshData();
             }
         });
 

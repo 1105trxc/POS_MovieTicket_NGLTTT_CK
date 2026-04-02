@@ -3,11 +3,9 @@ package com.cinema.management.repository;
 import com.cinema.management.config.JpaUtil;
 import com.cinema.management.model.entity.Movie;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityTransaction;
 import com.cinema.management.model.entity.Genre;
 import java.util.List;
 
-import java.util.List;
 import java.util.Optional;
 
 public class MovieRepository {

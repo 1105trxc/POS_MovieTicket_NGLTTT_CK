@@ -18,7 +18,7 @@ public class PromotionRepository {
         EntityManager em = JpaUtil.getEntityManager();
         try {
             List<Promotion> result = em.createQuery(
-                    "SELECT p FROM Promotion p WHERE p.code = :code", Promotion.class)
+                    "SELECT p FROM Promotion p LEFT JOIN FETCH p.applyToMovie WHERE p.code = :code", Promotion.class)
                     .setParameter("code", code)
                     .getResultList();
             return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
@@ -35,7 +35,7 @@ public class PromotionRepository {
 
     public List<Promotion> findAll() {
         try {
-            return em.createQuery("SELECT p FROM Promotion p", Promotion.class).getResultList();
+            return em.createQuery("SELECT p FROM Promotion p LEFT JOIN FETCH p.applyToMovie", Promotion.class).getResultList();
         } catch (Exception e) {
             e.printStackTrace();
             return Collections.emptyList();
@@ -45,7 +45,11 @@ public class PromotionRepository {
     public Optional<Promotion> findById(String promotionId) {
         EntityManager em = JpaUtil.getEntityManager();
         try {
-            return Optional.ofNullable(em.find(Promotion.class, promotionId));
+            List<Promotion> result = em.createQuery(
+                    "SELECT p FROM Promotion p LEFT JOIN FETCH p.applyToMovie WHERE p.promotionId = :id", Promotion.class)
+                    .setParameter("id", promotionId)
+                    .getResultList();
+            return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
         } finally {
             em.close();
         }
@@ -58,7 +62,7 @@ public class PromotionRepository {
     public List<Promotion> findActivePromotions(LocalDate today) {
         try {
             return em.createQuery(
-                    "SELECT p FROM Promotion p WHERE p.startDate <= :today AND p.expiryDate >= :today",
+                    "SELECT p FROM Promotion p LEFT JOIN FETCH p.applyToMovie WHERE p.startDate <= :today AND p.expiryDate >= :today",
                     Promotion.class)
                     .setParameter("today", today)
                     .getResultList();
@@ -75,7 +79,7 @@ public class PromotionRepository {
     public List<Promotion> findActiveForMovie(String movieId, LocalDate today) {
         try {
             return em.createQuery(
-                    "SELECT p FROM Promotion p WHERE p.startDate <= :today AND p.expiryDate >= :today " +
+                    "SELECT p FROM Promotion p LEFT JOIN FETCH p.applyToMovie WHERE p.startDate <= :today AND p.expiryDate >= :today " +
                             "AND (p.applyToMovie IS NULL OR p.applyToMovie.movieId = :movieId)",
                     Promotion.class)
                     .setParameter("today", today)

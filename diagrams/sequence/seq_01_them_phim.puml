@@ -1,0 +1,42 @@
+@startuml seq_them_phim
+skinparam defaultFontName Arial
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 8
+skinparam sequenceParticipantBorderColor #3B82F6
+skinparam sequenceParticipantBackgroundColor #DBEAFE
+skinparam sequenceActorBorderColor #1D4ED8
+skinparam noteBorderColor #CA8A04
+skinparam noteBackgroundColor #FEF9C3
+
+title Thêm Phim Mới
+
+actor "Admin" as A
+participant "MovieManagementPanel\n(View)" as V
+participant "MovieController" as C
+participant "MovieService\n(Impl)" as S
+participant "MovieRepository" as R
+database "Database" as DB
+
+A -> V: Nhấn nút "Thêm Phim mới"
+V -> V: clearForm()\nSinh MovieID mới
+
+A -> V: Nhập thông tin phim\n(Tên, Thể loại, Thời lượng, Ngày chiếu...)
+A -> V: Nhấn "Lưu"
+V -> V: validateForm()
+
+alt Dữ liệu không hợp lệ
+  V -> A: Hiển thị JOptionPane thông báo lỗi
+  note right of A: Admin nhập lại thông tin
+else Dữ liệu hợp lệ
+  V -> C: addMovie(movie)
+  C -> S: createMovie(movie)
+  S -> R: save(movie)
+  R -> DB: INSERT INTO Movie (...)
+  DB --> R: OK
+  R --> S: Movie saved
+  S --> C: void
+  C --> V: success
+  V -> A: Hiển thị "Thêm phim thành công!"
+  V -> V: loadTable() - reload danh sách phim
+end
+@enduml

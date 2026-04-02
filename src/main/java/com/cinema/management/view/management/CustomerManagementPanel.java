@@ -81,7 +81,7 @@ public class CustomerManagementPanel extends JPanel {
         txtSearch.putClientProperty("JTextField.placeholderText", "Tìm theo Mã KH, Tên, Số điện thoại...");
         txtSearch.setPreferredSize(new Dimension(300, 36));
 
-        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         top.setOpaque(false);
         top.add(new JLabel("🔍 Tìm kiếm:  "));
         top.add(txtSearch);
@@ -97,7 +97,11 @@ public class CustomerManagementPanel extends JPanel {
             loadTable();
         });
 
-        panel.add(top, BorderLayout.NORTH);
+        JPanel filterWrapper = new JPanel(new BorderLayout());
+        filterWrapper.setOpaque(false);
+        filterWrapper.setBorder(new EmptyBorder(0, 0, 8, 0));
+        filterWrapper.add(top, BorderLayout.CENTER);
+        panel.add(filterWrapper, BorderLayout.NORTH);
 
         styleTable(table);
         rowSorter = new TableRowSorter<>(tableModel);
@@ -210,8 +214,19 @@ public class CustomerManagementPanel extends JPanel {
     }
 
     private void onAdd() {
-        if (txtFullName.getText().trim().isEmpty() || txtPhone.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Họ tên và SĐT không được để trống!");
+        String name = txtFullName.getText().trim();
+        String phone = txtPhone.getText().trim();
+
+        if (name.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Họ tên không được để trống!");
+            return;
+        }
+        if (phone.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Số điện thoại không được để trống!");
+            return;
+        }
+        if (!phone.matches("\\d{10,11}")) {
+            JOptionPane.showMessageDialog(this, "Số điện thoại phải gồm 10-11 chữ số!");
             return;
         }
         Customer c = new Customer();
@@ -235,8 +250,25 @@ public class CustomerManagementPanel extends JPanel {
     private void onUpdate() {
         if (selectedCustomer == null)
             return;
-        selectedCustomer.setFullName(txtFullName.getText().trim());
-        selectedCustomer.setPhone(txtPhone.getText().trim());
+
+        String name = txtFullName.getText().trim();
+        String phone = txtPhone.getText().trim();
+
+        if (name.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Họ tên không được để trống!");
+            return;
+        }
+        if (phone.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Số điện thoại không được để trống!");
+            return;
+        }
+        if (!phone.matches("\\d{10,11}")) {
+            JOptionPane.showMessageDialog(this, "Số điện thoại phải gồm 10-11 chữ số!");
+            return;
+        }
+
+        selectedCustomer.setFullName(name);
+        selectedCustomer.setPhone(phone);
 
         try {
             customerController.updateCustomer(selectedCustomer);

@@ -589,6 +589,13 @@ public class SeatManagementPanel extends JPanel {
         }
     }
 
+    public void refreshData() {
+        loadRoomCombo();
+        loadSeatTable();
+        loadSeatTypeCombo();
+        loadSeatTypeTable();
+    }
+
     private void loadSeatTable() {
         seatTableModel.setRowCount(0);
         RoomItem ri = (RoomItem) cmbRoom.getSelectedItem();
@@ -682,9 +689,14 @@ public class SeatManagementPanel extends JPanel {
     private BigDecimal parsePriceField() {
         try {
             Object val = txtBasePrice.getValue();
-            return new BigDecimal(val.toString());
+            BigDecimal price = new BigDecimal(val.toString());
+            if (price.compareTo(BigDecimal.ZERO) < 0) {
+                showError("Giá cơ bản không được âm!");
+                return null;
+            }
+            return price;
         } catch (Exception e) {
-            showError("Giá cơ bản không hợp lệ.");
+            showError("Giá cơ bản không hợp lệ! Vui lòng nhập số.");
             return null;
         }
     }

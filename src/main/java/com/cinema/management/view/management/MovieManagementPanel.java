@@ -127,17 +127,30 @@ public class MovieManagementPanel extends JPanel {
                 BorderFactory.createLineBorder(new Color(226, 232, 240)),
                 new EmptyBorder(15, 15, 15, 15)));
 
-        JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         filterBar.setOpaque(false);
-        JLabel lblSearch = new JLabel("Tìm nhanh phim:");
+        JLabel lblSearch = new JLabel(" Tìm nhanh:");
         lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 13));
         filterBar.add(lblSearch);
 
-        JTextField txtLiveSearch = new JTextField();
+        // JTextField txtLiveSearch = new JTextField();
+        // txtLiveSearch.putClientProperty("JTextField.placeholderText", "Tìm theo Mã,
+        // Tên, Thể loại...");
+        // txtLiveSearch.setPreferredSize(new Dimension(350, 36));
+        // filterBar.add(txtLiveSearch);
+        JTextField txtLiveSearch = new JTextField(20);
         txtLiveSearch.putClientProperty("JTextField.placeholderText", "Tìm theo Mã, Tên, Thể loại...");
-        txtLiveSearch.setPreferredSize(new Dimension(350, 36));
+        txtLiveSearch.setPreferredSize(new Dimension(350, 35));
+        txtLiveSearch.setMinimumSize(new Dimension(200, 35));
+        filterBar.add(lblSearch);
         filterBar.add(txtLiveSearch);
-        panel.add(filterBar, BorderLayout.NORTH);
+        filterBar.add(Box.createHorizontalGlue());
+
+        JPanel filterWrapper = new JPanel(new BorderLayout());
+        filterWrapper.setOpaque(false);
+        filterWrapper.setBorder(new EmptyBorder(0, 0, 8, 0));
+        filterWrapper.add(filterBar, BorderLayout.CENTER);
+        panel.add(filterWrapper, BorderLayout.NORTH);
 
         styleTable(table);
         rowSorter = new TableRowSorter<>(tableModel);

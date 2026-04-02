@@ -1,7 +1,9 @@
 package com.cinema.management.view.management;
 
 import com.cinema.management.controller.PromotionController;
+import com.cinema.management.controller.MovieController;
 import com.cinema.management.model.entity.Promotion;
+import com.cinema.management.model.entity.Movie;
 import com.cinema.management.util.FormatUtil;
 import com.cinema.management.util.IdGenerator;
 
@@ -22,6 +24,7 @@ import java.util.List;
 public class PromotionManagementPanel extends JPanel {
 
     private final PromotionController promotionController = new PromotionController();
+    private final MovieController movieController = new MovieController();
 
     private static final Color BG = new Color(245, 247, 250);
     private static final Color CARD = Color.WHITE;
@@ -48,6 +51,7 @@ public class PromotionManagementPanel extends JPanel {
     private final JTextField txtMaxAmount = new JTextField(16);
     private final JTextField txtStartDate = new JTextField(16);
     private final JTextField txtEndDate = new JTextField(16);
+    private final JComboBox<MovieItem> cbApplyToMovie = new JComboBox<>();
 
     private final JButton btnAdd = new JButton("Tạo KM");
     private final JButton btnUpdate = new JButton("Cập nhật");
@@ -73,6 +77,7 @@ public class PromotionManagementPanel extends JPanel {
         txtId.setBackground(new Color(241, 245, 249));
 
         loadTable();
+        loadMoviesForCombo();
         configureTableSelection();
     }
 
@@ -114,7 +119,7 @@ public class PromotionManagementPanel extends JPanel {
                 BorderFactory.createLineBorder(new Color(226, 232, 240)),
                 new EmptyBorder(15, 15, 15, 15)));
 
-        JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         filterBar.setOpaque(false);
         JLabel lblSearch = new JLabel("🔍 Tìm kiếm:");
         lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 13));
@@ -124,7 +129,12 @@ public class PromotionManagementPanel extends JPanel {
         txtLiveSearch.putClientProperty("JTextField.placeholderText", "Tìm theo Mã Code hoặc Tên KM...");
         txtLiveSearch.setPreferredSize(new Dimension(350, 36));
         filterBar.add(txtLiveSearch);
-        panel.add(filterBar, BorderLayout.NORTH);
+
+        JPanel filterWrapper = new JPanel(new BorderLayout());
+        filterWrapper.setOpaque(false);
+        filterWrapper.setBorder(new EmptyBorder(0, 0, 8, 0));
+        filterWrapper.add(filterBar, BorderLayout.CENTER);
+        panel.add(filterWrapper, BorderLayout.NORTH);
 
         styleTable(table);
         rowSorter = new TableRowSorter<>(tableModel);
@@ -187,6 +197,7 @@ public class PromotionManagementPanel extends JPanel {
         txtMaxAmount.setPreferredSize(fieldSize);
         txtStartDate.setPreferredSize(fieldSize);
         txtEndDate.setPreferredSize(fieldSize);
+        cbApplyToMovie.setPreferredSize(fieldSize);
 
         int row = 0;
         gc.gridx = 0;
@@ -238,15 +249,18 @@ public class PromotionManagementPanel extends JPanel {
         fields.add(new JLabel("Ngày kết thúc:"), gc);
         gc.gridx = 1;
         fields.add(txtEndDate, gc);
+        row++;
+
+        gc.gridx = 0;
+        gc.gridy = row;
+        fields.add(new JLabel("Áp dụng cho phim:"), gc);
+        gc.gridx = 1;
+        fields.add(cbApplyToMovie, gc);
 
         panel.add(fields, BorderLayout.NORTH);
 
-        JPanel pnlRulesDesc = new JPanel(new BorderLayout());
-        pnlRulesDesc.setOpaque(false);
-        JLabel lblRule = new JLabel(
-                "<html><i style='color:#b91c1c; font-size:11px;'><br><b>Quy tắc chặn lỗ (Auto):</b><br>Hệ thống POS sẽ tự tính % dựa trên Code + Hạng Thẻ CRM<br>Tổng giảm tối đa không quá 20% hóa đơn.</i></html>");
-        pnlRulesDesc.add(lblRule, BorderLayout.NORTH);
-        panel.add(pnlRulesDesc, BorderLayout.CENTER);
+
+
 
         JPanel buttons = new JPanel(new GridLayout(2, 2, 10, 10));
         buttons.setOpaque(false);
@@ -342,6 +356,19 @@ public class PromotionManagementPanel extends JPanel {
                 txtEndDate.setText(
                         selectedPromo.getExpiryDate() != null ? selectedPromo.getExpiryDate().format(formatter) : "");
 
+                if (selectedPromo.getApplyToMovie() != null) {
+                    for (int i = 0; i < cbApplyToMovie.getItemCount(); i++) {
+                        if (cbApplyToMovie.getItemAt(i).movieId != null && cbApplyToMovie.getItemAt(i).movieId
+                                .equals(selectedPromo.getApplyToMovie().getMovieId())) {
+                            cbApplyToMovie.setSelectedIndex(i);
+                            break;
+                        }
+                    }
+                } else {
+                    if (cbApplyToMovie.getItemCount() > 0)
+                        cbApplyToMovie.setSelectedIndex(0);
+                }
+
                 btnUpdate.setEnabled(true);
                 btnDelete.setEnabled(true);
                 btnAdd.setEnabled(false);
@@ -350,10 +377,58 @@ public class PromotionManagementPanel extends JPanel {
     }
 
     private boolean validateForm() {
-        if (txtName.getText().trim().isEmpty() || txtCode.getText().trim().isEmpty()) {
-            showError("Vui lòng nhập Tên và Mã Code!");
+        if (txtName.getText().trim().isEmpty()) {
+            showError("Tên khuyến mãi không được để trống!");
             return false;
         }
+        if (txtCode.getText().trim().isEmpty()) {
+            showError("Mã Code không được để trống!");
+            return false;
+        }
+
+        // Validate % giảm
+        double pct = (Double) spinPercent.getValue();
+        if (pct <= 0) {
+            showError("Phần trăm giảm giá phải lớn hơn 0!");
+            return false;
+        }
+
+        // Validate max giảm (VNĐ) > 0
+        String maxAmountStr = txtMaxAmount.getText().trim().replace(",", "");
+        if (maxAmountStr.isEmpty()) {
+            showError("Giảm Max (VNĐ) không được để trống!");
+            return false;
+        }
+        try {
+            double maxAmount = Double.parseDouble(maxAmountStr);
+            if (maxAmount <= 0) {
+                showError("Giảm Max (VNĐ) phải lớn hơn 0!");
+                return false;
+            }
+        } catch (NumberFormatException e) {
+            showError("Giảm Max (VNĐ) không hợp lệ! Vui lòng nhập số.");
+            return false;
+        }
+
+        // Validate ngày bắt đầu / kết thúc
+        String startStr = txtStartDate.getText().trim();
+        String endStr = txtEndDate.getText().trim();
+        if (startStr.isEmpty() || endStr.isEmpty()) {
+            showError("Ngày bắt đầu và ngày kết thúc không được để trống!");
+            return false;
+        }
+        try {
+            LocalDate startDate = LocalDate.parse(startStr, formatter);
+            LocalDate endDate = LocalDate.parse(endStr, formatter);
+            if (startDate.isAfter(endDate)) {
+                showError("Ngày bắt đầu không được sau ngày kết thúc!");
+                return false;
+            }
+        } catch (DateTimeParseException ex) {
+            showError("Định dạng ngày không hợp lệ (dd/MM/yyyy).");
+            return false;
+        }
+
         return true;
     }
 
@@ -373,6 +448,13 @@ public class PromotionManagementPanel extends JPanel {
         } catch (DateTimeParseException ex) {
             showError("Định dạng ngày không hợp lệ (dd/MM/yyyy).");
             return;
+        }
+
+        MovieItem selectedMovie = (MovieItem) cbApplyToMovie.getSelectedItem();
+        if (selectedMovie != null && selectedMovie.movieObj != null) {
+            p.setApplyToMovie(selectedMovie.movieObj);
+        } else {
+            p.setApplyToMovie(null);
         }
 
         try {
@@ -399,6 +481,13 @@ public class PromotionManagementPanel extends JPanel {
         } catch (DateTimeParseException ex) {
             showError("Định dạng ngày không hợp lệ (dd/MM/yyyy).");
             return;
+        }
+
+        MovieItem selectedMovie = (MovieItem) cbApplyToMovie.getSelectedItem();
+        if (selectedMovie != null && selectedMovie.movieObj != null) {
+            selectedPromo.setApplyToMovie(selectedMovie.movieObj);
+        } else {
+            selectedPromo.setApplyToMovie(null);
         }
 
         try {
@@ -438,6 +527,8 @@ public class PromotionManagementPanel extends JPanel {
         txtMaxAmount.setText("");
         txtStartDate.setText("");
         txtEndDate.setText("");
+        if (cbApplyToMovie.getItemCount() > 0)
+            cbApplyToMovie.setSelectedIndex(0);
         table.clearSelection();
 
         btnAdd.setEnabled(true);
@@ -451,5 +542,43 @@ public class PromotionManagementPanel extends JPanel {
 
     private void showError(String msg) {
         JOptionPane.showMessageDialog(this, msg, "Lỗi", JOptionPane.ERROR_MESSAGE);
+    }
+
+    private void loadMoviesForCombo() {
+        cbApplyToMovie.removeAllItems();
+        cbApplyToMovie.addItem(new MovieItem()); // Default: All movies
+        try {
+            List<Movie> movies = movieController.getAllMovies();
+            if (movies != null) {
+                for (Movie m : movies) {
+                    cbApplyToMovie.addItem(new MovieItem(m));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static class MovieItem {
+        String movieId;
+        String title;
+        Movie movieObj;
+
+        public MovieItem(Movie m) {
+            this.movieId = m.getMovieId();
+            this.title = m.getTitle();
+            this.movieObj = m;
+        }
+
+        public MovieItem() {
+            this.movieId = null;
+            this.title = "- Áp dụng cho tất cả phim -";
+            this.movieObj = null;
+        }
+
+        @Override
+        public String toString() {
+            return title;
+        }
     }
 }

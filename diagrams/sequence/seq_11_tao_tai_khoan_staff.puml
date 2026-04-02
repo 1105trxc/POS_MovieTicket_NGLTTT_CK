@@ -1,0 +1,47 @@
+@startuml seq_tao_tai_khoan_staff
+skinparam defaultFontName Arial
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 8
+skinparam sequenceParticipantBorderColor #3B82F6
+skinparam sequenceParticipantBackgroundColor #DBEAFE
+skinparam sequenceActorBorderColor #1D4ED8
+
+title Admin Tao Tai Khoan Cho Nhan Vien
+
+actor "Admin" as A
+participant "UserManagementPanel\n(View)" as V
+participant "StaffSelectionDialog" as D
+participant "UserController" as C
+participant "UserService\n(Impl)" as S
+participant "UserRepository" as R
+database "Database" as DB
+
+A -> V: Nhan nut tim kiem nhan vien
+V -> D: Hien thi StaffSelectionDialog
+A -> D: Chon nhan vien tu danh sach
+D --> V: fillStaffInfo(user)
+V -> V: Dien Ma NV + Ho ten vao Form (read-only)
+
+note right of V: He thong dien san username cu (neu co)
+
+A -> V: Nhap Username, Password, chon Role
+A -> V: Nhan "Xac nhan"
+  V -> V: validateForm()
+
+  alt Du lieu khong hop le (Username hoac Password trong)
+    V -> A: Hien thi loi
+  else Du lieu hop le
+    V -> C: updateUser(user)
+    C -> S: updateUser(user)
+    S -> S: Ma hoa password (SHA-256)
+    S -> S: Gan Role cho User
+    S -> R: update(user)
+    R -> DB: UPDATE User SET username=?, passwordHash=?,\nroleId=? WHERE userId=?
+    DB --> R: OK
+    R --> S: void
+    S --> C: void
+    C --> V: success
+    V -> A: Hien thi "Luu tai khoan thanh cong!"
+    V -> V: loadTable()
+  end
+@enduml

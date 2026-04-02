@@ -1,0 +1,39 @@
+@startuml seq_them_khuyen_mai
+skinparam defaultFontName Arial
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 8
+skinparam sequenceParticipantBorderColor #3B82F6
+skinparam sequenceParticipantBackgroundColor #DBEAFE
+skinparam sequenceActorBorderColor #1D4ED8
+
+title Them Chuong Trinh Khuyen Mai
+
+actor "Admin" as A
+participant "PromotionManagementPanel\n(View)" as V
+participant "PromotionController" as C
+participant "PromotionService\n(Impl)" as S
+participant "PromotionRepository" as R
+database "Database" as DB
+
+A -> V: Nhan "Tao KM"
+V -> V: clearForm() - sinh PromotionID moi
+
+A -> V: Nhap thong tin khuyen mai\n(Ten, Code, % Giam, Max VND, Ngay BD, Ngay KT)
+A -> V: Nhan "Tao KM"
+V -> V: validateForm()
+
+alt Du lieu khong hop le
+  V -> A: Hien thi loi tuong ung\n(ten trong / code trong / % <= 0 / ngay sai...)
+else Du lieu hop le
+  V -> C: addPromotion(promotion)
+  C -> S: createPromotion(promotion)
+  S -> R: save(promotion)
+  R -> DB: INSERT INTO Promotion\n(promotionId, description, code, discountPercent,\nmaxDiscountAmount, startDate, expiryDate)
+  DB --> R: OK
+  R --> S: Promotion saved
+  S --> C: void
+  C --> V: success
+  V -> A: Hien thi "Tao KM thanh cong!"
+  V -> V: clearForm() + loadTable()
+end
+@enduml

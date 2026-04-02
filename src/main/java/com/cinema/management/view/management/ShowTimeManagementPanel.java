@@ -144,10 +144,10 @@ public class ShowTimeManagementPanel extends JPanel {
                 new EmptyBorder(15, 15, 15, 15)));
 
         // --- LIVE SEARCH BAR ---
-        JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         filterBar.setOpaque(false);
 
-        JLabel lblSearch = new JLabel("🔍 Tìm nhanh:");
+        JLabel lblSearch = new JLabel(" Tìm nhanh:");
         lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 13));
         filterBar.add(lblSearch);
 
@@ -156,7 +156,11 @@ public class ShowTimeManagementPanel extends JPanel {
         txtLiveSearch.setPreferredSize(new Dimension(350, 36));
         filterBar.add(txtLiveSearch);
 
-        panel.add(filterBar, BorderLayout.NORTH);
+        JPanel filterWrapper = new JPanel(new BorderLayout());
+        filterWrapper.setOpaque(false);
+        filterWrapper.setBorder(new EmptyBorder(0, 0, 8, 0));
+        filterWrapper.add(filterBar, BorderLayout.CENTER);
+        panel.add(filterWrapper, BorderLayout.NORTH);
 
         // Table setup
         styleTable(table);
@@ -428,6 +432,10 @@ public class ShowTimeManagementPanel extends JPanel {
         } catch (Exception ex) {
             showError(ex.getMessage());
         }
+    }
+
+    public void refreshData() {
+        loadTable();
     }
 
     // Hàm loadTable giờ không cần truyền tham số filter nữa

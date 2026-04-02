@@ -1,0 +1,39 @@
+@startuml act_them_khach_hang
+skinparam defaultFontName Arial
+skinparam backgroundColor #F8FAFC
+skinparam activityBackgroundColor #DBEAFE
+skinparam activityBorderColor #3B82F6
+skinparam arrowColor #1D4ED8
+skinparam activityDiamondBackgroundColor #FEF9C3
+
+title Thêm Khách Hàng Thành Viên
+
+start
+:Nhân viên mở giao diện Thêm Khách Hàng Mới;
+
+repeat
+  :Nhập thông tin khách hàng\n(Họ tên, Số điện thoại, Email);
+  if (Họ tên trống?) then (Có)
+    :Hiển thị lỗi\n"Họ tên không được để trống";
+  elseif (Số điện thoại sai định dạng?) then (Có)
+    :Hiển thị lỗi\n"Số điện thoại không hợp lệ";
+  elseif (Số điện thoại đã tồn tại trong DB?) then (Có)
+    :Hiển thị lỗi\n"Số điện thoại đã được đăng ký";
+  else (Hợp lệ)
+  endif
+repeat while (Có lỗi?) is (Có) not (Không)
+
+:Sinh CustomerID;
+:Thiết lập hạng mặc định: BASIC;
+:Điểm thưởng ban đầu = 0;
+:Gọi CustomerController.addCustomer();
+:CustomerService → CustomerRepository → DB;
+if (Thành công?) then (Có)
+  :Hiển thị "Thêm khách hàng thành công!";
+  :Reload danh sách khách hàng;
+else (Lỗi)
+  :Hiển thị lỗi hệ thống;
+endif
+
+stop
+@enduml

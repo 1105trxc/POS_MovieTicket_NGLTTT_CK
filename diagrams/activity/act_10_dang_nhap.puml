@@ -1,0 +1,40 @@
+@startuml act_10_dang_nhap
+skinparam defaultFontName Arial
+skinparam backgroundColor #F8FAFC
+skinparam activityBackgroundColor #DBEAFE
+skinparam activityBorderColor #3B82F6
+skinparam arrowColor #1D4ED8
+skinparam activityDiamondBackgroundColor #FEF9C3
+
+title [ACT-10] Đăng Nhập Hệ Thống
+
+start
+:Hệ thống hiển thị màn hình đăng nhập;
+
+repeat
+  :Nhập Tên đăng nhập và Mật khẩu;
+  if (Username hoặc Password trống?) then (Có)
+    :Hiển thị cảnh báo\n"Vui lòng nhập đầy đủ thông tin";
+  else (Không trống)
+    :Mã hóa mật khẩu (SHA-256);
+    :Truy vấn User theo Username trong DB;
+    if (Username không tồn tại?) then (Có)
+      :Hiển thị lỗi\n"Sai tài khoản hoặc mật khẩu";
+    elseif (Password hash không khớp?) then (Có)
+      :Hiển thị lỗi\n"Sai tài khoản hoặc mật khẩu";
+    elseif (Tài khoản bị khóa (IsActive=false)?) then (Có)
+      :Hiển thị lỗi\n"Tài khoản đã bị vô hiệu hóa";
+    else (Xác thực thành công)
+    endif
+  endif
+repeat while (Đăng nhập chưa thành công?) is (Có) not (Không)
+
+:Lưu thông tin vào UserSessionContext;
+if (Vai trò = ADMIN?) then (Có)
+  :Mở MainFrame với đầy đủ chức năng Admin;
+else (STAFF)
+  :Mở MainFrame với chức năng giới hạn (Staff);
+endif
+
+stop
+@enduml

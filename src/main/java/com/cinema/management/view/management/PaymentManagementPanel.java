@@ -610,6 +610,7 @@ public class PaymentManagementPanel extends JPanel {
 
         private PieChartPanel() {
             setPreferredSize(new Dimension(280, 280));
+            setMinimumSize(new Dimension(180, 180));
             setOpaque(false);
         }
 
@@ -624,11 +625,14 @@ public class PaymentManagementPanel extends JPanel {
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
             Graphics2D g2 = (Graphics2D) g.create();
-            // High quality rendering
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
 
-            int w = Math.min(getWidth(), getHeight()) - 40;
+            // Responsive sizing: use available space with minimal padding
+            int padding = 10;
+            int w = Math.min(getWidth(), getHeight()) - padding * 2;
+            if (w < 60) { g2.dispose(); return; }
             int x = (getWidth() - w) / 2;
             int y = (getHeight() - w) / 2;
 
@@ -636,8 +640,9 @@ public class PaymentManagementPanel extends JPanel {
             if (total.compareTo(BigDecimal.ZERO) <= 0) {
                 g2.setColor(BORDER_COLOR);
                 g2.fillOval(x, y, w, w);
+                int emptyFontSize = Math.max(10, w / 16);
                 g2.setColor(TEXT_MUTED);
-                g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
+                g2.setFont(new Font("Segoe UI", Font.BOLD, emptyFontSize));
                 String text = "Chưa có dữ liệu";
                 FontMetrics fm = g2.getFontMetrics();
                 g2.drawString(text, x + (w - fm.stringWidth(text)) / 2, y + w / 2 + fm.getAscent() / 2);
@@ -650,60 +655,73 @@ public class PaymentManagementPanel extends JPanel {
             int qrArc = (int) Math.round((qr.doubleValue() / totalVal) * 360);
             int cardArc = 360 - cashArc - qrArc;
 
-            int start = 90;
-            
             double cashPct = (cash.doubleValue() / totalVal) * 100;
             double qrPct = (qr.doubleValue() / totalVal) * 100;
             double cardPct = 100 - cashPct - qrPct;
 
             // Draw Pie Segments
+            int start = 90;
+
             g2.setColor(TEXT_MAIN);
             g2.fillArc(x, y, w, w, start, -cashArc);
             start -= cashArc;
-            
+
             g2.setColor(SUCCESS_COLOR);
             g2.fillArc(x, y, w, w, start, -qrArc);
             start -= qrArc;
-            
+
             g2.setColor(WARNING_COLOR);
             g2.fillArc(x, y, w, w, start, -cardArc);
 
-            // Create Donut Hole (make it a donut chart for modern look)
+            // Donut hole (60% of diameter)
             g2.setColor(CARD_BG);
-            int inner = (int) (w * 0.65); // 65% hole
+            int inner = (int) (w * 0.60);
             g2.fillOval(x + (w - inner) / 2, y + (w - inner) / 2, inner, inner);
 
-            // Draw percentages on slices
-            g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            // Responsive font sizes based on donut diameter
+            int pctFontSize = Math.max(9, w / 18);
+            int centerAmountFontSize = Math.max(12, w / 12);
+            int centerLabelFontSize = Math.max(9, w / 22);
+
+            // Draw percentage labels on slices
             int cx = x + w / 2;
             int cy = y + w / 2;
             int textRadius = (int) (w / 2 * 0.82);
-            
+
+            g2.setFont(new Font("Segoe UI", Font.BOLD, pctFontSize));
             start = 90;
             drawPercentage(g2, cashPct, start, cashArc, cx, cy, textRadius);
             start -= cashArc;
             drawPercentage(g2, qrPct, start, qrArc, cx, cy, textRadius);
             start -= qrArc;
             drawPercentage(g2, cardPct, start, cardArc, cx, cy, textRadius);
-            
-            // Draw center text
+
+            // Center text: total amount
             g2.setColor(TEXT_MAIN);
-            g2.setFont(new Font("Segoe UI", Font.BOLD, 18));
+            g2.setFont(new Font("Segoe UI", Font.BOLD, centerAmountFontSize));
             String center1 = String.format("%,.0f đ", totalVal);
             FontMetrics fm = g2.getFontMetrics();
-            g2.drawString(center1, x + (w - fm.stringWidth(center1)) / 2, y + w / 2 - 5);
-            
-            g2.setColor(TEXT_MUTED);
-            g2.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            // Ensure center text fits inside the hole
+            if (fm.stringWidth(center1) > inner - 10) {
+                // Shrink font if text is wider than hole
+                int shrunk = Math.max(10, centerAmountFontSize - 4);
+                g2.setFont(new Font("Segoe UI", Font.BOLD, shrunk));
+                fm = g2.getFontMetrics();
+            }
+            g2.drawString(center1, cx - fm.stringWidth(center1) / 2, cy - fm.getDescent());
+
+            // Center text: label
+            g2.setColor(PRIMARY_COLOR);
+            g2.setFont(new Font("Segoe UI", Font.BOLD, centerLabelFontSize));
             String center2 = "TỔNG TIỀN";
             FontMetrics fm2 = g2.getFontMetrics();
-            g2.drawString(center2, x + (w - fm2.stringWidth(center2)) / 2, y + w / 2 + 15);
+            g2.drawString(center2, cx - fm2.stringWidth(center2) / 2, cy + fm2.getAscent() + 2);
 
             g2.dispose();
         }
 
         private void drawPercentage(Graphics2D g2, double pct, int startAngle, int arcAngle, int cx, int cy, int radius) {
-            if (pct < 5.0) return; // Hide very small slices text
+            if (pct < 5.0) return;
             double angle = Math.toRadians(startAngle - arcAngle / 2.0);
             int tx = cx + (int) (radius * Math.cos(angle));
             int ty = cy - (int) (radius * Math.sin(angle));

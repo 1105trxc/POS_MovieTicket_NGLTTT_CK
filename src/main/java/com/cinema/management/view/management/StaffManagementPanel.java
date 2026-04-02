@@ -112,10 +112,10 @@ public class StaffManagementPanel extends JPanel {
                 BorderFactory.createLineBorder(new Color(226, 232, 240)),
                 new EmptyBorder(15, 15, 15, 15)));
 
-        JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         filterBar.setOpaque(false);
 
-        JLabel lblSearch = new JLabel("🔍 Tìm nhanh:");
+        JLabel lblSearch = new JLabel(" Tìm nhanh:");
         lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 13));
         filterBar.add(lblSearch);
 
@@ -124,7 +124,11 @@ public class StaffManagementPanel extends JPanel {
         txtLiveSearch.setPreferredSize(new Dimension(350, 36));
         filterBar.add(txtLiveSearch);
 
-        panel.add(filterBar, BorderLayout.NORTH);
+        JPanel filterWrapper = new JPanel(new BorderLayout());
+        filterWrapper.setOpaque(false);
+        filterWrapper.setBorder(new EmptyBorder(0, 0, 8, 0));
+        filterWrapper.add(filterBar, BorderLayout.CENTER);
+        panel.add(filterWrapper, BorderLayout.NORTH);
 
         styleTable(table);
         rowSorter = new TableRowSorter<>(tableModel);
@@ -360,10 +364,47 @@ public class StaffManagementPanel extends JPanel {
     }
 
     private boolean validateForm() {
-        if (txtFullName.getText().trim().isEmpty() || txtCCCD.getText().trim().isEmpty()) {
-            showError("Họ tên, CCCD không được để trống!");
+        if (txtFullName.getText().trim().isEmpty()) {
+            showError("Họ tên không được để trống!");
             return false;
         }
+
+        // Validate CCCD: 12 chữ số
+        String cccd = txtCCCD.getText().trim();
+        if (cccd.isEmpty()) {
+            showError("CCCD không được để trống!");
+            return false;
+        }
+        if (!cccd.matches("\\d{12}")) {
+            showError("CCCD phải gồm đúng 12 chữ số!");
+            return false;
+        }
+
+        // Validate SĐT: 10-11 chữ số
+        String phone = txtPhone.getText().trim();
+        if (!phone.isEmpty() && !phone.matches("\\d{10,11}")) {
+            showError("Số điện thoại phải gồm 10-11 chữ số!");
+            return false;
+        }
+
+        // Validate Email
+        String email = txtEmail.getText().trim();
+        if (!email.isEmpty() && !email.matches("^[\\w.+-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
+            showError("Email không hợp lệ! Vui lòng nhập đúng định dạng (vd: abc@gmail.com).");
+            return false;
+        }
+
+        // Validate ngày sinh
+        String birthStr = txtBirthDate.getText().trim();
+        if (!birthStr.isEmpty()) {
+            try {
+                LocalDate.parse(birthStr, formatter);
+            } catch (DateTimeParseException ex) {
+                showError("Ngày sinh không hợp lệ (định dạng dd/MM/yyyy).");
+                return false;
+            }
+        }
+
         return true;
     }
 
