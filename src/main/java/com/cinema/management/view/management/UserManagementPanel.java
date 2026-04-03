@@ -308,6 +308,12 @@ public class UserManagementPanel extends JPanel {
         cbRole.removeAllItems();
         List<Role> roles = roleRepository.findAll();
         for (Role r : roles) {
+            // Bỏ qua vai trò "Thu ngân" và "Quản lý rạp"
+            String name = r.getRoleName();
+            if (name != null && (name.equalsIgnoreCase("Thu ngân")
+                    || name.equalsIgnoreCase("Quản lý rạp"))) {
+                continue;
+            }
             cbRole.addItem(new RoleItem(r.getRoleId(), r.getRoleName()));
         }
     }
@@ -398,10 +404,18 @@ public class UserManagementPanel extends JPanel {
         }
 
         try {
+            // Lưu userId trước vì loadTable() sẽ trigger clearForm() → selectedUser = null
+            String savedUserId = selectedUser.getUserId();
             userController.updateUser(selectedUser);
             showSuccess(hasExistingAccount ? "Cập nhật tài khoản thành công." : "Tạo tài khoản thành công.");
-            fillStaffInfo(selectedUser);
             loadTable();
+            // Re-fetch user từ DB để đảm bảo role được load đầy đủ (có roleName)
+            User refreshed = userController.getAllUsers().stream()
+                    .filter(u -> u.getUserId().equals(savedUserId))
+                    .findFirst().orElse(null);
+            if (refreshed != null) {
+                fillStaffInfo(refreshed);
+            }
         } catch (Exception ex) {
             showError("Lỗi lưu tài khoản: " + ex.getMessage());
         }

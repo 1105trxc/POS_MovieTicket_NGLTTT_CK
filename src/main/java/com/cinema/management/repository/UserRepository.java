@@ -83,6 +83,12 @@ public class UserRepository {
     public void update(User user) {
         try {
             em.getTransaction().begin();
+            // Re-attach Role entity to avoid wiping roleName during merge
+            if (user.getRole() != null && user.getRole().getRoleId() != null) {
+                com.cinema.management.model.entity.Role attachedRole = em.find(
+                        com.cinema.management.model.entity.Role.class, user.getRole().getRoleId());
+                user.setRole(attachedRole);
+            }
             em.merge(user);
             em.getTransaction().commit();
         } catch (Exception e) {
