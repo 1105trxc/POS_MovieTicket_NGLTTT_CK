@@ -203,7 +203,7 @@ Thư mục `diagrams/` chứa các sơ đồ UML (sử dụng PlantUML) cho quá
 
 ## 📋 11. Phân công nhóm chi tiết
 
-📝 **Trác Ngọc Đăng Khoa** (Hệ thống lõi & Vận hành POS)
+📝 **Nguyễn Trí Lâm** (Hệ thống lõi & Vận hành POS)
 
 - **Module phụ trách**: Core rạp chiếu + POS bán vé + Thanh toán/Xuất vé.
 - **Công việc chính**:
@@ -213,7 +213,7 @@ Thư mục `diagrams/` chứa các sơ đồ UML (sử dụng PlantUML) cho quá
   - Triển khai `Invoice`, `BookingSeat`, `OrderDetail`, `Payment`.
   - Tính tổng tiền vé + F&B, lưu snapshot giá tại thời điểm bán.
 
-📝 **Nguyễn Trí Lâm** (Quản trị, CRM & Cấu hình nghiệp vụ)
+📝 **Lâm Văn Dỉ** (Quản trị, CRM & Cấu hình nghiệp vụ)
 
 - **Module phụ trách**: Phim/F&B + Khách hàng/Khuyến mãi + Phân quyền/Audit.
 - **Công việc chính**:
@@ -222,7 +222,7 @@ Thư mục `diagrams/` chứa các sơ đồ UML (sử dụng PlantUML) cho quá
   - Xử lý logic tích điểm 5%, nâng hạng thành viên (tier), kiểm tra mã promo hợp lệ.
   - Xây dựng `User`, `Role`, `AuditLog`, form đăng nhập và luồng Admin tạo tài khoản Staff.
 
-📝 **Lâm Văn Dỉ** (Thiết kế hệ thống dữ liệu & Tầng truy xuất)
+📝 **Trác Ngọc Đăng Khoa** (Thiết kế hệ thống dữ liệu & Tầng truy xuất)
 
 - **Module phụ trách**: UML + Database + JPA + Repository.
 - **Công việc chính**:
@@ -250,6 +250,12 @@ Thư mục `diagrams/` chứa các sơ đồ UML (sử dụng PlantUML) cho quá
 - 💡 Tích hợp **cổng thanh toán online** (MoMo, VNPay, ZaloPay).
 - 💡 Bổ sung **Unit Test / Integration Test** cho tự động hóa kiểm thử.
 - 💡 Nâng cấp **Dashboard Thống kê** dạng biểu đồ động.
+
+---
+
+## 🎯 14. Kết luận
+
+Dự án đã xây dựng được một hệ thống desktop quản lý rạp phim có nền tảng chức năng và kỹ thuật vững 💻, đáp ứng tốt nhu cầu vận hành tại quầy vé 🎟️ trong phạm vi đồ án. Kiến trúc hiện tại đủ rõ ràng để tiếp tục mở rộng 🚀 thành các phiên bản hoàn thiện hơn trong giai đoạn tiếp theo.
 
 ---
 
