@@ -134,8 +134,9 @@ Dự án được tổ chức theo kiến trúc phân lớp chuẩn xác:
 **Bước 1: Tạo schema và dữ liệu mẫu**
 Chạy lần lượt 2 script trong thư mục `src/database` trên MySQL:
 
-1. `create_database.sql`
-2. `insert_sample_data.sql`
+1. `01_create_database.sql`
+2. `02_create_tables.sql`
+3. `03_insert_sample_data.sql`
 
 **Bước 2: Cấu hình kết nối JPA**
 Mở file `src/main/resources/META-INF/persistence.xml` và cập nhật thông tin MySQL (URL, username, password) cho phù hợp với máy local của bạn.
@@ -230,7 +231,7 @@ Thư mục `diagrams/` chứa các sơ đồ UML (sử dụng PlantUML) cho quá
 - **Module phụ trách**: UML + Database + JPA + Repository.
 - **Công việc chính**:
   - Thiết kế và đồng bộ sơ đồ UML (Use Case, Activity, Sequence, Class).
-  - Thiết kế CSDL và script `create_database.sql`, `insert_sample_data.sql`.
+  - Thiết kế CSDL và script `01_create_database.sql`, `02_create_tables.sql`, `03_insert_sample_data.sql`.
   - Chuẩn hóa mapping Entity JPA, quan hệ khóa chính/khóa ngoại.
   - Triển khai các lớp Repository dùng chung.
   - Rà soát nhất quán giữa UML ↔ DB ↔ Entity ↔ Repository.
