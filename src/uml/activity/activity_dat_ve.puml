@@ -1,0 +1,40 @@
+@startuml
+title Activity Diagram - Đặt vé
+
+start
+:Nhân viên mở chức năng Bán vé;
+:Chọn ngày, phim và suất chiếu;
+
+if (Còn suất để bán?) then (Có)
+  :Hiển thị sơ đồ ghế;
+else (Không)
+  :Thông báo không còn suất phù hợp;
+  stop
+endif
+
+repeat
+  :Nhân viên chọn/bỏ chọn ghế;
+repeat while (Tiếp tục chọn ghế?) is (Có)
+
+if (Có ghế không khả dụng?) then (Có)
+  :Thông báo ghế đã bán/đang được giữ;
+endif
+
+if (Nhân viên hủy đơn?) then (Có)
+  :Nhả toàn bộ ghế đã chọn;
+  :Quay lại chọn suất/ghế;
+  stop
+endif
+
+:Thêm sản phẩm F&B (tùy chọn);
+:Bấm Thanh toán;
+
+if (Đã chọn ít nhất 1 ghế?) then (Có)
+  :Chuyển sang màn hình Checkout;
+  stop
+else (Không)
+  :Thông báo phải chọn ghế trước khi thanh toán;
+  stop
+endif
+
+@enduml

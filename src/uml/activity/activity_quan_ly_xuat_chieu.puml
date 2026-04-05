@@ -1,0 +1,44 @@
+@startuml
+title Activity Diagram - Quản lý suất chiếu
+
+start
+:Quản trị mở chức năng Quản lý suất chiếu;
+:Tải danh sách suất chiếu;
+
+if (Thao tác?) then (Thêm)
+  :Chọn phim;
+  :Chọn phòng;
+  :Nhập giờ bắt đầu/kết thúc;
+  if (Dữ liệu hợp lệ?) then (Có)
+    :Lưu suất chiếu mới;
+    :Thông báo thành công;
+    :Tải lại bảng;
+  else (Không)
+    :Thông báo lỗi validate/xung đột lịch;
+  endif
+elseif (Cập nhật)
+  :Chọn 1 suất chiếu trong bảng;
+  :Sửa phim/phòng/thời gian;
+  if (Dữ liệu hợp lệ?) then (Có)
+    :Lưu cập nhật suất chiếu;
+    :Thông báo thành công;
+    :Tải lại bảng;
+  else (Không)
+    :Thông báo lỗi validate/xung đột lịch;
+  endif
+elseif (Xóa)
+  :Chọn 1 suất chiếu trong bảng;
+  :Xác nhận xóa;
+  if (Được phép xóa?) then (Có)
+    :Xóa suất chiếu;
+    :Thông báo thành công;
+    :Tải lại bảng;
+  else (Không)
+    :Thông báo không thể xóa (đã có vé/đang lock ghế);
+  endif
+else (Tìm kiếm/Xem)
+  :Lọc dữ liệu theo từ khóa;
+endif
+
+stop
+@enduml

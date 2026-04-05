@@ -1,0 +1,375 @@
+@startuml
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+left to right direction
+skinparam linetype ortho
+skinparam nodesep 16
+skinparam ranksep 22
+
+package "View Layer" as VIEW {
+  class LoginFrame
+  class BookingPanel
+  class CheckoutPanel
+  class AuditLogPanel
+  class CustomerManagementPanel
+  class MovieManagementPanel
+  class PaymentManagementPanel
+  class "PointHistoryPanel" as MgmtPointHistoryPanel
+  class ProductManagementPanel
+  class PromotionManagementPanel
+  class RoomManagementPanel
+  class SeatManagementPanel
+  class ShiftReportManagementPanel
+  class ShiftReportPanel
+  class ShowTimeManagementPanel
+  class StaffManagementPanel
+  class UserManagementPanel
+}
+
+package "Controller Layer" as CTRL {
+  class AuditLogController
+  class BookingController
+  class CustomerController
+  class InvoiceController
+  class MovieController
+  class PaymentController
+  class ProductController
+  class PromotionController
+  class RoomController
+  class SeatController
+  class ShiftReportController
+  class ShowTimeController
+  class UserController
+}
+
+package "Service Layer" as SRV {
+  interface IAuditLogService
+  interface IBookingService
+  interface ICustomerService
+  interface IInvoiceService
+  interface IMovieService
+  interface IPaymentService
+  interface IPointService
+  interface IProductService
+  interface IPromotionService
+  interface IRoomService
+  interface ISeatService
+  interface ISeatTypeService
+  interface IShiftReportService
+  interface IShowTimeService
+  interface IUserService
+}
+
+package "Repository Layer" as REPO {
+  class AuditLogRepository
+  class BookingSeatRepository
+  class CustomerRepository
+  class GenreRepository
+  class InvoiceRepository
+  class MovieRepository
+  class OrderDetailRepository
+  class PaymentRepository
+  class PointHistoryRepository
+  class ProductRepository
+  class PromotionRepository
+  class RoleRepository
+  class RoomRepository
+  class SeatLockRepository
+  class SeatRepository
+  class SeatTypeRepository
+  class ShiftReportRepository
+  class ShowTimeRepository
+  class UserRepository
+}
+
+package "Domain Model" as DOMAIN {
+  package "model.entity" {
+    enum MemberTier {
+      GOLD
+      SILVER
+      REGULAR
+    }
+
+    class Movie {
+      - String movieId
+      - String title
+      - Integer duration
+      - LocalDate releaseDate
+      - String description
+      - String ageRestriction
+    }
+
+    class Genre {
+      - String genreId
+      - String genreName
+    }
+
+    class MovieGenre {
+      - MovieGenreId id
+    }
+
+    class ShowTime {
+      - String showTimeId
+      - LocalDateTime startTime
+      - LocalDateTime endTime
+    }
+
+    class Room {
+      - String roomId
+      - String roomName
+      - Integer capacity
+    }
+
+    class SeatType {
+      - String seatTypeId
+      - String typeName
+      - BigDecimal basePrice
+    }
+
+    class Seat {
+      - String seatId
+      - String rowChar
+      - Integer seatNumber
+    }
+
+    class SeatLock {
+      - SeatLockId id
+      - LocalDateTime lockedAt
+      - LocalDateTime expiresAt
+    }
+
+    class BookingSeat {
+      - BookingSeatId id
+      - BigDecimal price
+    }
+
+    class Product {
+      - String productId
+      - String productName
+      - BigDecimal currentPrice
+    }
+
+    class OrderDetail {
+      - OrderDetailId id
+      - Integer quantity
+      - BigDecimal price
+    }
+
+    class Promotion {
+      - String promotionId
+      - String code
+      - String description
+      - BigDecimal discountPercent
+      - BigDecimal maxDiscountAmount
+      - LocalDate startDate
+      - LocalDate expiryDate
+      - String validDays
+      - Boolean isExclusive
+    }
+
+    class Invoice {
+      - String invoiceId
+      - BigDecimal totalAmount
+      - Integer usedPoints
+      - BigDecimal discountFromPoints
+      - Integer earnedPoints
+      - BigDecimal discountFromTier
+      - BigDecimal discountFromPromotion
+      - BigDecimal finalAmount
+      - LocalDateTime createdAt
+      - String status
+      - String cancellationReason
+    }
+
+    class Payment {
+      - String paymentId
+      - BigDecimal amount
+      - String paymentMethod
+      - String transactionCode
+      - String status
+      - LocalDateTime createdAt
+    }
+
+    class Customer {
+      - String customerId
+      - String fullName
+      - String phone
+      - String email
+      - Integer rewardPoints
+      - BigDecimal totalSpent
+      - String memberTier
+    }
+
+    class PointHistory {
+      - String historyId
+      - Integer pointAmount
+      - String transactionType
+      - String description
+      - LocalDateTime createdAt
+    }
+
+    class Role {
+      - String roleId
+      - String roleName
+    }
+
+    class User {
+      - String userId
+      - String username
+      - String password
+      - String fullName
+      - Boolean isActive
+      - String phone
+      - String email
+      - LocalDate birthDate
+      - String cccd
+      - String gender
+    }
+
+    class AuditLog {
+      - Long logId
+      - String tableName
+      - String fieldName
+      - String oldValue
+      - String newValue
+      - LocalDateTime changedAt
+    }
+
+    class ShiftReport {
+      - String shiftReportId
+      - LocalDateTime shiftStart
+      - LocalDateTime shiftEnd
+      - BigDecimal openingCash
+      - BigDecimal cashRevenue
+      - BigDecimal transferRevenue
+      - BigDecimal cardRevenue
+      - BigDecimal totalRevenue
+      - BigDecimal expectedCash
+      - BigDecimal actualCash
+      - BigDecimal discrepancy
+      - BigDecimal remittedCash
+      - BigDecimal carryOverCash
+      - LocalDateTime createdAt
+      - String status
+      - LocalDateTime approvedAt
+      - String notes
+    }
+  }
+}
+
+' ---------- Layer links ----------
+LoginFrame --> UserController
+BookingPanel --> BookingController
+BookingPanel --> InvoiceController
+CheckoutPanel --> InvoiceController
+MovieManagementPanel --> MovieController
+ShowTimeManagementPanel --> ShowTimeController
+ShowTimeManagementPanel --> RoomController
+RoomManagementPanel --> RoomController
+SeatManagementPanel --> SeatController
+SeatManagementPanel --> RoomController
+ProductManagementPanel --> ProductController
+PromotionManagementPanel --> PromotionController
+PromotionManagementPanel --> MovieController
+CustomerManagementPanel --> CustomerController
+PaymentManagementPanel --> PaymentController
+ShiftReportManagementPanel --> ShiftReportController
+ShiftReportPanel --> ShiftReportController
+StaffManagementPanel --> UserController
+AuditLogPanel --> AuditLogController
+UserManagementPanel --> UserController
+
+BookingController --> IBookingService
+BookingController --> IShowTimeService
+CustomerController --> ICustomerService
+CustomerController --> IPointService
+InvoiceController --> IInvoiceService
+InvoiceController --> IPromotionService
+MovieController --> IMovieService
+PaymentController --> IPaymentService
+ProductController --> IProductService
+PromotionController --> IPromotionService
+RoomController --> IRoomService
+SeatController --> ISeatService
+SeatController --> ISeatTypeService
+ShiftReportController --> IShiftReportService
+ShowTimeController --> IShowTimeService
+UserController --> IUserService
+AuditLogController --> IAuditLogService
+
+IBookingService --> BookingSeatRepository
+IBookingService --> SeatLockRepository
+IBookingService --> SeatRepository
+IBookingService --> ShowTimeRepository
+IInvoiceService --> InvoiceRepository
+IInvoiceService --> OrderDetailRepository
+IInvoiceService --> PaymentRepository
+IInvoiceService --> ProductRepository
+IInvoiceService --> PromotionRepository
+IInvoiceService --> CustomerRepository
+IInvoiceService --> PointHistoryRepository
+IMovieService --> MovieRepository
+IMovieService --> GenreRepository
+IPaymentService --> PaymentRepository
+IProductService --> ProductRepository
+IPromotionService --> PromotionRepository
+IRoomService --> RoomRepository
+ISeatService --> SeatRepository
+ISeatTypeService --> SeatTypeRepository
+IShiftReportService --> ShiftReportRepository
+IShowTimeService --> ShowTimeRepository
+IUserService --> UserRepository
+IUserService --> RoleRepository
+IAuditLogService --> AuditLogRepository
+IPointService --> PointHistoryRepository
+
+' ---------- Domain relationships ----------
+Movie "1" <-- "0..*" ShowTime : movie
+Room "1" <-- "0..*" ShowTime : room
+
+Room "1" <-- "0..*" Seat : room
+SeatType "1" <-- "0..*" Seat : seatType
+
+ShowTime "1" <-- "0..*" BookingSeat : showTime
+Seat "1" <-- "0..*" BookingSeat : seat
+Invoice "1" <-- "0..*" BookingSeat : invoice
+
+ShowTime "1" <-- "0..*" SeatLock : showTime
+Seat "1" <-- "0..*" SeatLock : seat
+User "1" <-- "0..*" SeatLock : lockedBy
+
+Invoice "1" <-- "0..*" OrderDetail : invoice
+Product "1" <-- "0..*" OrderDetail : product
+
+User "1" <-- "0..*" Invoice : user
+User "0..1" <-- "0..*" Invoice : approvedBy
+Customer "0..1" <-- "0..*" Invoice : customer
+Promotion "0..1" <-- "0..*" Invoice : promotion
+
+Invoice "1" <-- "0..*" Payment : payments
+Invoice "0..1" <-- "0..*" PointHistory : invoice
+Customer "1" <-- "0..*" PointHistory : customer
+
+Role "1" <-- "0..*" User : role
+User "1" <-- "0..*" AuditLog : changedBy
+User "1" <-- "0..*" ShiftReport : user
+User "0..1" <-- "0..*" ShiftReport : approvedBy
+Customer --> MemberTier : uses
+
+Movie "1" <-- "0..*" MovieGenre : movieGenres
+Genre "1" <-- "0..*" MovieGenre : movieGenres
+Movie "1" <-- "0..*" Promotion : applyToMovie
+
+' ---------- keep columns ----------
+VIEW -[hidden]right-> CTRL
+CTRL -[hidden]right-> SRV
+SRV -[hidden]right-> REPO
+REPO -[hidden]right-> DOMAIN
+
+' ---------- align top ----------
+LoginFrame -[hidden]right-> AuditLogController
+AuditLogController -[hidden]right-> IAuditLogService
+IAuditLogService -[hidden]right-> AuditLogRepository
+AuditLogRepository -[hidden]right-> MemberTier
+@enduml

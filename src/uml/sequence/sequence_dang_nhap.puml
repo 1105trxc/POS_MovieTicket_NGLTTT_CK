@@ -1,0 +1,62 @@
+@startuml seq_dang_nhap_v2
+
+
+title Sequence Diagram - Đăng nhập
+
+actor "User" as A
+participant "LoginFrame\n(View)" as V
+participant "UserController" as C
+participant "UserServiceImpl" as S
+participant "UserRepository" as R
+participant "UserSessionContext" as CTX
+participant "MainFrame" as MF
+database "Database" as DB
+
+A -> V: Nhập Username + Password
+A -> V: Nhấn "DANG NHAP" / Enter
+V -> V: validate rỗng
+
+alt thiếu thông tin
+  V -> A: JOptionPane "Vui lòng nhập đầy đủ thông tin"
+else đủ thông tin
+  V -> V: disable btnLogin, setText("Dang xac thuc...")
+  note right of V: Gọi handleLogin trong Thread riêng
+
+  V -> C: handleLogin(username, password)
+  C -> S: login(username, password)
+  S -> R: findByUsername(username)
+  R -> DB: SELECT User by username
+  DB --> R: User | null
+  R --> S: User | null
+
+  alt user != null và isActive = false
+    S --> C: throw RuntimeException
+    C -> C: catch RuntimeException
+    C --> V: false
+  else sai mật khẩu hoặc user null
+    S -> S: hashPassword(input)
+    S --> C: null
+    C --> V: false
+  else đăng nhập thành công
+    S -> S: so sánh pass plain hoặc SHA-256 hash
+    S --> C: User
+    C -> CTX: setCurrentUser(user)
+    C --> V: true
+
+    V -> CTX: getCurrentUser(), isAdmin()
+    alt !isAdmin
+      V -> CTX: setOpeningCash(standardOpeningCash)
+    else admin
+      V -> CTX: setOpeningCash(0)
+    end
+
+    V -> MF: new MainFrame(userId, roleName)
+    V -> V: dispose()
+  end
+
+  alt handleLogin == false
+    V -> A: JOptionPane "Sai tài khoản hoặc mật khẩu!"
+    V -> V: enable btnLogin, setText("DANG NHAP")
+  end
+end
+@enduml

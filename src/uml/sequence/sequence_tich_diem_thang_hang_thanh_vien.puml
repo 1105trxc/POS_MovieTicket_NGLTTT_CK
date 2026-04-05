@@ -1,0 +1,69 @@
+@startuml seq_tich_diem_nang_hang
+
+
+title Sequence Diagram - Tích ĐiểmĐiểm/Thăng hạng thành viên
+
+participant "CheckoutPanel\n(View)" as V
+participant "InvoiceController" as IC
+participant "InvoiceServiceImpl" as IS
+participant "PointServiceImpl" as PS
+participant "CustomerRepository" as CR
+participant "PointHistoryRepository" as PHR
+database "Database" as DB
+
+V -> IC: checkout(..., usedPoints, paymentMethod)
+IC -> IS: checkout(...)
+
+alt usedPoints > 0 và có customer
+  IS -> PS: calculatePointDiscount(customer, usedPoints, subTotal)
+  PS --> IS: pointDiscount
+end
+
+IS -> DB: Lưu Invoice + BookingSeat + OrderDetail + Payment
+
+alt paymentMethod != QR (CASH/CARD)
+  alt usedPoints > 0
+    IS -> PS: redeemPoints(customer, invoice, usedPoints)
+    PS -> CR: save(customer)
+    CR -> DB: UPDATE Customer (rewardPoints giảm)
+    PS -> PHR: save(REDEEM history)
+    PHR -> DB: INSERT PointHistory
+  end
+
+  alt earnedPoints > 0
+    IS -> PS: addPoints(customer, invoice, earnedPoints)
+    PS -> PS: rewardPoints += earnedPoints
+    PS -> PS: totalSpent += invoice.totalAmount
+    PS -> PS: upgradeTierIfEligible(customer)
+
+    alt totalSpent >= 5,000,000
+      PS -> PS: memberTier = "Gold"
+    else totalSpent >= 2,000,000
+      PS -> PS: memberTier = "Silver"
+    else
+      PS -> PS: memberTier = "Basic"
+    end
+
+    PS -> CR: save(customer)
+    CR -> DB: UPDATE Customer (points, totalSpent, memberTier)
+    PS -> PHR: save(EARN history)
+    PHR -> DB: INSERT PointHistory
+  end
+
+else paymentMethod == QR
+  note right of IS
+    Checkout chỉ tạo Payment PENDING.
+    Chưa cộng/trừ điểm tại thời điểm này.
+  end note
+
+  ... sau khi xác nhận QR thành công ...
+  IS -> PS: redeemPoints(...) (nếu có)
+  IS -> PS: addPoints(...) (nếu có)
+  note right of PS
+    Cùng logic nâng hạng như nhánh CASH/CARD
+  end note
+end
+
+IS --> IC: InvoiceDto
+IC --> V: InvoiceDto
+@enduml

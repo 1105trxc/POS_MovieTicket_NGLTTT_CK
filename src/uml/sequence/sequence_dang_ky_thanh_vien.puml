@@ -1,0 +1,86 @@
+@startuml
+
+
+title Sequence Diagram - Đăng ký thành viên
+
+autonumber
+actor Staff
+participant "CheckoutPanel\n(View)" as Checkout
+participant "CustomerSelectionDialog\n(View)" as Dialog
+participant "CustomerController" as Controller
+participant "CustomerServiceImpl" as Service
+participant "CustomerRepository" as Repo
+participant "AuditLogServiceImpl" as Audit
+database "Database" as DB
+
+== 1) Mở popup tìm kiếm/thêm thành viên ==
+Staff -> Checkout: Bấm "Tìm" khách hàng
+Checkout -> Dialog: new CustomerSelectionDialog(owner, phone)
+Dialog -> Controller: getAllCustomers()
+Controller -> Service: getAllCustomers()
+Service -> Repo: findAll()
+Repo -> DB: SELECT c FROM Customer c
+DB --> Repo: List<Customer>
+Repo --> Service: List<Customer>
+Service --> Controller: List<Customer>
+Controller --> Dialog: List<Customer>
+Dialog -> Staff: Hiển thị danh sách thành viên
+
+== 2) Nhập thông tin đăng ký mới ==
+Staff -> Dialog: Nhập Họ tên, SĐT, Email
+Staff -> Dialog: Bấm "Thêm Mới KH Của Rạp"
+Dialog -> Dialog: validate rỗng (name, phone)
+
+alt Thiếu họ tên hoặc SĐT
+  Dialog -> Staff: Báo lỗi "không được để trống"
+else Đủ dữ liệu
+  Dialog -> Controller: findByPhone(phone)
+  Controller -> Service: findByPhone(phone)
+  Service -> Repo: findByPhone(phone)
+  Repo -> DB: SELECT c WHERE phone = :phone
+  DB --> Repo: Customer | null
+  Repo --> Service: Optional<Customer>
+  Service --> Controller: Customer | null
+  Controller --> Dialog: Customer | null
+
+  alt SĐT đã tồn tại
+    Dialog -> Staff: Báo lỗi "SĐT đã tồn tại"
+  else SĐT chưa tồn tại
+    Dialog -> Dialog: Tạo Customer mới
+    note right of Dialog
+      customerId = "CUS" + (System.currentTimeMillis() % 1000000)
+      set fullName, phone, email
+      memberTier/rewardPoints/totalSpent
+      sẽ được Service set mặc định nếu chưa có
+    end note
+
+    Dialog -> Controller: createCustomer(customer)
+    Controller -> Service: createCustomer(customer)
+    Service -> Service: Kiểm tra trùng SĐT lần nữa
+
+    alt Trùng SĐT ở tầng service
+      Service --> Controller: throw RuntimeException
+      Controller --> Dialog: exception
+      Dialog -> Staff: Báo lỗi không thể thêm KH
+    else Hợp lệ
+      Service -> Service: Nếu memberTier rỗng => REGULAR
+      Service -> Repo: save(customer)
+      Repo -> DB: MERGE/INSERT Customer
+      DB --> Repo: saved Customer
+      Repo --> Service: Customer saved
+      Service -> Audit: logAction("CREATE", "Customer", ...)
+      Service --> Controller: done
+      Controller --> Dialog: success
+
+      Dialog -> Dialog: reload customers = getAllCustomers()
+      Dialog -> Staff: Thông báo thêm thành công + chọn dòng vừa thêm
+    end
+  end
+end
+
+== 3) Chọn thành viên vừa đăng ký để thanh toán ==
+Staff -> Dialog: Bấm "Chọn khách hàng" (hoặc double click)
+Dialog --> Checkout: getSelectedCustomer()
+Checkout -> Checkout: Cập nhật thông tin thành viên, điểm khả dụng
+
+@enduml

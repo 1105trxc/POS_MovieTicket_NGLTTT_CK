@@ -1,0 +1,81 @@
+@startuml
+title Sequence Diagram - Đặt vé 
+
+autonumber
+actor Staff as "Staff"
+participant MainFrame
+participant BookingPanel
+participant SeatMapPanel
+participant BookingController
+participant ShowTimeService as "ShowTimeServiceImpl"
+participant BookingService as "BookingServiceImpl"
+participant Repo as "Repository Layer"
+database DB as "Database"
+
+== 1) Mở tab bán vé và tải lịch chiếu ==
+Staff -> MainFrame: Mở tab Bán vé
+MainFrame -> BookingPanel: Hiển thị BookingPanel
+BookingPanel -> BookingController: getAllShowTimes()
+BookingController -> ShowTimeService: getAllShowTimes()
+ShowTimeService -> Repo: findAllShowTimes()
+Repo -> DB: Query showtimes + movie + room
+DB --> Repo: List<ShowTime>
+Repo --> ShowTimeService: List<ShowTime>
+ShowTimeService --> BookingController: List<ShowTime>
+BookingController --> BookingPanel: Danh sách đã lọc theo POS window
+BookingPanel -> BookingPanel: Render Date/Movie/Time matrix
+
+== 2) Chọn suất chiếu và tải sơ đồ ghế ==
+Staff -> BookingPanel: Chọn ngày/phim/suất
+BookingPanel -> SeatMapPanel: loadShowTime(showTimeId)
+SeatMapPanel -> BookingController: getSeatStatuses(showTimeId, userId)
+BookingController -> BookingService: getSeatStatuses(...)
+BookingService -> Repo: Cleanup pending QR quá hạn + lấy seat statuses
+Repo -> DB: Query Seat + SeatLock + BookingSeat + pending QR
+DB --> Repo: Seat status data
+Repo --> BookingService: List<SeatStatusDto>
+BookingService --> BookingController: seat statuses
+BookingController --> SeatMapPanel: seat statuses
+SeatMapPanel --> BookingPanel: callback onSelectionChanged()
+
+== 3) Chọn/Hủy chọn ghế ==
+Staff -> SeatMapPanel: Click ghế
+alt Ghế AVAILABLE
+  SeatMapPanel -> BookingController: lockSeat(showTimeId, seatId, userId)
+  BookingController -> BookingService: lockSeat(...)
+  BookingService -> Repo: validate showtime + check booked + check active lock + save SeatLock
+  Repo -> DB: SELECT/INSERT SeatLock
+  DB --> Repo: success/fail
+  BookingService --> BookingController: done/exception
+  SeatMapPanel -> BookingController: getSeatStatuses(...) để refresh
+else Ghế SELECTED (ghế của mình)
+  SeatMapPanel -> BookingController: unlockSeat(showTimeId, seatId, userId)
+  BookingController -> BookingService: unlockSeat(...)
+  BookingService -> Repo: delete lock nếu đúng owner
+  Repo -> DB: DELETE SeatLock
+  DB --> Repo: done
+else Ghế PROCESSING
+  SeatMapPanel --> BookingPanel: onProcessingSeatClicked(seatStatus)
+  BookingPanel -> MainFrame: switchToCheckout() (mở lại pending QR nếu cùng owner)
+else Ghế LOCKED/BOOKED
+  SeatMapPanel -> Staff: Thông báo ghế không khả dụng
+end
+
+== 4) Hủy toàn bộ ghế đang giữ ==
+Staff -> SeatMapPanel: Bấm "Hủy tất cả"
+SeatMapPanel -> BookingController: unlockAllSeats(showTimeId, userId)
+BookingController -> BookingService: unlockAllSeatsForUser(...)
+BookingService -> Repo: deleteUserLocksForShowTime(...)
+Repo -> DB: DELETE SeatLock by user/showtime
+DB --> Repo: done
+
+== 5) Sang bước thanh toán ==
+Staff -> BookingPanel: Bấm "Thanh toán"
+alt Không có vé và cũng không có F&B
+  BookingPanel --> Staff: Cảnh báo phải chọn vé hoặc F&B
+else Có ít nhất 1 mục (vé hoặc F&B)
+  BookingPanel -> MainFrame: onProceedToCheckout.run()
+  MainFrame -> MainFrame: switchToCheckout()
+end
+
+@enduml

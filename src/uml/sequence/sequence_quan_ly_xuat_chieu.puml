@@ -1,0 +1,102 @@
+@startuml
+title Sequence Diagram - Quản lý suất chiếu
+
+autonumber
+actor Admin as "Admin"
+
+participant ShowTimePanel as "ShowTimeManagementPanel"
+participant ShowTimeController
+participant ShowTimeService as "ShowTimeServiceImpl"
+participant ShowTimeRepo as "ShowTimeRepository"
+participant MovieRepo as "MovieRepository"
+participant RoomRepo as "RoomRepository"
+database DB as "Database"
+
+== Tải dữ liệu ban đầu ==
+Admin -> ShowTimePanel: Mở màn hình quản lý suất chiếu
+ShowTimePanel -> ShowTimeController: getAllShowTimes()
+ShowTimeController -> ShowTimeService: getAllShowTimes()
+ShowTimeService -> ShowTimeRepo: findAll()
+ShowTimeRepo -> DB: Query showtimes + movie + room
+DB --> ShowTimeRepo: list
+ShowTimeRepo --> ShowTimeService: list
+ShowTimeService --> ShowTimeController: list
+ShowTimeController --> ShowTimePanel: Hiển thị bảng
+
+== Thêm suất chiếu ==
+Admin -> ShowTimePanel: Chọn phim/phòng + nhập start/end + bấm Thêm
+ShowTimePanel -> ShowTimeController: addShowTime(movieId, roomId, start, end)
+ShowTimeController -> ShowTimeService: addShowTime(...)
+ShowTimeService -> MovieRepo: findById(movieId)
+MovieRepo -> DB: SELECT movie
+DB --> MovieRepo: movie
+ShowTimeService -> ShowTimeService: validateTimes(start,end,duration)
+ShowTimeService -> RoomRepo: findById(roomId)
+RoomRepo -> DB: SELECT room
+DB --> RoomRepo: room
+ShowTimeService -> ShowTimeRepo: hasConflict(roomId,start,end,null)
+ShowTimeRepo -> DB: Check conflict
+DB --> ShowTimeRepo: true/false
+
+alt Không xung đột
+  ShowTimeService -> ShowTimeRepo: save(showTime)
+  ShowTimeRepo -> DB: INSERT/MERGE showtime
+  DB --> ShowTimeRepo: success
+  ShowTimeService --> ShowTimeController: saved showtime
+  ShowTimeController --> ShowTimePanel: Thêm thành công
+else Xung đột / dữ liệu không hợp lệ
+  ShowTimeService --> ShowTimeController: throw exception
+  ShowTimeController --> ShowTimePanel: Thông báo lỗi
+end
+
+== Cập nhật suất chiếu ==
+Admin -> ShowTimePanel: Chọn dòng + chỉnh thông tin + bấm Cập nhật
+ShowTimePanel -> ShowTimeController: updateShowTime(showTimeId,movieId,roomId,start,end)
+ShowTimeController -> ShowTimeService: updateShowTime(...)
+ShowTimeService -> ShowTimeRepo: findById(showTimeId)
+ShowTimeRepo -> DB: SELECT showtime
+DB --> ShowTimeRepo: existing showtime
+ShowTimeService -> MovieRepo: findById(movieId)
+MovieRepo -> DB: SELECT movie
+DB --> MovieRepo: movie
+ShowTimeService -> ShowTimeService: validateTimes(start,end,duration)
+ShowTimeService -> RoomRepo: findById(roomId)
+RoomRepo -> DB: SELECT room
+DB --> RoomRepo: room
+ShowTimeService -> ShowTimeRepo: hasConflict(roomId,start,end,showTimeId)
+ShowTimeRepo -> DB: Check conflict (exclude current)
+DB --> ShowTimeRepo: true/false
+
+alt Không xung đột
+  ShowTimeService -> ShowTimeRepo: save(existing cập nhật)
+  ShowTimeRepo -> DB: UPDATE/MERGE showtime
+  DB --> ShowTimeRepo: success
+  ShowTimeController --> ShowTimePanel: Cập nhật thành công
+else Xung đột / không hợp lệ
+  ShowTimeController --> ShowTimePanel: Thông báo lỗi
+end
+
+== Xóa suất chiếu ==
+Admin -> ShowTimePanel: Chọn dòng + bấm Xóa
+ShowTimePanel -> ShowTimeController: deleteShowTime(showTimeId)
+ShowTimeController -> ShowTimeService: deleteShowTime(showTimeId)
+ShowTimeService -> ShowTimeRepo: findById(showTimeId)
+ShowTimeRepo -> DB: SELECT showtime
+DB --> ShowTimeRepo: showtime
+ShowTimeService -> ShowTimeRepo: hasAnyBookings(showTimeId)
+ShowTimeRepo -> DB: COUNT booking seats
+DB --> ShowTimeRepo: count
+ShowTimeService -> ShowTimeRepo: hasAnySeatLocks(showTimeId)
+ShowTimeRepo -> DB: COUNT seat locks
+DB --> ShowTimeRepo: count
+
+alt Không có booking và không có seat lock
+  ShowTimeService -> ShowTimeRepo: deleteById(showTimeId)
+  ShowTimeRepo -> DB: DELETE showtime
+  DB --> ShowTimeRepo: success
+  ShowTimeController --> ShowTimePanel: Xóa thành công
+else Có ràng buộc dữ liệu
+  ShowTimeController --> ShowTimePanel: Báo lỗi không thể xóa
+end
+
+@enduml

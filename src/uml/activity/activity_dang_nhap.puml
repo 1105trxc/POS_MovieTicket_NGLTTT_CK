@@ -1,0 +1,33 @@
+@startuml act_10_dang_nhap
+
+
+title Activity Diagram - Đăng nhập
+
+start
+:Người dùng mở màn hình đăng nhập;
+
+repeat
+  :Nhập Tên đăng nhập và Mật khẩu;
+  :Nhấn "Đăng nhập";
+  if (Username hoặc Password trống?) then (Có)
+    :Hiển thị cảnh báo\n"Vui lòng nhập đầy đủ thông tin";
+  else (Không trống)
+    if (Username không tồn tại?) then (Có)
+      :Hiển thị lỗi\n"Sai tài khoản hoặc mật khẩu";
+    elseif (Password hash không khớp?) then (Có)
+      :Hiển thị lỗi\n"Sai tài khoản hoặc mật khẩu";
+    elseif (Tài khoản bị khóa (IsActive=false)?) then (Có)
+      :Hiển thị lỗi\n"Tài khoản đã bị vô hiệu hóa";
+    else (Xác thực thành công)
+    endif
+  endif
+repeat while (Đăng nhập chưa thành công?) is (Có) not (Không)
+
+if (Vai trò = ADMIN?) then (Có)
+  :Mở màn hình chính với quyền Admin;
+else (STAFF)
+  :Mở màn hình chính với quyền Nhân viên;
+endif
+
+stop
+@enduml

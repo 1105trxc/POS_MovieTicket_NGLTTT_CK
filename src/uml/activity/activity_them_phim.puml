@@ -1,0 +1,32 @@
+@startuml act_them_phim
+
+
+title Activity Diagram - Thêm phim 
+start
+:Admin mở màn hình Quản lý Phim;
+:Nhấn "Thêm phim mới";
+
+repeat
+  :Nhập thông tin phim\n(Tên phim, Thể loại, Thời lượng, Mô tả, Ngày khởi chiếu);
+  if (Tên phim trống?) then (Có)
+    :Hiển thị lỗi\n"Tên phim không được để trống";
+  elseif (Thời lượng <= 0?) then (Có)
+    :Hiển thị lỗi\n"Thời lượng không hợp lệ";
+  elseif (Chưa chọn thể loại?) then (Có)
+    :Hiển thị lỗi\n"Vui lòng chọn ít nhất 1 thể loại";
+  elseif (Ngày chiếu sai định dạng?) then (Có)
+    :Hiển thị lỗi\n"Ngày chiếu không đúng định dạng";
+  else (Dữ liệu hợp lệ)
+  endif
+repeat while (Có lỗi nhập liệu?) is (Có) not (Không)
+
+:Admin nhấn "Lưu";
+if (Lưu thành công?) then (Có)
+  :Hiển thị "Thêm phim thành công!";
+  :Admin thấy phim mới trong danh sách;
+else (Không)
+  :Hiển thị thông báo chưa lưu được\nđể Admin kiểm tra lại dữ liệu;
+endif
+
+stop
+@enduml

@@ -1,0 +1,34 @@
+@startuml act_tich_diem_nang_hang
+
+
+title Activity Diagram – Tích điểm/Thăng hạng thành viên
+
+start
+:Nhân viên bắt đầu tạo hóa đơn thanh toán;
+:Nhân viên chọn khách hàng thành viên cho hóa đơn;
+
+if (Có khách hàng thành viên?) then (Không)
+  :Thông báo "Hóa đơn không tích điểm";
+  :Nhân viên tiếp tục thanh toán không tích điểm;
+else (Có)
+endif
+
+:Nhân viên hoàn tất thanh toán hóa đơn;
+if (Thanh toán thành công?) then (Có)
+  :Hệ thống tự động cộng điểm cho khách hàng;
+  :Hiển thị số điểm vừa cộng và tổng điểm hiện tại;
+
+  if (Khách đủ điều kiện nâng hạng?) then (Có)
+    :Hiển thị hạng mới của khách hàng;
+  else (Không cần nâng hạng)
+    :Giữ nguyên hạng hiện tại;
+  endif
+
+  :Nhân viên thông báo kết quả cho khách hàng;
+else (Không)
+  :Hiển thị "Thanh toán chưa thành công";
+  :Không thực hiện tích điểm;
+endif
+
+stop
+@enduml
