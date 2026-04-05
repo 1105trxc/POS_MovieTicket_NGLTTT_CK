@@ -115,13 +115,16 @@ Dự án được tổ chức theo kiến trúc phân lớp chuẩn xác:
 │  │  ├─ 📁 service/
 │  │  ├─ 📁 repository/
 │  │  ├─ 📁 model/
+│  │  ├─ 📁 utils/
 │  │  └─ 📁 view/
 │  └─ 📂 resources/META-INF/
 │     └─ 📄 persistence.xml
 ├─ 📂 database/
-│  ├─ 📜 create_database.sql
-│  └─ 📜 insert_sample_data.sql
+│  ├─ 📜 01_create_database.sql
+│  └─ 📜 02_create_tables.sql
+│  └─ 📜 03_insert_sample_data.sql
 └─ 📂 doc/
+└─ 📂 uml/
 ```
 
 ---
